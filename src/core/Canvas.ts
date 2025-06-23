@@ -151,8 +151,13 @@ export class Canvas {
     if (!gl) throw new Error("WebGL2 not supported");
     this.gl = gl;
     this.canvas = el;
+    this.enableResizeHandler();
     this.enablePointerLock();
     this.resizeToDisplaySize();
+  }
+
+  private enableResizeHandler() {
+    this.canvas.addEventListener("resize", ()=>this.resizeToDisplaySize());
   }
 
   private enablePointerLock() {

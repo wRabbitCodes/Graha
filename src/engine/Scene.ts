@@ -71,7 +71,7 @@
 //     return this.camera;
 //   }
 // }
-import { Input } from "./IO";
+import { IO } from "./IO";
 import { Canvas } from "../core/Canvas";
 import { GLUtils } from "../core/GLUtils";
 import { Camera } from "../core/Camera";
@@ -85,7 +85,7 @@ export class Scene {
   public readonly canvas: Canvas;
   public readonly camera: Camera;
   public readonly skybox: Skybox;
-  public readonly input: Input;
+  public readonly input: IO;
   public readonly em: EntityManager;
 
   constructor(canvasId: string) {
@@ -93,7 +93,7 @@ export class Scene {
     this.gl = this.canvas.gl;
 
     this.utils = new GLUtils(this.gl);
-    this.input = new Input(this.canvas.canvas);
+    this.input = new IO(this.canvas.canvas);
     this.camera = new Camera();
     this.em = new EntityManager();
     this.skybox = new Skybox(this.gl, this.utils);
@@ -104,8 +104,6 @@ export class Scene {
         this.input.disableInputs();
         this.input.clear();
       } else {
-        this.input.disableInputs();
-        this.input.clear();
         this.input.enableMouseInputs((dragging, e) => {
           if (!dragging) this.camera.cameraMouseHandler(e);
         })
@@ -115,7 +113,6 @@ export class Scene {
   }
 
   private update() {
-    this.canvas.resizeToDisplaySize();
     this.camera.cameraKeyboardHandler(this.input.getKeys());
   }
 

@@ -13,9 +13,6 @@ export class Camera {
   private speed: number = 0.1;
   private sensitivity: number = 0.1;
 
-  private lastMouseX = 0;
-  private lastMouseY = 0;
-
   constructor() {
     this.updateVectors();
     this.updateViewMatrix();
@@ -48,15 +45,13 @@ export class Camera {
 
   cameraMouseHandler(e: MouseEvent) {
     console.log('MOUSE MOVED | NO DRAG')
-    const offsetX = e.clientX - this.lastMouseX;
-    const offsetY = this.lastMouseY - e.clientY;
-    this.lastMouseX = e.clientX;
-    this.lastMouseY = e.clientY;
+    const offsetX = e.movementX;
+    const offsetY = -e.movementY; // reverse Y if needed for intuition
 
     this.yaw += offsetX * this.sensitivity;
     this.pitch += offsetY * this.sensitivity;
 
-    // Clamp pitch to avoid gimbal lock
+    // Clamp pitch 
     this.pitch = Math.max(-89.0, Math.min(89.0, this.pitch));
 
     this.updateVectors(); // Must update front, right, up
