@@ -18,6 +18,8 @@ export class Planet implements Entity {
   private position: vec3;
   private scale: vec3;
   private radius: number;
+  private axis = vec3.fromValues(0,1,0);
+  private rotationPerFrame = 0.03;
 
   private uniformLocations: { [key: string]: WebGLUniformLocation | null } = {};
   private textures: PlanetTextureTypes = {
@@ -26,11 +28,11 @@ export class Planet implements Entity {
     specular: null,
     atmosphere: null,
   };
-  
+
   update(deltaTime: number) {
-    this.updateRotation(deltaTime);
+    this.updateRotation();
   }
-  
+
   constructor(
     private planetName: string,
     gl: WebGL2RenderingContext,
@@ -125,13 +127,16 @@ export class Planet implements Entity {
     }
   }
 
-  updateRotation(deltaTime: number) {
-    const axis = vec3.fromValues(0, 1, 0);
-    const angle = deltaTime * 0.001;
-    const q = quat.setAxisAngle(quat.create(), axis, angle);
-    quat.multiply(this.rotationQuat, q, this.rotationQuat);
+  updateRotation() {
+    const q = quat.setAxisAngle(quat.create(), this.axis, this.rotationPerFrame);
+
+    // Apply incremental rotation *after* current rotation
+    quat.multiply(this.rotationQuat, this.rotationQuat, q);
+
+    // Normalize to avoid floating point drift
+    quat.normalize(this.rotationQuat, this.rotationQuat);
   }
-  
+
   private updateModelMatrix() {
     mat4.fromRotationTranslationScale(this.modelMatrix, this.rotationQuat, this.position, this.scale);
   }
