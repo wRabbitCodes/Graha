@@ -1,0 +1,25 @@
+{
+  "name": "graha",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "build": "webpack --config webpack.config.mjs",
+    "start": "webpack serve --config webpack.config.mjs"
+  },
+  "keywords": [],
+  "author": "Aashish Bhandari",
+  "license": "ISC",
+  "type": "module",
+  "devDependencies": {
+    "html-webpack-plugin": "^5.6.3",
+    "ts-loader": "^9.5.2",
+    "typescript": "^5.8.3",
+    "webpack": "^5.99.9",
+    "webpack-cli": "^6.0.1",
+    "webpack-dev-server": "^5.2.2"
+  },
+  "dependencies": {
+    "gl-matrix": "^3.4.3"
+  }
+}

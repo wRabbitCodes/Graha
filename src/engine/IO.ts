@@ -1,0 +1,47 @@
+import { Canvas } from "../core/Canvas";
+
+// src/engine/Input.ts
+export class Input {
+  private keys: Set<string> = new Set();
+  private isMouseDragging = false;
+  private mouseDelta: { x: number; y: number } = { x: 0, y: 0 };
+  private controller?: AbortController;
+
+  constructor(private canvasElement: HTMLCanvasElement) {}
+
+
+  enableKeyboardInputs() {
+    let signal = this.controller?.signal;
+    document.addEventListener("keydown", (e) => this.keys.add(e.key), { signal });
+    document.addEventListener("keyup", (e) => this.keys.delete(e.key), { signal });
+  }
+
+  enableMouseInputs(dragMouseCallback?: (e: MouseEvent) => void, normalMouseCallback?: (e: MouseEvent) => void) {
+    let signal = this.controller?.signal;
+    this.canvasElement.addEventListener("mousedown", (e) => {
+        if (e.button === 0) this.isMouseDragging = true; // Left click
+    }, {signal});
+    
+    this.canvasElement.addEventListener("mouseup", (e) => {
+        if (e.button === 0) this.isMouseDragging = false;
+    }, {signal});
+    this.canvasElement.addEventListener("mousemove", (e) => {
+        if (!this.isMouseDragging && normalMouseCallback) normalMouseCallback(e);
+        if (this.isMouseDragging && dragMouseCallback) dragMouseCallback(e);
+    }, {signal});
+  }
+
+  disableInputs() {
+    this.controller?.abort();
+    this.controller = new AbortController();
+  }
+
+  getKeys() {
+    return this.keys;
+  }
+
+  clear() {
+    this.keys.clear();
+    this.mouseDelta = { x: 0, y: 0 };
+  }
+}
