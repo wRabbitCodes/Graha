@@ -1,11 +1,15 @@
-import { mat4, vec3, quat } from "gl-matrix";
+import { mat4, vec3, quat, mat3 } from "gl-matrix";
 import { GLUtils } from "../core/GLUtils";
 import { Entity } from "./Entity";
 import { OrbitSystem } from "../systems/OrbitSystems";
 
 type PlanetTextureTypes = {
-  [Key in 'surface' | 'normal' | 'specular' | 'atmosphere']: WebGLTexture | null
-}
+  [Key in
+    | "surface"
+    | "normal"
+    | "specular"
+    | "atmosphere"]: WebGLTexture | null;
+};
 
 export class Planet implements Entity {
   private gl: WebGL2RenderingContext;
@@ -19,7 +23,7 @@ export class Planet implements Entity {
   private position: vec3;
   private scale: vec3;
   private radius: number;
-  private axis = vec3.fromValues(0,1,0);
+  private axis = vec3.fromValues(0, 1, 0);
   private rotationPerFrame = 0.03;
 
   private orbit?: OrbitSystem;
@@ -33,9 +37,6 @@ export class Planet implements Entity {
   };
 
   update(deltaTime: number) {
-    if (this.orbit) {
-      this.position = this.orbit.getPosition(deltaTime);
-    }
     this.updateRotation();
   }
 
@@ -48,7 +49,7 @@ export class Planet implements Entity {
     private surfaceURL: string,
     private normalMapURL?: string,
     private atmosphereURL?: string,
-    private specularURL?: string,
+    private specularURL?: string
   ) {
     this.gl = gl;
     this.utils = utils;
@@ -56,7 +57,10 @@ export class Planet implements Entity {
     this.scale = scale;
     this.radius = Math.max(...this.scale);
 
-    this.program = this.utils.createProgram(Planet.vertexShaderSrc, Planet.fragmentShaderSrc);
+    this.program = this.utils.createProgram(
+      Planet.vertexShaderSrc,
+      Planet.fragmentShaderSrc
+    );
     gl.useProgram(this.program);
 
     this.initiUniforms();
@@ -65,18 +69,54 @@ export class Planet implements Entity {
   }
 
   private initiUniforms() {
-    this.uniformLocations.surface = this.gl.getUniformLocation(this.program, "u_surfaceTexture");
-    this.uniformLocations.normal = this.gl.getUniformLocation(this.program, "u_normalTexture");
-    this.uniformLocations.specular = this.gl.getUniformLocation(this.program, "u_specularTexture");
-    this.uniformLocations.atmosphere = this.gl.getUniformLocation(this.program, "u_atmosphereTexture");
-    this.uniformLocations.model = this.gl.getUniformLocation(this.program, "u_model");
-    this.uniformLocations.view = this.gl.getUniformLocation(this.program, "u_view");
-    this.uniformLocations.projection = this.gl.getUniformLocation(this.program, "u_proj");
-    this.uniformLocations.lightPos = this.gl.getUniformLocation(this.program, "u_lightPos");
-    this.uniformLocations.viewPos = this.gl.getUniformLocation(this.program, "u_viewPos");
-    this.uniformLocations.useNormal = this.gl.getUniformLocation(this.program, "u_useNormal");
-    this.uniformLocations.useSpecular = this.gl.getUniformLocation(this.program, "u_useSpecular");
-    this.uniformLocations.useAtmosphere = this.gl.getUniformLocation(this.program, "u_useAtmosphere");
+    this.uniformLocations.surface = this.gl.getUniformLocation(
+      this.program,
+      "u_surfaceTexture"
+    );
+    this.uniformLocations.normal = this.gl.getUniformLocation(
+      this.program,
+      "u_normalTexture"
+    );
+    this.uniformLocations.specular = this.gl.getUniformLocation(
+      this.program,
+      "u_specularTexture"
+    );
+    this.uniformLocations.atmosphere = this.gl.getUniformLocation(
+      this.program,
+      "u_atmosphereTexture"
+    );
+    this.uniformLocations.model = this.gl.getUniformLocation(
+      this.program,
+      "u_model"
+    );
+    this.uniformLocations.view = this.gl.getUniformLocation(
+      this.program,
+      "u_view"
+    );
+    this.uniformLocations.projection = this.gl.getUniformLocation(
+      this.program,
+      "u_proj"
+    );
+    this.uniformLocations.lightPos = this.gl.getUniformLocation(
+      this.program,
+      "u_lightPos"
+    );
+    this.uniformLocations.viewPos = this.gl.getUniformLocation(
+      this.program,
+      "u_viewPos"
+    );
+    this.uniformLocations.useNormal = this.gl.getUniformLocation(
+      this.program,
+      "u_useNormal"
+    );
+    this.uniformLocations.useSpecular = this.gl.getUniformLocation(
+      this.program,
+      "u_useSpecular"
+    );
+    this.uniformLocations.useAtmosphere = this.gl.getUniformLocation(
+      this.program,
+      "u_useAtmosphere"
+    );
   }
 
   private setupMesh() {
@@ -118,50 +158,88 @@ export class Planet implements Entity {
   async loadTextures() {
     let unit = 0;
 
-    this.textures.surface = await this.utils.loadTexture(this.surfaceURL, unit++);
+    this.textures.surface = await this.utils.loadTexture(
+      this.surfaceURL,
+      unit++
+    );
 
     if (this.normalMapURL) {
-      this.textures.normal = await this.utils.loadTexture(this.normalMapURL, unit++);
+      this.textures.normal = await this.utils.loadTexture(
+        this.normalMapURL,
+        unit++
+      );
     }
 
     if (this.specularURL) {
-      this.textures.specular = await this.utils.loadTexture(this.specularURL, unit++);
+      this.textures.specular = await this.utils.loadTexture(
+        this.specularURL,
+        unit++
+      );
     }
 
     if (this.atmosphereURL) {
-      this.textures.atmosphere = await this.utils.loadTexture(this.atmosphereURL, unit++);
+      this.textures.atmosphere = await this.utils.loadTexture(
+        this.atmosphereURL,
+        unit++
+      );
     }
   }
 
   updateRotation() {
-    const q = quat.setAxisAngle(quat.create(), this.axis, this.rotationPerFrame);
-
-    // Apply incremental rotation *after* current rotation
-    quat.multiply(this.rotationQuat, this.rotationQuat, q);
-
-    // Normalize to avoid floating point drift
-    quat.normalize(this.rotationQuat, this.rotationQuat);
+    const q = quat.setAxisAngle(
+      quat.create(),
+      this.axis,
+      this.rotationPerFrame
+    );
+    quat.multiply(this.rotationQuat, q, this.rotationQuat);
   }
 
   private updateModelMatrix() {
-    mat4.fromRotationTranslationScale(this.modelMatrix, this.rotationQuat, this.position, this.scale);
+    mat4.fromRotationTranslationScale(
+      this.modelMatrix,
+      this.rotationQuat,
+      this.position,
+      this.scale
+    );
   }
 
-  render(viewMatrix: mat4, projectionMatrix: mat4, lightPos: vec3, cameraPos: vec3) {
+  render(
+    viewMatrix: mat4,
+    projectionMatrix: mat4,
+    lightPos: vec3,
+    cameraPos: vec3
+  ) {
     const gl = this.gl;
     gl.useProgram(this.program);
     gl.bindVertexArray(this.vao!);
 
     this.updateModelMatrix();
+    const normalMatrix = mat3.create();
+    mat3.normalFromMat4(normalMatrix, this.modelMatrix);
+    gl.uniformMatrix3fv(
+      this.uniformLocations.normalMatrix,
+      false,
+      normalMatrix
+    );
     gl.uniformMatrix4fv(this.uniformLocations.model, false, this.modelMatrix);
     gl.uniformMatrix4fv(this.uniformLocations.view, false, viewMatrix);
-    gl.uniformMatrix4fv(this.uniformLocations.projection, false, projectionMatrix);
+    gl.uniformMatrix4fv(
+      this.uniformLocations.projection,
+      false,
+      projectionMatrix
+    );
     gl.uniform3fv(this.uniformLocations.lightPos, lightPos);
     gl.uniform3fv(this.uniformLocations.viewPos, cameraPos);
 
     gl.uniform1i(this.uniformLocations.useNormal, this.textures.normal ? 1 : 0);
-    gl.uniform1i(this.uniformLocations.useSpecular, this.textures.specular ? 1 : 0);
-    gl.uniform1i(this.uniformLocations.useAtmosphere, this.textures.atmosphere ? 1 : 0);
+    gl.uniform1i(
+      this.uniformLocations.useSpecular,
+      this.textures.specular ? 1 : 0
+    );
+    gl.uniform1i(
+      this.uniformLocations.useAtmosphere,
+      this.textures.atmosphere ? 1 : 0
+    );
 
     this.bindTextures();
 
@@ -181,21 +259,15 @@ export class Planet implements Entity {
       }
     }
   }
-  
-  getPosition() {
-    return this.position;
-  }
-
-  getRadius() {
-    return this.radius;
-  }
-
-  setOrbitSystem(orbit: OrbitSystem) {
-    this.orbit = orbit;
-  }
 
   getName() {
     return this.name;
+  }
+  getPosition() {
+    return this.position;
+  }
+  getRadius() {
+    return this.radius;
   }
 
   static vertexShaderSrc = `#version 300 es
@@ -207,14 +279,17 @@ export class Planet implements Entity {
     uniform mat4 u_model;
     uniform mat4 u_view;
     uniform mat4 u_proj;
+    uniform mat3 u_normalMatrix;
+
     out vec3 v_fragPos;
     out vec3 v_normal;
     out vec2 v_uv;
+
     void main() {
+      v_uv = a_uv;
       vec4 worldPos = u_model * vec4(a_position, 1.0);
       v_fragPos = worldPos.xyz;
-      v_normal = mat3(u_model) * a_normal;
-      v_uv = a_uv;
+      v_normal = normalize(u_normalMatrix * a_normal);
       gl_Position = u_proj * u_view * worldPos;
     }
   `;
@@ -222,40 +297,59 @@ export class Planet implements Entity {
   static fragmentShaderSrc = `#version 300 es
     #pragma vscode_glsllint_stage : frag
     precision mediump float;
+
     in vec2 v_uv;
     in vec3 v_fragPos;
     in vec3 v_normal;
+
     uniform sampler2D u_surfaceTexture;
     uniform sampler2D u_normalTexture;
     uniform sampler2D u_specularTexture;
     uniform sampler2D u_atmosphereTexture;
+
     uniform bool u_useNormal;
     uniform bool u_useSpecular;
     uniform bool u_useAtmosphere;
+
     uniform vec3 u_lightPos;
     uniform vec3 u_viewPos;
+
     out vec4 fragColor;
+
     void main() {
+      vec3 fallbackColor = vec3(0.4, 0.7, 1.0);
       vec3 baseColor = texture(u_surfaceTexture, v_uv).rgb;
+      if (length(baseColor) < 0.01) baseColor = fallbackColor;
+
       vec3 normal = normalize(v_normal);
       if (u_useNormal) {
-        vec3 normalMap = texture(u_normalTexture, v_uv).rgb;
-        normal = normalize(normalMap * 2.0 - 1.0);
+        vec3 sampledNormal = texture(u_normalTexture, v_uv).rgb;
+        normal = normalize(sampledNormal * 2.0 - 1.0);
       }
+
+      vec3 lightColor = vec3(1.0, 1.0, 0.9);
       vec3 lightDir = normalize(u_lightPos - v_fragPos);
-      vec3 viewDir = normalize(u_viewPos - v_fragPos);
       float diff = max(dot(normal, lightDir), 0.0);
+      vec3 diffuse = diff * lightColor;
+
+      vec3 ambient = 0.05 * lightColor;
+      vec3 viewDir = normalize(u_viewPos - v_fragPos);
+      vec3 reflectDir = reflect(-lightDir, normal);
+
       float spec = 0.0;
       if (u_useSpecular) {
-        float specularStrength = texture(u_specularTexture, v_uv).r;
-        vec3 reflectDir = reflect(-lightDir, normal);
-        spec = pow(max(dot(viewDir, reflectDir), 0.0), 32.0) * specularStrength;
+        float specStrength = texture(u_specularTexture, v_uv).r;
+        spec = pow(max(dot(viewDir, reflectDir), 0.0), 32.0) * specStrength;
       }
-      vec3 color = baseColor * diff + vec3(spec);
+
+      vec3 finalColor = (ambient + diffuse) * baseColor + vec3(spec);
+
       if (u_useAtmosphere) {
-        vec3 atmosphereColor = texture(u_atmosphereTexture, v_uv).rgb;
-        color += atmosphereColor * 0.3;
+        vec3 atmo = texture(u_atmosphereTexture, v_uv).rgb;
+        finalColor += atmo * 0.3;
       }
-      fragColor = vec4(color, 1.0);
-    }`;
+
+      fragColor = vec4(finalColor, 1.0);
+    }
+  `;
 }

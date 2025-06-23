@@ -15,27 +15,33 @@ const scene = new Scene("glCanvas");
 //   { src: 'cubemap/negz.png', target: scene.gl.TEXTURE_CUBE_MAP_NEGATIVE_Z },
 // ]);
 
-scene.em.add(new Planet('Earth', scene.gl, scene.utils,
-  vec3.fromValues(0, 0, 0),
-  vec3.fromValues(2, 2, 2),
+scene.entityManager.add(new Planet('Earth', scene.gl, scene.utils,
+  vec3.fromValues(0, 0, -40),
+  vec3.fromValues(20, 20, 20),
   "textures/4k_earth_surface.jpg",
   "textures/4k_earth_normal.jpg",
   "textures/4k_earth_atmosphere.png",      // atmosphere overlay
   "textures/4k_earth_specular.jpg",     // specular (reflectivity)
 ));
-
-(scene.em.getEntity('Earth') as Planet).setOrbitSystem(new OrbitSystem(
-  vec3.fromValues(0, 0, 0),
-  30,
-  0.1,
-));
-
-scene.em.add(new Planet('Mars', scene.gl, scene.utils,
-  vec3.fromValues(2, 0, 10),
-  vec3.fromValues(4, 4, 4),
+scene.entityManager.add(new Planet('Mars', scene.gl, scene.utils,
+  vec3.fromValues(0, 0, 50),
+  vec3.fromValues(15, 15, 15),
   "textures/2k_mars_surface.jpg",
   "textures/2k_mars_normal.png",
 ));
+
+// (scene.em.getEntity('Earth') as Planet).setOrbitSystem(new OrbitSystem(
+//   vec3.fromValues(0, 0, 0),
+//   100,
+//   0.1,
+// ));
+// After planet creation:
+scene.orbitSystem.addOrbitingObject(scene.entityManager.getEntity('Earth')!, scene.sun.getPosition(), // sun at origin
+  6.0,
+  0.0005,
+  true,
+  [0.2, 0.8, 1.0] // orbit path color);
+);
 
 function loop(time: number) {
   scene.render(time);
