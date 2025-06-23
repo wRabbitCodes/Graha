@@ -13,7 +13,7 @@ export class Planet implements Entity {
   private vao?: WebGLVertexArrayObject;
   private indexCount = 0;
 
-  private modelMatrix = mat4.create();
+  private modelMatrix = mat4.identity(mat4.create());
   private rotationQuat = quat.create();
   private position: vec3;
   private scale: vec3;
@@ -26,6 +26,7 @@ export class Planet implements Entity {
     specular: null,
     atmosphere: null,
   };
+  
   update(deltaTime: number) {
     this.updateRotation(deltaTime);
   }
@@ -130,14 +131,17 @@ export class Planet implements Entity {
     const q = quat.setAxisAngle(quat.create(), axis, angle);
     quat.multiply(this.rotationQuat, q, this.rotationQuat);
   }
+  
+  private updateModelMatrix() {
+    mat4.fromRotationTranslationScale(this.modelMatrix, this.rotationQuat, this.position, this.scale);
+  }
 
   render(viewMatrix: mat4, projectionMatrix: mat4, lightPos: vec3, cameraPos: vec3) {
     const gl = this.gl;
     gl.useProgram(this.program);
     gl.bindVertexArray(this.vao!);
 
-    mat4.fromRotationTranslationScale(this.modelMatrix, this.rotationQuat, this.position, this.scale);
-
+    this.updateModelMatrix();
     gl.uniformMatrix4fv(this.uniformLocations.model, false, this.modelMatrix);
     gl.uniformMatrix4fv(this.uniformLocations.view, false, viewMatrix);
     gl.uniformMatrix4fv(this.uniformLocations.projection, false, projectionMatrix);

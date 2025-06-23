@@ -6,7 +6,7 @@ export class Camera {
   private up: vec3 = vec3.fromValues(0, 1, 0);
   private right: vec3 = vec3.create();
   private worldUp: vec3 = vec3.fromValues(0, 1, 0);
-  private viewMatrix: mat4 = mat4.create();
+  private viewMatrix: mat4 = mat4.identity(mat4.create());
 
   private yaw: number = -90;
   private pitch: number = 0;

@@ -112,15 +112,24 @@ export class Scene {
     });
   }
 
-  private update() {
+  private update(time: number) {
     this.camera.cameraKeyboardHandler(this.input.getKeys());
+    this.em.update(time);
   }
 
-  render() {
-    this.update();
+  render(time: number) {
+    this.update(time);
+
+    this.gl.enable(this.gl.DEPTH_TEST);
+    this.gl.clearColor(0.0, 0.0, 0.0, 1.0);
+    this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
+
     const view = this.camera.getViewMatrix();
     const proj = this.canvas.getProjectionMatrix();
-    this.skybox.render(view, proj);
+    
+    if (this.skybox.isReady()) {
+      this.skybox.render(view, proj);
+    }
     this.em.render(view, proj, vec3.fromValues(15,15,15), this.camera.getPosition());
   }
 }

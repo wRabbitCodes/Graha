@@ -30,7 +30,7 @@ scene.em.add(new Planet('Mars', scene.gl, scene.utils,
 ));
 
 function loop(time: number) {
-  scene.render();
+  scene.render(time);
   requestAnimationFrame(loop);
 }
 
