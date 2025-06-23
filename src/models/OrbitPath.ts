@@ -2,81 +2,101 @@ import { mat4 } from "gl-matrix";
 import { GLUtils } from "../core/GLUtils";
 
 export class OrbitPath {
-  private vao: WebGLVertexArrayObject;
-  private buffer: WebGLBuffer;
+  private vao: WebGLVertexArrayObject | null = null;
+  private indexCount = 0;
   private program: WebGLProgram;
-  private segments = 128;
-  private vertexCount: number;
 
   constructor(
     private gl: WebGL2RenderingContext,
     private utils: GLUtils,
-    private radius: number,
-    private color: [number, number, number] = [0.5, 0.5, 0.5]
+    private orbitParams: {
+      semiMajorAxis: number;   // a (in scene units, e.g., scaled km)
+      eccentricity: number;    // e
+      inclination: number;     // i (degrees)
+      longitudeOfAscendingNode: number; // Ω (degrees)
+      argumentOfPeriapsis: number;      // ω (degrees)
+    }
   ) {
     this.program = this.utils.createProgram(OrbitPath.vertSrc, OrbitPath.fragSrc);
-    const vertices: number[] = [];
-
-    for (let i = 0; i <= this.segments; i++) {
-      const angle = (i / this.segments) * Math.PI * 2;
-      vertices.push(Math.cos(angle) * this.radius, 0, Math.sin(angle) * this.radius);
-    }
-
-    this.vertexCount = vertices.length / 3;
-
-    this.buffer = gl.createBuffer()!;
-    gl.bindBuffer(gl.ARRAY_BUFFER, this.buffer);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
-
-    this.vao = gl.createVertexArray()!;
-    gl.bindVertexArray(this.vao);
-
-    const loc = gl.getAttribLocation(this.program, "a_position");
-    gl.enableVertexAttribArray(loc);
-    gl.vertexAttribPointer(loc, 3, gl.FLOAT, false, 0, 0);
-
-    gl.bindVertexArray(null);
+    this.setupEllipseMesh();
   }
 
-  render(view: mat4, projection: mat4) {
+  private setupEllipseMesh() {
+    const { semiMajorAxis: a, eccentricity: e } = this.orbitParams;
+    const b = a * Math.sqrt(1 - e * e); // semi-minor axis
+
+    const points: number[] = [];
+    const segments = 180;
+
+    for (let i = 0; i <= segments; i++) {
+      const theta = (i / segments) * 2 * Math.PI;
+      const x = a * Math.cos(theta) - a * e; // center at focus (sun)
+      const y = b * Math.sin(theta);
+      points.push(x, 0, y);
+    }
+
+    const vertices = new Float32Array(points);
+
+    const vao = this.gl.createVertexArray();
+    const vbo = this.gl.createBuffer();
+    if (!vao || !vbo) throw new Error("Failed to create buffers");
+
+    this.gl.bindVertexArray(vao);
+    this.gl.bindBuffer(this.gl.ARRAY_BUFFER, vbo);
+    this.gl.bufferData(this.gl.ARRAY_BUFFER, vertices, this.gl.STATIC_DRAW);
+
+    const loc = this.gl.getAttribLocation(this.program, "a_position");
+    this.gl.enableVertexAttribArray(loc);
+    this.gl.vertexAttribPointer(loc, 3, this.gl.FLOAT, false, 0, 0);
+
+    this.vao = vao;
+    this.indexCount = vertices.length / 3;
+
+    this.gl.bindVertexArray(null);
+  }
+
+  public render(view: mat4, proj: mat4) {
     const gl = this.gl;
     gl.useProgram(this.program);
     gl.bindVertexArray(this.vao);
 
-    gl.uniformMatrix4fv(
-      gl.getUniformLocation(this.program, "u_view"),
-      false,
-      view
-    );
-    gl.uniformMatrix4fv(
-      gl.getUniformLocation(this.program, "u_proj"),
-      false,
-      projection
-    );
-    gl.uniform3fv(gl.getUniformLocation(this.program, "u_color"), this.color);
+    const model = this.computeTransformMatrix();
+    gl.uniformMatrix4fv(gl.getUniformLocation(this.program, "u_model"), false, model);
+    gl.uniformMatrix4fv(gl.getUniformLocation(this.program, "u_view"), false, view);
+    gl.uniformMatrix4fv(gl.getUniformLocation(this.program, "u_proj"), false, proj);
 
-    gl.drawArrays(gl.LINE_STRIP, 0, this.vertexCount);
+    gl.drawArrays(gl.LINE_STRIP, 0, this.indexCount);
     gl.bindVertexArray(null);
+  }
+
+  private computeTransformMatrix(): mat4 {
+    const { inclination, longitudeOfAscendingNode: Ω, argumentOfPeriapsis: ω } = this.orbitParams;
+    const model = mat4.create();
+
+    // Order: rotate around Z (Ω), then X (i), then Z (ω)
+    mat4.rotateZ(model, model, Ω * Math.PI / 180);
+    mat4.rotateX(model, model, inclination * Math.PI / 180);
+    mat4.rotateZ(model, model, ω * Math.PI / 180);
+
+    return model;
   }
 
   static vertSrc = `#version 300 es
     #pragma vscode_glsllint_stage : vert
     precision mediump float;
     layout(location = 0) in vec3 a_position;
-    uniform mat4 u_view;
-    uniform mat4 u_proj;
+    uniform mat4 u_model, u_view, u_proj;
     void main() {
-      gl_Position = u_proj * u_view * vec4(a_position, 1.0);
+      gl_Position = u_proj * u_view * u_model * vec4(a_position, 1.0);
     }
   `;
 
   static fragSrc = `#version 300 es
     #pragma vscode_glsllint_stage : frag
     precision mediump float;
-    uniform vec3 u_color;
-    out vec4 outColor;
+    out vec4 fragColor;
     void main() {
-      outColor = vec4(u_color, 1.0);
+      fragColor = vec4(1.0, 1.0, 1.0, 0.6); // white translucent orbit
     }
   `;
 }

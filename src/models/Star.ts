@@ -21,6 +21,9 @@ export abstract class Star implements Entity {
   ) {
     this.program = this.utils.createProgram(vertexSrc, fragmentSrc);
   }
+  setPosition(newPosition: vec3): void {
+    return;
+  }
 
   abstract update(dt: number): void;
   abstract render(view: mat4, proj: mat4, cameraPos: vec3): void;

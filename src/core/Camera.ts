@@ -1,4 +1,5 @@
 import { vec3, mat4 } from "gl-matrix";
+import { Entity } from "../models/Entity";
 
 export class Camera {
   private position: vec3 = vec3.fromValues(0, 0, 0);
@@ -13,23 +14,49 @@ export class Camera {
   private speed: number = 0.1;
   private sensitivity: number = 0.1;
 
+  private following: Entity | null = null;
+  private followOffset: vec3 = vec3.fromValues(0, 5, 10); // default offset from target
+
+  public follow(entity: Entity, offset?: vec3) {
+    this.following = entity;
+    if (offset) vec3.copy(this.followOffset, offset);
+  }
+  public unfollow() {
+    this.following = null;
+  }
+
+  private updateFollowPosition() {
+    if (!this.following) return;
+
+    const targetPos = this.following.getPosition();
+    vec3.add(this.position, targetPos, this.followOffset);
+  }
+
   constructor() {
     this.updateVectors();
     this.updateViewMatrix();
   }
 
   cameraKeyboardHandler(keys: Set<string>) {
-    if (keys.has("w")) vec3.scaleAndAdd(this.position, this.position, this.front, this.speed);
-    if (keys.has("s")) vec3.scaleAndAdd(this.position, this.position, this.front, -this.speed);
-    if (keys.has("a")) vec3.scaleAndAdd(this.position, this.position, this.right, -this.speed);
-    if (keys.has("d")) vec3.scaleAndAdd(this.position, this.position, this.right, this.speed);
+    if (keys.has("w"))
+      vec3.scaleAndAdd(this.position, this.position, this.front, this.speed);
+    if (keys.has("s"))
+      vec3.scaleAndAdd(this.position, this.position, this.front, -this.speed);
+    if (keys.has("a"))
+      vec3.scaleAndAdd(this.position, this.position, this.right, -this.speed);
+    if (keys.has("d"))
+      vec3.scaleAndAdd(this.position, this.position, this.right, this.speed);
   }
-  
+
   private updateVectors() {
     const front = vec3.create();
-    front[0] = Math.cos(this.yaw * Math.PI / 180) * Math.cos(this.pitch * Math.PI / 180);
-    front[1] = Math.sin(this.pitch * Math.PI / 180);
-    front[2] = Math.sin(this.yaw * Math.PI / 180) * Math.cos(this.pitch * Math.PI / 180);
+    front[0] =
+      Math.cos((this.yaw * Math.PI) / 180) *
+      Math.cos((this.pitch * Math.PI) / 180);
+    front[1] = Math.sin((this.pitch * Math.PI) / 180);
+    front[2] =
+      Math.sin((this.yaw * Math.PI) / 180) *
+      Math.cos((this.pitch * Math.PI) / 180);
     vec3.normalize(this.front, front);
     vec3.cross(this.right, this.front, this.worldUp);
     vec3.normalize(this.right, this.right);
@@ -44,20 +71,21 @@ export class Camera {
   }
 
   cameraMouseHandler(e: MouseEvent) {
-    console.log('MOUSE MOVED | NO DRAG')
+    console.log("MOUSE MOVED | NO DRAG");
     const offsetX = e.movementX;
     const offsetY = -e.movementY; // reverse Y if needed for intuition
 
     this.yaw += offsetX * this.sensitivity;
     this.pitch += offsetY * this.sensitivity;
 
-    // Clamp pitch 
+    // Clamp pitch
     this.pitch = Math.max(-89.0, Math.min(89.0, this.pitch));
 
     this.updateVectors(); // Must update front, right, up
   }
 
   getViewMatrix(): mat4 {
+    this.updateFollowPosition(); // <--- add this line
     this.updateViewMatrix();
     return this.viewMatrix;
   }

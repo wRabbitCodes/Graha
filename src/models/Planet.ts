@@ -61,6 +61,10 @@ export class Planet implements Entity {
     this.loadTextures();
   }
 
+  setPosition(pos: vec3): void {
+    vec3.copy(this.position, pos);
+  }
+
   private initiUniforms() {
     const gl = this.gl;
     this.uniformLocations.normalMatrix = gl.getUniformLocation(this.program, "u_normalMatrix");
@@ -270,7 +274,7 @@ export class Planet implements Entity {
       float spec = 0.0;
       if (u_useSpecular) {
         float specStrength = texture(u_specularTexture, v_uv).r;
-        spec = pow(max(dot(viewDir, reflectDir), 0.0), 32.0) * specStrength;
+        spec = pow(max(dot(viewDir, reflectDir), 0.0), 32.0) * specStrength * .8;
       }
 
       vec3 finalColor = (ambient + diffuse) * baseColor + vec3(spec);
