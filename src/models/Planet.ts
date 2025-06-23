@@ -1,7 +1,7 @@
 import { mat4, vec3, quat } from "gl-matrix";
 import { GLUtils } from "../core/GLUtils";
 import { Entity } from "./Entity";
-import { OrbitSystem } from "../engine/OrbitSystems";
+import { OrbitSystem } from "../systems/OrbitSystems";
 
 type PlanetTextureTypes = {
   [Key in 'surface' | 'normal' | 'specular' | 'atmosphere']: WebGLTexture | null

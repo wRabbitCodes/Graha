@@ -2,7 +2,7 @@ import { Scene } from "./engine/Scene";
 import { Planet } from "./models/Planet";
 import { vec3 } from "gl-matrix";
 import { Sun } from "./models/Sun";
-import { OrbitSystem } from "./engine/OrbitSystems";
+import { OrbitSystem } from "./systems/OrbitSystems";
 
 const scene = new Scene("glCanvas");
 
