@@ -32,4 +32,8 @@ export class EntityManager {
   clear() {
     this.entities.length = 0;
   }
+
+  getEntity(name: string): Entity | undefined {
+    return this.entities.find(entity => entity.getName() === name);
+  }
 }

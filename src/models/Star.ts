@@ -1,38 +1,40 @@
 // src/objects/Star.ts
 import { vec3, mat4 } from "gl-matrix";
 import { Entity } from "./Entity";
+import { GLUtils } from "../core/GLUtils";
 
 export class Star implements Entity {
-  protected color: vec3;
-  protected intensity: number;
   protected position: vec3;
-  protected modelMatrix: mat4;
+  protected scale: vec3;
+  protected color: vec3;
+  protected radius: number;
 
   constructor(
-    position: vec3 = vec3.create(),
-    color: vec3 = vec3.fromValues(1, 1, 1),
-    intensity: number = 1,
-    modelMatrix: mat4 = mat4.create(), 
+    protected name: string,
+    protected gl: WebGL2RenderingContext,
+    protected utils: GLUtils,
+    position: vec3,
+    scale: vec3 = vec3.fromValues(2, 2, 2),
+    color: vec3 = vec3.fromValues(1.0, 0.9, 0.6)
   ) {
-    this.color = color;
-    this.intensity = intensity;
     this.position = position;
-    this.modelMatrix = modelMatrix;
+    this.scale = scale;
+    this.color = color;
+    this.radius = Math.max(...scale);
+  }
+  
+  getName(): string {
+    return this.name;
   }
 
-  update(deltaTime: number) {
-    // Default star might have no behavior, or could pulse, flicker, etc.
+  update(_dt: number) {}
+
+  render(_view: mat4, _proj: mat4): void {
+    // Optional for now - stars are light sources, visualized via skybox glow or particles later
   }
 
-  render(viewMatrix: mat4, projectionMatrix: mat4) {
-    // Typically stars are light sources, may not be visibly rendered here
-  }
-
-  getColor(): vec3 {
-    return this.color;
-  }
-
-  getIntensity(): number {
-    return this.intensity;
+  getLightPosition(): vec3 {
+    return this.position;
   }
 }
+

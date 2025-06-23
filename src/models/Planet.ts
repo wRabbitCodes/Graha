@@ -1,6 +1,7 @@
 import { mat4, vec3, quat } from "gl-matrix";
 import { GLUtils } from "../core/GLUtils";
 import { Entity } from "./Entity";
+import { OrbitSystem } from "../engine/OrbitSystems";
 
 type PlanetTextureTypes = {
   [Key in 'surface' | 'normal' | 'specular' | 'atmosphere']: WebGLTexture | null
@@ -21,6 +22,8 @@ export class Planet implements Entity {
   private axis = vec3.fromValues(0,1,0);
   private rotationPerFrame = 0.03;
 
+  private orbit?: OrbitSystem;
+
   private uniformLocations: { [key: string]: WebGLUniformLocation | null } = {};
   private textures: PlanetTextureTypes = {
     surface: null,
@@ -30,11 +33,14 @@ export class Planet implements Entity {
   };
 
   update(deltaTime: number) {
+    if (this.orbit) {
+      this.position = this.orbit.getPosition(deltaTime);
+    }
     this.updateRotation();
   }
 
   constructor(
-    private planetName: string,
+    private name: string,
     gl: WebGL2RenderingContext,
     utils: GLUtils,
     position: vec3 = vec3.create(),
@@ -175,17 +181,21 @@ export class Planet implements Entity {
       }
     }
   }
-
-  getPlanetName() {
-    return this.planetName;
-  }
-
+  
   getPosition() {
     return this.position;
   }
 
   getRadius() {
     return this.radius;
+  }
+
+  setOrbitSystem(orbit: OrbitSystem) {
+    this.orbit = orbit;
+  }
+
+  getName() {
+    return this.name;
   }
 
   static vertexShaderSrc = `#version 300 es
