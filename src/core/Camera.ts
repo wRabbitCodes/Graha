@@ -1,7 +1,7 @@
 import { vec3, mat4 } from "gl-matrix";
 
 export class Camera {
-  private position: vec3 = vec3.fromValues(0, 0, 10);
+  private position: vec3 = vec3.fromValues(0, 0, 0);
   private front: vec3 = vec3.fromValues(0, 0, -1);
   private up: vec3 = vec3.fromValues(0, 1, 0);
   private right: vec3 = vec3.create();

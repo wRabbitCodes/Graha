@@ -6,6 +6,8 @@ import { EntityManager } from "./EntityManager";
 import { vec3 } from "gl-matrix";
 import { SkySphere } from "../models/SkySphere";
 import { Sun } from "../models/Sun";
+import { AxisHelper } from "../models/AxisHelper";
+import { OrbitSystem } from "../systems/OrbitSystems";
 
 export class Scene {
   public readonly gl: WebGL2RenderingContext;
@@ -16,7 +18,10 @@ export class Scene {
   public readonly sun: Sun;
   public readonly skySphere: SkySphere;
   public readonly input: IO;
-  public readonly em: EntityManager;
+  public readonly entityManager: EntityManager;
+  public readonly orbitSystem: OrbitSystem;
+  
+  private axisHelper: AxisHelper;
 
   constructor(canvasId: string) {
     this.canvas = new Canvas(canvasId);
@@ -25,10 +30,12 @@ export class Scene {
     this.utils = new GLUtils(this.gl);
     this.input = new IO(this.canvas.canvas);
     this.camera = new Camera();
-    this.em = new EntityManager();
+    this.entityManager = new EntityManager();
     this.sun = new Sun(this.gl, this.utils, "textures/lensFlare.png");
     this.skySphere = new SkySphere(this.gl, this.utils, "textures/milkyway.png");
+    this.orbitSystem = new OrbitSystem(this.gl, this.utils);
 
+    this.axisHelper = new AxisHelper(this.gl, this.utils);
 
     this.canvas.onPointerLockChange((locked) => {
       if (!locked) {
@@ -45,7 +52,7 @@ export class Scene {
 
   private update(time: number) {
     this.camera.cameraKeyboardHandler(this.input.getKeys());
-    this.em.update(time);
+    this.entityManager.update(time);
   }
 
   render(time: number) {
@@ -62,9 +69,11 @@ export class Scene {
     if (this.sun.isReady()) {
       this.sun.render(view, proj, this.camera.getPosition());
     }
+    this.axisHelper.render(view, proj);
+    this.orbitSystem.render(view, proj);
     if (this.skySphere.isReady()) {
       this.skySphere.render(view, proj);
     }
-    this.em.render(view, proj, this.sun.getLightPosition(), this.camera.getPosition());
+    this.entityManager.render(view, proj, this.sun.getPosition(), this.camera.getPosition());
   }
 }
