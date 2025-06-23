@@ -107,6 +107,13 @@ export class Planet implements Entity {
     gl.enableVertexAttribArray(uvLoc);
     gl.vertexAttribPointer(uvLoc, 2, gl.FLOAT, false, 0, 0);
 
+    const tangentBuffer = gl.createBuffer()!;
+    gl.bindBuffer(gl.ARRAY_BUFFER, tangentBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, sphere.tangents, gl.STATIC_DRAW);
+    const tangentLoc = gl.getAttribLocation(this.program, "a_tangent");
+    gl.enableVertexAttribArray(tangentLoc);
+    gl.vertexAttribPointer(tangentLoc, 3, gl.FLOAT, false, 0,0);
+
     const indexBuffer = gl.createBuffer()!;
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, sphere.indices, gl.STATIC_DRAW);
@@ -190,6 +197,8 @@ export class Planet implements Entity {
     in vec3 a_position;
     in vec3 a_normal;
     in vec2 a_uv;
+    in vec3 a_tangent;
+
     uniform mat4 u_model;
     uniform mat4 u_view;
     uniform mat4 u_proj;
@@ -201,10 +210,11 @@ export class Planet implements Entity {
     out mat3 v_TBN;
 
     void main() {
-      vec3 T = vec3(1.0, 0.0, 0.0);  // Placeholder tangent
-      vec3 B = vec3(0.0, 1.0, 0.0);  // Placeholder bitangent
-      vec3 N = normalize(u_normalMatrix * a_normal);
-      v_TBN = mat3(normalize(T), normalize(B), normalize(N));
+      vec3 T = normalize(u_normalMatrix * a_tangent);  // Placeholder tangent
+      vec3 N = normalize(u_normalMatrix * a_normal);  // Placeholder bitangent
+      vec3 B = normalize(cross(N,T));
+
+      v_TBN = mat3(T, B, N);
       v_uv = a_uv;
       vec4 worldPos = u_model * vec4(a_position, 1.0);
       v_fragPos = worldPos.xyz;
