@@ -3,15 +3,18 @@ import { Canvas } from "../core/Canvas";
 import { GLUtils } from "../core/GLUtils";
 import { Camera } from "../core/Camera";
 import { EntityManager } from "./EntityManager";
-import { Skybox } from "../models/Skybox";
 import { vec3 } from "gl-matrix";
+import { SkySphere } from "../models/SkySphere";
+import { Sun } from "../models/Sun";
 
 export class Scene {
   public readonly gl: WebGL2RenderingContext;
   public readonly utils: GLUtils;
   public readonly canvas: Canvas;
   public readonly camera: Camera;
-  public readonly skybox: Skybox;
+  // public readonly skybox: Skybox;
+  public readonly sun: Sun;
+  public readonly skySphere: SkySphere;
   public readonly input: IO;
   public readonly em: EntityManager;
 
@@ -23,7 +26,8 @@ export class Scene {
     this.input = new IO(this.canvas.canvas);
     this.camera = new Camera();
     this.em = new EntityManager();
-    this.skybox = new Skybox(this.gl, this.utils);
+    this.sun = new Sun(this.gl, this.utils, "textures/lensFlare.png");
+    this.skySphere = new SkySphere(this.gl, this.utils, "textures/milkyway.png");
 
 
     this.canvas.onPointerLockChange((locked) => {
@@ -55,9 +59,12 @@ export class Scene {
     const view = this.camera.getViewMatrix();
     const proj = this.canvas.getProjectionMatrix();
 
-    if (this.skybox.isReady()) {
-      this.skybox.render(view, proj);
+    if (this.sun.isReady()) {
+      this.sun.render(view, proj, this.camera.getPosition());
     }
-    this.em.render(view, proj, vec3.fromValues(15,15,15), this.camera.getPosition());
+    if (this.skySphere.isReady()) {
+      this.skySphere.render(view, proj);
+    }
+    this.em.render(view, proj, this.sun.getLightPosition(), this.camera.getPosition());
   }
 }

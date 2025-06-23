@@ -6,16 +6,14 @@ import { OrbitSystem } from "./engine/OrbitSystems";
 
 const scene = new Scene("glCanvas");
 
-scene.skybox.loadCubeMap([
-  { src: "textures/skybox1.bmp", target: scene.gl.TEXTURE_CUBE_MAP_POSITIVE_X },
-  { src: "textures/skybox2.bmp", target: scene.gl.TEXTURE_CUBE_MAP_NEGATIVE_X },
-  { src: "textures/skybox3.bmp", target: scene.gl.TEXTURE_CUBE_MAP_POSITIVE_Y },
-  { src: "textures/skybox4.bmp", target: scene.gl.TEXTURE_CUBE_MAP_NEGATIVE_Y },
-  { src: "textures/skybox5.bmp", target: scene.gl.TEXTURE_CUBE_MAP_POSITIVE_Z },
-  { src: "textures/skybox6.bmp", target: scene.gl.TEXTURE_CUBE_MAP_NEGATIVE_Z },
-]);
-
-scene.em.add(new Sun("Sun", scene.gl, scene.utils, vec3.fromValues(0, 0, 0)))
+// scene.skybox.loadCubeMap([
+//   { src: 'cubemap/posx.png', target: scene.gl.TEXTURE_CUBE_MAP_POSITIVE_X },
+//   { src: 'cubemap/negx.png', target: scene.gl.TEXTURE_CUBE_MAP_NEGATIVE_X },
+//   { src: 'cubemap/posy.png', target: scene.gl.TEXTURE_CUBE_MAP_POSITIVE_Y },
+//   { src: 'cubemap/negy.png', target: scene.gl.TEXTURE_CUBE_MAP_NEGATIVE_Y },
+//   { src: 'cubemap/posz.png', target: scene.gl.TEXTURE_CUBE_MAP_POSITIVE_Z },
+//   { src: 'cubemap/negz.png', target: scene.gl.TEXTURE_CUBE_MAP_NEGATIVE_Z },
+// ]);
 
 scene.em.add(new Planet('Earth', scene.gl, scene.utils,
   vec3.fromValues(0, 0, 0),

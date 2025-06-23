@@ -1,5 +1,3 @@
-// src/engine/EntityManager.ts
-
 import { Entity } from "../models/Entity";
 import { mat4, vec3 } from "gl-matrix";
 
@@ -36,4 +34,5 @@ export class EntityManager {
   getEntity(name: string): Entity | undefined {
     return this.entities.find(entity => entity.getName() === name);
   }
+  
 }
