@@ -96,15 +96,19 @@ export class Scene {
     this.input = new Input(this.canvas.canvas);
     this.camera = new Camera();
     this.em = new EntityManager();
-    this.skybox = new Skybox(this.gl,this.utils);
+    this.skybox = new Skybox(this.gl, this.utils);
 
 
     this.canvas.onPointerLockChange((locked) => {
       if (!locked) {
-        this.input.clear();
         this.input.disableInputs();
+        this.input.clear();
       } else {
-        this.input.enableMouseInputs( _=>null, (e) => this.camera.cameraMouseHandler(e))
+        this.input.disableInputs();
+        this.input.clear();
+        this.input.enableMouseInputs((dragging, e) => {
+          if (!dragging) this.camera.cameraMouseHandler(e);
+        })
         this.input.enableKeyboardInputs();
       }
     });

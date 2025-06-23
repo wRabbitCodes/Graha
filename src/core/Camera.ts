@@ -18,6 +18,7 @@ export class Camera {
 
   constructor() {
     this.updateVectors();
+    this.updateViewMatrix();
   }
 
   cameraKeyboardHandler(keys: Set<string>) {
@@ -25,7 +26,6 @@ export class Camera {
     if (keys.has("s")) vec3.scaleAndAdd(this.position, this.position, this.front, -this.speed);
     if (keys.has("a")) vec3.scaleAndAdd(this.position, this.position, this.right, -this.speed);
     if (keys.has("d")) vec3.scaleAndAdd(this.position, this.position, this.right, this.speed);
-    this.updateViewMatrix();
   }
   
   private updateVectors() {
@@ -38,7 +38,6 @@ export class Camera {
     vec3.normalize(this.right, this.right);
     vec3.cross(this.up, this.right, this.front);
     vec3.normalize(this.up, this.up);
-    this.updateViewMatrix();
   }
 
   private updateViewMatrix() {
@@ -48,7 +47,7 @@ export class Camera {
   }
 
   cameraMouseHandler(e: MouseEvent) {
-    debugger;
+    console.log('MOUSE MOVED | NO DRAG')
     const offsetX = e.clientX - this.lastMouseX;
     const offsetY = this.lastMouseY - e.clientY;
     this.lastMouseX = e.clientX;
@@ -64,6 +63,7 @@ export class Camera {
   }
 
   getViewMatrix(): mat4 {
+    this.updateViewMatrix();
     return this.viewMatrix;
   }
 

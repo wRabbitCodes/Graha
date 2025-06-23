@@ -15,18 +15,19 @@ export class Input {
     document.addEventListener("keyup", (e) => this.keys.delete(e.key), { signal });
   }
 
-  enableMouseInputs(dragMouseCallback?: (e: MouseEvent) => void, normalMouseCallback?: (e: MouseEvent) => void) {
+  enableMouseInputs(mouseMoveCallback?: (dragging :boolean, e: MouseEvent) => void) {
     let signal = this.controller?.signal;
     this.canvasElement.addEventListener("mousedown", (e) => {
         if (e.button === 0) this.isMouseDragging = true; // Left click
     }, {signal});
     
     this.canvasElement.addEventListener("mouseup", (e) => {
-        if (e.button === 0) this.isMouseDragging = false;
+        if (e.button === 0) this.isMouseDragging = false; // Release left click
     }, {signal});
+    
     this.canvasElement.addEventListener("mousemove", (e) => {
-        if (!this.isMouseDragging && normalMouseCallback) normalMouseCallback(e);
-        if (this.isMouseDragging && dragMouseCallback) dragMouseCallback(e);
+      if (!mouseMoveCallback) return;
+      mouseMoveCallback(this.isMouseDragging, e);
     }, {signal});
   }
 

@@ -157,7 +157,7 @@ export class Canvas {
 
   private enablePointerLock() {
     this.canvas.addEventListener("click", () => {
-      if (!this.isPointerLocked) this.canvas.requestPointerLock();
+      this.canvas.requestPointerLock();
     });
   }
 
