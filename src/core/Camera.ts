@@ -20,21 +20,14 @@ export class Camera {
     this.updateVectors();
   }
 
-  update(keys: Set<string>) {
+  cameraKeyboardHandler(keys: Set<string>) {
     if (keys.has("w")) vec3.scaleAndAdd(this.position, this.position, this.front, this.speed);
     if (keys.has("s")) vec3.scaleAndAdd(this.position, this.position, this.front, -this.speed);
     if (keys.has("a")) vec3.scaleAndAdd(this.position, this.position, this.right, -this.speed);
     if (keys.has("d")) vec3.scaleAndAdd(this.position, this.position, this.right, this.speed);
     this.updateViewMatrix();
   }
-
-  rotateView(offsetX: number, offsetY: number) {
-    this.yaw += offsetX * this.sensitivity;
-    this.pitch -= offsetY * this.sensitivity;
-    this.pitch = Math.max(-89, Math.min(89, this.pitch));
-    this.updateVectors();
-  }
-
+  
   private updateVectors() {
     const front = vec3.create();
     front[0] = Math.cos(this.yaw * Math.PI / 180) * Math.cos(this.pitch * Math.PI / 180);
@@ -54,7 +47,8 @@ export class Camera {
     mat4.lookAt(this.viewMatrix, this.position, center, this.up);
   }
 
-  mouseHandler(e: MouseEvent) {
+  cameraMouseHandler(e: MouseEvent) {
+    debugger;
     const offsetX = e.clientX - this.lastMouseX;
     const offsetY = this.lastMouseY - e.clientY;
     this.lastMouseX = e.clientX;

@@ -99,20 +99,20 @@ export class Scene {
     this.skybox = new Skybox(this.gl,this.utils);
 
 
-    this.canvas.enablePointerLock();
     this.canvas.onPointerLockChange((locked) => {
       if (!locked) {
         this.input.clear();
         this.input.disableInputs();
       } else {
-        this.input.enableMouseInputs( _=>null, (e) => this.camera.mouseHandler(e))
+        this.input.enableMouseInputs( _=>null, (e) => this.camera.cameraMouseHandler(e))
         this.input.enableKeyboardInputs();
       }
     });
   }
 
-  update() {
-    this.camera.update(this.input.getKeys());
+  private update() {
+    this.canvas.resizeToDisplaySize();
+    this.camera.cameraKeyboardHandler(this.input.getKeys());
   }
 
   render() {

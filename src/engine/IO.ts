@@ -4,8 +4,7 @@ import { Canvas } from "../core/Canvas";
 export class Input {
   private keys: Set<string> = new Set();
   private isMouseDragging = false;
-  private mouseDelta: { x: number; y: number } = { x: 0, y: 0 };
-  private controller?: AbortController;
+  private controller?: AbortController = new AbortController();
 
   constructor(private canvasElement: HTMLCanvasElement) {}
 
@@ -42,6 +41,5 @@ export class Input {
 
   clear() {
     this.keys.clear();
-    this.mouseDelta = { x: 0, y: 0 };
   }
 }

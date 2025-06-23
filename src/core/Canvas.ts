@@ -141,7 +141,7 @@ export class Canvas {
   public readonly gl: WebGL2RenderingContext;
 
   private isPointerLocked = false;
-  private projectionMatrix = mat4.create();
+  private projectionMatrix = mat4.identity(mat4.create());
 
   constructor(id: string) {
     const el = document.getElementById(id);
@@ -151,16 +151,18 @@ export class Canvas {
     if (!gl) throw new Error("WebGL2 not supported");
     this.gl = gl;
     this.canvas = el;
+    this.enablePointerLock();
+    this.resizeToDisplaySize();
+  }
+
+  private enablePointerLock() {
+    this.canvas.addEventListener("click", () => {
+      if (!this.isPointerLocked) this.canvas.requestPointerLock();
+    });
   }
 
   getProjectionMatrix() {
     return this.projectionMatrix;
-  }
-
-  enablePointerLock() {
-    this.canvas.addEventListener("click", () => {
-      if (!this.isPointerLocked) this.canvas.requestPointerLock();
-    });
   }
 
   onPointerLockChange(callback: (locked: boolean) => void) {
