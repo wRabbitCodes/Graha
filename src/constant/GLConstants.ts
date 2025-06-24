@@ -1,8 +1,0 @@
-export const TextureUnits = {
-  SKYSPHERE: 0,
-  PLANET_SURFACE: 1,
-  PLANET_NORMAL: 2,
-  PLANET_SPECULAR: 3,
-  PLANET_ATMOSPHERE: 4,
-  SUN_LENSFLARE: 15
-};

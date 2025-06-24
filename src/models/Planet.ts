@@ -2,6 +2,7 @@ import { mat4, vec3, quat, mat3 } from "gl-matrix";
 import { GLUtils } from "../core/GLUtils";
 import { Entity } from "./Entity";
 import { OrbitSystem } from "../systems/OrbitSystems";
+import { AxisHelper } from "./AxisHelper";
 
 type PlanetTextureTypes = {
   [Key in 'surface' | 'normal' | 'specular' | 'atmosphere']: WebGLTexture | null
@@ -43,6 +44,7 @@ export class Planet implements Entity {
     position: vec3 = vec3.create(),
     scale: vec3 = vec3.fromValues(1, 1, 1),
     private surfaceURL: string,
+    private axisHelper?: AxisHelper,
     private normalMapURL?: string,
     private atmosphereURL?: string,
     private specularURL?: string,
@@ -175,6 +177,7 @@ export class Planet implements Entity {
 
     gl.drawElements(gl.TRIANGLES, this.indexCount, gl.UNSIGNED_SHORT, 0);
     gl.bindVertexArray(null);
+    this.axisHelper?.render(viewMatrix, projectionMatrix, this.modelMatrix);
   }
 
   private bindTextures() {

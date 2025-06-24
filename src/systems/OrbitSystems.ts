@@ -15,6 +15,8 @@ type OrbitData = {
   orbitalPeriod: number;
   orbitPath?: OrbitPath; // ✅ visual ellipse
   elapsedDays?: number;
+  axialTilt?: number;
+  rotationSpeed?: number;
 };
 
 export class OrbitSystem {

@@ -23,7 +23,7 @@ export class Scene {
   public readonly entityManager: EntityManager;
   public readonly orbitSystem: OrbitSystem;
   public readonly raycaster: Raycaster;
-  private axisHelper: AxisHelper;
+  public readonly axisHelper: AxisHelper;
 
   constructor(canvasId: string) {
     this.canvas = new Canvas(canvasId);
@@ -95,7 +95,6 @@ export class Scene {
     const proj = this.canvas.getProjectionMatrix();
 
     
-    this.axisHelper.render(view, proj);
     this.orbitSystem.render(view, proj);
     if (this.skySphere.isReady()) {
       this.skySphere.render(view, proj);
