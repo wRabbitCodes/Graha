@@ -32,15 +32,15 @@ export class Scene {
     this.utils = new GLUtils(this.gl);
     this.input = new IO(this.canvas.canvas);
     this.camera = new Camera();
+    this.axisHelper = new AxisHelper(this.gl, this.utils);
     this.entityManager = new EntityManager();
-    this.sun = new Sun(this.gl, this.utils, "textures/lensFlare.png");
+    this.sun = new Sun(this.gl, this.utils, this.axisHelper, "textures/lensFlare.png");
     this.skySphere = new SkySphere(
       this.gl,
       this.utils,
       "textures/milkyway.png"
     );
     this.orbitSystem = new OrbitSystem(this.gl, this.utils);
-    this.axisHelper = new AxisHelper(this.gl, this.utils);
     this.raycaster = new Raycaster();
 
     this.canvas.enablePointerLock((ndcX, ndcY) => {
@@ -49,12 +49,27 @@ export class Scene {
 
       const ray = this.raycaster.getRayFromNDC(ndcX, ndcY, proj, view, this.camera.getPosition());
 
+      let closestPlanet: Planet | null = null;
+      let closestDistance = Number.POSITIVE_INFINITY;
+
       for (const entity of this.entityManager.getEntities()) {
-        if (entity instanceof Planet) {
-          const hit = this.raycaster.intersectSphere(ray.origin, ray.direction, entity.getPosition(), entity.getRadius());
-          entity.setSelected(!!hit); // Only one will remain selected
+        if (!(entity instanceof Planet)) continue;
+        entity.setSelected(false);
+
+        const t = this.raycaster.intersectSphere(
+          ray.origin,
+          ray.direction,
+          entity.getPosition(),
+          entity.getRadius()
+        );
+
+        if (t !== null && t < closestDistance) {
+          closestPlanet = entity;
+          closestDistance = t;
         }
       }
+
+      closestPlanet?.setSelected(true);
     });
 
     this.canvas.onPointerLockChange((locked) => {
@@ -101,7 +116,7 @@ export class Scene {
     );
 
     if (this.sun.isReady()) {
-      this.sun.render(view, proj, this.camera.getPosition());
+      this.sun.render(view, proj);
     }
 
   }

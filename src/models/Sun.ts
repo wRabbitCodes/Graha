@@ -1,6 +1,7 @@
 // src/objects/Sun.ts
 import { mat4, vec3, vec4 } from "gl-matrix";
 import { GLUtils } from "../core/GLUtils";
+import { AxisHelper } from "./AxisHelper";
 
 export class Sun {
   private program: WebGLProgram;
@@ -11,6 +12,7 @@ export class Sun {
   constructor(
     private gl: WebGL2RenderingContext,
     private utils: GLUtils,
+    private axisHelper: AxisHelper,
     private lensflareURL: string,
     private lightPos: vec3 = vec3.fromValues(0, 0, 0)
   ) {
@@ -30,7 +32,7 @@ export class Sun {
     return this.lightPos;
   }
 
-  render(viewMatrix: mat4, projectionMatrix: mat4, cameraPos: vec3) {
+  render(viewMatrix: mat4, projectionMatrix: mat4) {
     if (!this.texture) return;
 
     const gl = this.gl;
@@ -64,6 +66,8 @@ export class Sun {
 
     gl.disable(gl.BLEND);
     gl.depthMask(true);
+
+    this.axisHelper.render(viewMatrix, projectionMatrix, mat4.create())
   }
 
   private createQuadVAO(): WebGLVertexArrayObject {

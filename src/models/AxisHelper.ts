@@ -9,11 +9,11 @@ export class AxisHelper {
   constructor(private gl: WebGL2RenderingContext, private utils: any) {
     const axisVertices = new Float32Array([
       // X (red)
-      0, 0, 0, 0, 0, 0,
+      -this.scale, 0, 0, this.scale, 0, 0,
       // Y (green)
       0, -this.scale, 0, 0, this.scale, 0,
       // Z (blue)
-      0, 0, 0, 0, 0, 0,
+      0, 0,-this.scale, 0, 0, this.scale,
     ]);
 
     this.program = this.utils.createProgram(

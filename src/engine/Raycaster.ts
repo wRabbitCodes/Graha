@@ -6,7 +6,7 @@ export class Raycaster {
     ndcY: number,
     proj: mat4,
     view: mat4,
-    cameraPos: vec3,
+    cameraPos: vec3
   ): { origin: vec3; direction: vec3 } {
     const inverseVP = mat4.create();
     const viewProj = mat4.create();
@@ -35,16 +35,21 @@ export class Raycaster {
     rayDir: vec3,
     center: vec3,
     radius: number
-  ): boolean {
+  ): number | null {
     const oc = vec3.create();
     vec3.subtract(oc, rayOrigin, center);
     const a = vec3.dot(rayDir, rayDir);
     const b = 2.0 * vec3.dot(oc, rayDir);
     const c = vec3.dot(oc, oc) - radius * radius;
     const discriminant = b * b - 4 * a * c;
-    if (discriminant < 0) return false;
-    const t1 = (-b - Math.sqrt(discriminant)) / (2.0 * a);
-    const t2 = (-b + Math.sqrt(discriminant)) / (2.0 * a);
-    return t1 > 0 || t2 > 0;
+
+    if (discriminant < 0) return null;
+
+    const sqrtD = Math.sqrt(discriminant);
+    const t1 = (-b - sqrtD) / (2.0 * a);
+    const t2 = (-b + sqrtD) / (2.0 * a);
+
+    const t = t1 > 0 ? t1 : t2 > 0 ? t2 : null;
+    return t;
   }
 }
