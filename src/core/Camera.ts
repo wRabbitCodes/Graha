@@ -14,24 +14,6 @@ export class Camera {
   private speed: number = 0.1;
   private sensitivity: number = 0.1;
 
-  private following: Entity | null = null;
-  private followOffset: vec3 = vec3.fromValues(0, 5, 10); // default offset from target
-
-  public follow(entity: Entity, offset?: vec3) {
-    this.following = entity;
-    if (offset) vec3.copy(this.followOffset, offset);
-  }
-  public unfollow() {
-    this.following = null;
-  }
-
-  private updateFollowPosition() {
-    if (!this.following) return;
-
-    const targetPos = this.following.getPosition();
-    vec3.add(this.position, targetPos, this.followOffset);
-  }
-
   constructor() {
     this.updateVectors();
     this.updateViewMatrix();
@@ -85,7 +67,6 @@ export class Camera {
   }
 
   getViewMatrix(): mat4 {
-    this.updateFollowPosition(); // <--- add this line
     this.updateViewMatrix();
     return this.viewMatrix;
   }

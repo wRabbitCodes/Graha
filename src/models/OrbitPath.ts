@@ -22,17 +22,41 @@ export class OrbitPath {
   }
 
   private setupEllipseMesh() {
-    const { semiMajorAxis: a, eccentricity: e } = this.orbitParams;
-    const b = a * Math.sqrt(1 - e * e); // semi-minor axis
+    const {
+      semiMajorAxis: a,
+      eccentricity: e,
+      inclination,
+      longitudeOfAscendingNode: Ωdeg,
+      argumentOfPeriapsis: ωdeg
+    } = this.orbitParams;
 
-    const points: number[] = [];
+    const i = inclination * Math.PI / 180;
+    const Ω = Ωdeg * Math.PI / 180;
+    const ω = ωdeg * Math.PI / 180;
+
     const segments = 180;
+    const points: number[] = [];
 
-    for (let i = 0; i <= segments; i++) {
-      const theta = (i / segments) * 2 * Math.PI;
-      const x = a * Math.cos(theta) - a * e; // center at focus (sun)
-      const y = b * Math.sin(theta);
-      points.push(x, 0, y);
+    for (let j = 0; j <= segments; j++) {
+      const M = (j / segments) * 2 * Math.PI;
+      const E = this.solveKepler(M, e);
+
+      const θ = 2 * Math.atan2(
+        Math.sqrt(1 + e) * Math.sin(E / 2),
+        Math.sqrt(1 - e) * Math.cos(E / 2)
+      );
+
+      const r = a * (1 - e * Math.cos(E));
+
+      const x =
+        r * (Math.cos(Ω) * Math.cos(θ + ω) -
+            Math.sin(Ω) * Math.sin(θ + ω) * Math.cos(i));
+      const y =
+        r * (Math.sin(Ω) * Math.cos(θ + ω) +
+            Math.cos(Ω) * Math.sin(θ + ω) * Math.cos(i));
+      const z = r * Math.sin(θ + ω) * Math.sin(i);
+
+      points.push(x, y, z);
     }
 
     const vertices = new Float32Array(points);
@@ -55,30 +79,26 @@ export class OrbitPath {
     this.gl.bindVertexArray(null);
   }
 
+  private solveKepler(M: number, e: number): number {
+    let E = M;
+    for (let i = 0; i < 10; i++) {
+      E = E - (E - e * Math.sin(E) - M) / (1 - e * Math.cos(E));
+    }
+    return E;
+  }
+
+
   public render(view: mat4, proj: mat4) {
     const gl = this.gl;
     gl.useProgram(this.program);
     gl.bindVertexArray(this.vao);
 
-    const model = this.computeTransformMatrix();
-    gl.uniformMatrix4fv(gl.getUniformLocation(this.program, "u_model"), false, model);
+    gl.uniformMatrix4fv(gl.getUniformLocation(this.program, "u_model"), false, mat4.create());
     gl.uniformMatrix4fv(gl.getUniformLocation(this.program, "u_view"), false, view);
     gl.uniformMatrix4fv(gl.getUniformLocation(this.program, "u_proj"), false, proj);
 
     gl.drawArrays(gl.LINE_STRIP, 0, this.indexCount);
     gl.bindVertexArray(null);
-  }
-
-  private computeTransformMatrix(): mat4 {
-    const { inclination, longitudeOfAscendingNode: Ω, argumentOfPeriapsis: ω } = this.orbitParams;
-    const model = mat4.create();
-
-    // Order: rotate around Z (Ω), then X (i), then Z (ω)
-    mat4.rotateZ(model, model, Ω * Math.PI / 180);
-    mat4.rotateX(model, model, inclination * Math.PI / 180);
-    mat4.rotateZ(model, model, ω * Math.PI / 180);
-
-    return model;
   }
 
   static vertSrc = `#version 300 es

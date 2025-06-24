@@ -48,7 +48,7 @@ scene.entityManager.add(
 // After planet creation:
 scene.orbitSystem.addOrbit({
   object: scene.entityManager.getEntity("Earth")!,
-  semiMajorAxis: 149_597_870, // in km (1 AU)
+  semiMajorAxis: 500, // in km (1 AU)
   eccentricity: 0.0167, // nearly circular
   inclination: 0.00005, // degrees, very close to 0
   longitudeOfAscendingNode: -11.26064, // Ω in degrees
@@ -60,10 +60,13 @@ scene.orbitSystem.addOrbit({
   orbitPath: undefined,
 });
 
-scene.camera.follow(scene.entityManager.getEntity("Earth")!, vec3.fromValues(30,30,30));
-
+// scene.camera.follow(scene.entityManager.getEntity("Earth")!, vec3.fromValues(30,30,30));
+let lastTime = performance.now();
 function loop(time: number) {
-  scene.render(time);
+   const deltaTime = time - lastTime; // in milliseconds
+    lastTime = time;
+
+  scene.render(deltaTime);
   requestAnimationFrame(loop);
 }
 

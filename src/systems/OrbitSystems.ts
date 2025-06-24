@@ -21,7 +21,7 @@ export class OrbitSystem {
   private orbits: OrbitData[] = [];
   private readonly DEG2RAD = Math.PI / 180;
 
-  constructor(private gl: WebGL2RenderingContext, private utils: GLUtils) {}
+  constructor(private gl: WebGL2RenderingContext, private utils: GLUtils) { }
 
   addOrbit(orbit: OrbitData) {
     orbit.elapsedDays = 0;
@@ -38,44 +38,46 @@ export class OrbitSystem {
   }
 
   update(deltaTime: number) {
-    const daysElapsed = deltaTime / 1000 / 60 / 60 / 24;
+    const daysElapsed = deltaTime / 1000 / 60 / 60 / 24; // Convert ms to days
 
     for (const orbit of this.orbits) {
       orbit.elapsedDays! += daysElapsed;
 
-      const M =
-        (orbit.meanAnomalyAtEpoch +
-          360 * (orbit.elapsedDays! / orbit.orbitalPeriod)) %
-        360;
-      const E = this.solveKepler(M * this.DEG2RAD, orbit.eccentricity);
-      const theta =
-        2 *
-        Math.atan2(
-          Math.sqrt(1 + orbit.eccentricity) * Math.sin(E / 2),
-          Math.sqrt(1 - orbit.eccentricity) * Math.cos(E / 2)
-        );
+      // Mean anomaly (degrees)
+      const Mdeg = (orbit.meanAnomalyAtEpoch + 360 * (orbit.elapsedDays! / orbit.orbitalPeriod)) % 360;
+      const M = Mdeg * this.DEG2RAD;
 
+      // Solve Kepler's equation for eccentric anomaly E
+      const E = this.solveKepler(M, orbit.eccentricity);
+
+      // Compute distance from focus (Sun)
       const r = orbit.semiMajorAxis * (1 - orbit.eccentricity * Math.cos(E));
-      const xOrb = r * Math.cos(theta);
-      const yOrb = r * Math.sin(theta);
 
+      // True anomaly θ
+      const theta = 2 * Math.atan2(
+        Math.sqrt(1 + orbit.eccentricity) * Math.sin(E / 2),
+        Math.sqrt(1 - orbit.eccentricity) * Math.cos(E / 2)
+      );
+
+      // Orbital parameters
       const i = orbit.inclination * this.DEG2RAD;
       const Ω = orbit.longitudeOfAscendingNode * this.DEG2RAD;
       const ω = orbit.argumentOfPeriapsis * this.DEG2RAD;
 
+      // Position in 3D space
       const x =
-        r *
-        (Math.cos(Ω) * Math.cos(theta + ω) -
+        r * (Math.cos(Ω) * Math.cos(theta + ω) -
           Math.sin(Ω) * Math.sin(theta + ω) * Math.cos(i));
       const y =
-        r *
-        (Math.sin(Ω) * Math.cos(theta + ω) +
+        r * (Math.sin(Ω) * Math.cos(theta + ω) +
           Math.cos(Ω) * Math.sin(theta + ω) * Math.cos(i));
-      const z = r * (Math.sin(theta + ω) * Math.sin(i));
+      const z = r * Math.sin(theta + ω) * Math.sin(i);
 
-      vec3.set(orbit.object.getPosition(), x, y, z);
+      // Update object's position
+      orbit.object.setPosition(vec3.fromValues(x,y,z));
     }
   }
+
 
   private solveKepler(M: number, e: number): number {
     let E = M;
