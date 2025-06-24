@@ -229,6 +229,53 @@ export class Planet implements Entity {
     quat.multiply(this.rotationQuat, this.tiltQuat, this.spinQuat);
   }
 
+    getBoundingInfo(): { modelMatrix: mat4; aabbMin: vec3; aabbMax: vec3 } {
+      // The local-space bounding box of a unit UV sphere is [-1, -1, -1] to [1, 1, 1]
+      return {
+        modelMatrix: this.getModelMatrix(),
+        aabbMin: vec3.fromValues(-1, -1, -1),
+        aabbMax: vec3.fromValues(1, 1, 1),
+      };
+    }
+
+    intersectRayOBB(
+      rayOrigin: vec3,
+      rayDir: vec3,
+      modelMatrix: mat4,
+      aabbMin: vec3,
+      aabbMax: vec3
+    ): number | null {
+      const invModel = mat4.invert(mat4.create(), modelMatrix);
+      if (!invModel) return null;
+
+      const localOrigin = vec3.transformMat4(vec3.create(), rayOrigin, invModel);
+      const localDir = vec3.transformMat3(vec3.create(), rayDir, mat3.fromMat4(mat3.create(), invModel));
+      vec3.normalize(localDir, localDir);
+
+      let tmin = (aabbMin[0] - localOrigin[0]) / localDir[0];
+      let tmax = (aabbMax[0] - localOrigin[0]) / localDir[0];
+      if (tmin > tmax) [tmin, tmax] = [tmax, tmin];
+
+      let tymin = (aabbMin[1] - localOrigin[1]) / localDir[1];
+      let tymax = (aabbMax[1] - localOrigin[1]) / localDir[1];
+      if (tymin > tymax) [tymin, tymax] = [tymax, tymin];
+
+      if ((tmin > tymax) || (tymin > tmax)) return null;
+      if (tymin > tmin) tmin = tymin;
+      if (tymax < tmax) tmax = tymax;
+
+      let tzmin = (aabbMin[2] - localOrigin[2]) / localDir[2];
+      let tzmax = (aabbMax[2] - localOrigin[2]) / localDir[2];
+      if (tzmin > tzmax) [tzmin, tzmax] = [tzmax, tzmin];
+
+      if ((tmin > tzmax) || (tzmin > tmax)) return null;
+      if (tzmin > tmin) tmin = tzmin;
+      if (tzmax < tmax) tmax = tzmax;
+
+      return tmin >= 0 ? tmin : tmax >= 0 ? tmax : null;
+    }
+
+
   private updateModelMatrix() {
     mat4.fromRotationTranslationScale(
       this.modelMatrix,

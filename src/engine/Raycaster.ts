@@ -1,4 +1,4 @@
-import { vec3, vec4, mat4 } from "gl-matrix";
+import { vec3, vec4, mat4, mat3 } from "gl-matrix";
 
 export class Raycaster {
   getRayFromNDC(
@@ -54,5 +54,44 @@ export class Raycaster {
     if (t1 > 0) return t1;
     if (t2 > 0) return t2;
     return null;
+  }
+
+  intersectRayOBB(
+  rayOrigin: vec3,
+  rayDir: vec3,
+  modelMatrix: mat4,
+  aabbMin: vec3,
+  aabbMax: vec3
+  ): number | null {
+    const invModel = mat4.invert(mat4.create(), modelMatrix);
+    if (!invModel) return null;
+
+    const localOrigin = vec3.transformMat4(vec3.create(), rayOrigin, invModel);
+    const localDir = vec3.transformMat3(vec3.create(), rayDir, mat3.fromMat4(mat3.create(), invModel));
+    vec3.normalize(localDir, localDir);  // 🔥 must do this!
+
+    vec3.normalize(localDir, localDir);
+
+    let tmin = (aabbMin[0] - localOrigin[0]) / localDir[0];
+    let tmax = (aabbMax[0] - localOrigin[0]) / localDir[0];
+    if (tmin > tmax) [tmin, tmax] = [tmax, tmin];
+
+    let tymin = (aabbMin[1] - localOrigin[1]) / localDir[1];
+    let tymax = (aabbMax[1] - localOrigin[1]) / localDir[1];
+    if (tymin > tymax) [tymin, tymax] = [tymax, tymin];
+
+    if ((tmin > tymax) || (tymin > tmax)) return null;
+    if (tymin > tmin) tmin = tymin;
+    if (tymax < tmax) tmax = tymax;
+
+    let tzmin = (aabbMin[2] - localOrigin[2]) / localDir[2];
+    let tzmax = (aabbMax[2] - localOrigin[2]) / localDir[2];
+    if (tzmin > tzmax) [tzmin, tzmax] = [tzmax, tzmin];
+
+    if ((tmin > tzmax) || (tzmin > tmax)) return null;
+    if (tzmin > tmin) tmin = tzmin;
+    if (tzmax < tmax) tmax = tzmax;
+
+    return tmin >= 0 ? tmin : tmax >= 0 ? tmax : null;
   }
 }

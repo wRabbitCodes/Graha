@@ -10,6 +10,7 @@ import { AxisHelper } from "../models/AxisHelper";
 import { OrbitSystem } from "../systems/OrbitSystems";
 import { Raycaster } from "./Raycaster";
 import { Planet } from "../models/Planet";
+import { BoundingBoxHelper } from "../models/BoundingBox";
 
 export class Scene {
   public readonly gl: WebGL2RenderingContext;
@@ -24,6 +25,7 @@ export class Scene {
   public readonly orbitSystem: OrbitSystem;
   public readonly raycaster: Raycaster;
   public readonly axisHelper: AxisHelper;
+  public readonly boundingBoxHelper: BoundingBoxHelper;
 
   constructor(canvasId: string) {
     this.canvas = new Canvas(canvasId);
@@ -42,6 +44,7 @@ export class Scene {
     );
     this.orbitSystem = new OrbitSystem(this.gl, this.utils);
     this.raycaster = new Raycaster();
+    this.boundingBoxHelper = new BoundingBoxHelper(this.gl);
 
     this.canvas.enablePointerLock((ndcX, ndcY) => {
       const proj = this.canvas.getProjectionMatrix();
@@ -49,24 +52,37 @@ export class Scene {
 
       const ray = this.raycaster.getRayFromNDC(ndcX, ndcY, proj, view, this.camera.getPosition());
 
-      let closestPlanet: Planet | null = null;
-      let minDistance = Infinity;
-      for (const entity of this.entityManager.getEntities()) {
-        if (!(entity instanceof Planet)) continue;
+      // let closestPlanet: Planet | null = null;
+      // let minDistance = Infinity;
+      // for (const entity of this.entityManager.getEntities()) {
+      //   if (!(entity instanceof Planet)) continue;
 
-        const t = this.raycaster.intersectSphere(
-          ray.origin,
-          ray.direction,
-          entity.getModelMatrix(),
-          entity.getRadius(),
-        );
+      //   const t = this.raycaster.intersectSphere(
+      //     ray.origin,
+      //     ray.direction,
+      //     entity.getModelMatrix(),
+      //     entity.getRadius(),
+      //   );
 
-        if (t !== null && t < minDistance) {
-          minDistance = t;
-          closestPlanet = entity;
+      //   if (t !== null && t < minDistance) {
+      //     minDistance = t;
+      //     closestPlanet = entity;
+      //   }
+      // }
+      // closestPlanet?.setSelected(!closestPlanet.isSelected());
+      let closest = Infinity;
+      let selected: Planet | null = null;
+
+      for (const planet of this.entityManager.getEntities()) {
+        if (!(planet instanceof Planet)) continue;
+        const { modelMatrix, aabbMin, aabbMax } = planet.getBoundingInfo();
+        const t = this.raycaster.intersectRayOBB(ray.origin, ray.direction, modelMatrix, aabbMin, aabbMax);
+        if (t !== null && t < closest) {
+          closest = t;
+          selected = planet;
         }
       }
-      closestPlanet?.setSelected(!closestPlanet.isSelected());
+      selected?.setSelected(!selected.isSelected());
     });
 
     this.canvas.onPointerLockChange((locked) => {
@@ -104,6 +120,13 @@ export class Scene {
     if (this.skySphere.isReady()) {
       this.skySphere.render(view, proj);
     }
+
+    this.entityManager.getEntities().forEach(entity=> {
+      if (!(entity instanceof Planet)) return;
+      entity.updateRotation(time);
+      const { modelMatrix } = entity.getBoundingInfo();
+      this.boundingBoxHelper.render(modelMatrix, view, proj);
+    })
 
     this.entityManager.render(
       view,
