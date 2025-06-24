@@ -12,6 +12,7 @@
         display: block;
         width: 100vw;
         height: 100vh;
+        z-index: 0; /* lower than crosshair */
     }
     #crosshair {
         position: fixed;
@@ -19,7 +20,7 @@
         top: 50%;
         transform: translate(-50%, -50%);
         font-size: 24px;
-        color: white;
+        color: red;
         z-index: 999;
         pointer-events: none;
         display: none;
@@ -28,7 +29,8 @@
 </style>
 
 <body>
-    <div id="crosshair">+</div>
+
+    <div id="crosshair">⌖</div>
     <canvas id="glCanvas" width="800" height="600" style="background: black; display: block;"></canvas>
 </body>
 

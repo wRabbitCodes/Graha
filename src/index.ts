@@ -55,9 +55,6 @@ scene.orbitSystem.addOrbit({
   argumentOfPeriapsis: 114.20783, // ω in degrees
   meanAnomalyAtEpoch: 358.617, // degrees (at J2000)
   orbitalPeriod: 365.256, // days (sidereal year)
-
-  // These will be created/set in code:
-  orbitPath: undefined,
 });
 
 // scene.camera.follow(scene.entityManager.getEntity("Earth")!, vec3.fromValues(30,30,30));

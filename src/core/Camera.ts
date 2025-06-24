@@ -1,5 +1,4 @@
 import { vec3, mat4 } from "gl-matrix";
-import { Entity } from "../models/Entity";
 
 export class Camera {
   private position: vec3 = vec3.fromValues(0, 0, 0);

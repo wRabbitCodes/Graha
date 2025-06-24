@@ -152,17 +152,27 @@ export class Canvas {
     this.gl = gl;
     this.canvas = el;
     this.enableResizeHandler();
-    this.enablePointerLock();
     this.resizeToDisplaySize();
+
+    const crosshair = document.getElementById("crosshair");
+    if (crosshair) {
+      crosshair.style.display = this.isPointerLocked ? "block" : "none";
+    }
   }
 
   private enableResizeHandler() {
     this.canvas.addEventListener("resize", ()=>this.resizeToDisplaySize());
   }
 
-  private enablePointerLock() {
-    this.canvas.addEventListener("click", () => {
-      this.canvas.requestPointerLock();
+  enablePointerLock(raycasterCallback: (ndcX: number, ndcY: number) => void) {
+    this.canvas.addEventListener("click", (e: MouseEvent) => {
+      if (!this.isPointerLocked) this.canvas.requestPointerLock();
+      else {
+        const rect = this.canvas.getBoundingClientRect();
+        const ndcX = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+        const ndcY = (1 - (e.clientY - rect.top) / rect.height) * 2 - 1;
+        raycasterCallback(ndcX, ndcY);
+      }
     });
   }
 

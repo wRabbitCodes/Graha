@@ -21,7 +21,7 @@ export class OrbitSystem {
   private orbits: OrbitData[] = [];
   private readonly DEG2RAD = Math.PI / 180;
 
-  constructor(private gl: WebGL2RenderingContext, private utils: GLUtils) { }
+  constructor(private gl: WebGL2RenderingContext, private utils: GLUtils) {}
 
   addOrbit(orbit: OrbitData) {
     orbit.elapsedDays = 0;
@@ -44,7 +44,10 @@ export class OrbitSystem {
       orbit.elapsedDays! += daysElapsed;
 
       // Mean anomaly (degrees)
-      const Mdeg = (orbit.meanAnomalyAtEpoch + 360 * (orbit.elapsedDays! / orbit.orbitalPeriod)) % 360;
+      const Mdeg =
+        (orbit.meanAnomalyAtEpoch +
+          360 * (orbit.elapsedDays! / orbit.orbitalPeriod)) %
+        360;
       const M = Mdeg * this.DEG2RAD;
 
       // Solve Kepler's equation for eccentric anomaly E
@@ -54,10 +57,12 @@ export class OrbitSystem {
       const r = orbit.semiMajorAxis * (1 - orbit.eccentricity * Math.cos(E));
 
       // True anomaly θ
-      const theta = 2 * Math.atan2(
-        Math.sqrt(1 + orbit.eccentricity) * Math.sin(E / 2),
-        Math.sqrt(1 - orbit.eccentricity) * Math.cos(E / 2)
-      );
+      const theta =
+        2 *
+        Math.atan2(
+          Math.sqrt(1 + orbit.eccentricity) * Math.sin(E / 2),
+          Math.sqrt(1 - orbit.eccentricity) * Math.cos(E / 2)
+        );
 
       // Orbital parameters
       const i = orbit.inclination * this.DEG2RAD;
@@ -66,18 +71,26 @@ export class OrbitSystem {
 
       // Position in 3D space
       const x =
-        r * (Math.cos(Ω) * Math.cos(theta + ω) -
+        r *
+        (Math.cos(Ω) * Math.cos(theta + ω) -
           Math.sin(Ω) * Math.sin(theta + ω) * Math.cos(i));
       const y =
-        r * (Math.sin(Ω) * Math.cos(theta + ω) +
+        r *
+        (Math.sin(Ω) * Math.cos(theta + ω) +
           Math.cos(Ω) * Math.sin(theta + ω) * Math.cos(i));
       const z = r * Math.sin(theta + ω) * Math.sin(i);
 
+      const finalPos = vec3.fromValues(x, y, z);
+
+      // Rotation matrix: -90° around X-axis
+      const rotX = mat4.create();
+      mat4.fromXRotation(rotX, -Math.PI / 2);
+
+      vec3.transformMat4(finalPos, finalPos, rotX);
       // Update object's position
-      orbit.object.setPosition(vec3.fromValues(x,y,z));
+      orbit.object.setPosition(finalPos);
     }
   }
-
 
   private solveKepler(M: number, e: number): number {
     let E = M;

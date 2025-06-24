@@ -8,6 +8,8 @@ import { SkySphere } from "../models/SkySphere";
 import { Sun } from "../models/Sun";
 import { AxisHelper } from "../models/AxisHelper";
 import { OrbitSystem } from "../systems/OrbitSystems";
+import { Raycaster } from "./Raycaster";
+import { Planet } from "../models/Planet";
 
 export class Scene {
   public readonly gl: WebGL2RenderingContext;
@@ -20,7 +22,7 @@ export class Scene {
   public readonly input: IO;
   public readonly entityManager: EntityManager;
   public readonly orbitSystem: OrbitSystem;
-  
+  public readonly raycaster: Raycaster;
   private axisHelper: AxisHelper;
 
   constructor(canvasId: string) {
@@ -32,10 +34,36 @@ export class Scene {
     this.camera = new Camera();
     this.entityManager = new EntityManager();
     this.sun = new Sun(this.gl, this.utils, "textures/lensFlare.png");
-    this.skySphere = new SkySphere(this.gl, this.utils, "textures/milkyway.png");
+    this.skySphere = new SkySphere(
+      this.gl,
+      this.utils,
+      "textures/milkyway.png"
+    );
     this.orbitSystem = new OrbitSystem(this.gl, this.utils);
-
     this.axisHelper = new AxisHelper(this.gl, this.utils);
+    this.raycaster = new Raycaster();
+
+    this.canvas.enablePointerLock((ndcX, ndcY) => {
+      const proj = this.canvas.getProjectionMatrix();
+      const view = this.camera.getViewMatrix();
+
+      const ray = this.raycaster.getRayFromNDC(ndcX, ndcY, proj, view);
+
+      for (const entity of this.entityManager.getEntities()) {
+        if (!(entity instanceof Planet)) return;
+        if (
+          this.raycaster.intersectSphere(
+            ray.origin,
+            ray.direction,
+            entity.getPosition(),
+            entity.getRadius()
+          )
+        ) {
+          console.log("CLICKED ON", entity.getName());
+          break;
+        }
+      }
+    });
 
     this.canvas.onPointerLockChange((locked) => {
       if (!locked) {
@@ -44,7 +72,7 @@ export class Scene {
       } else {
         this.input.enableMouseInputs((dragging, e) => {
           if (!dragging) this.camera.cameraMouseHandler(e);
-        })
+        });
         this.input.enableKeyboardInputs();
       }
     });
@@ -66,14 +94,20 @@ export class Scene {
     const view = this.camera.getViewMatrix();
     const proj = this.canvas.getProjectionMatrix();
 
-    if (this.sun.isReady()) {
-      this.sun.render(view, proj, this.camera.getPosition());
-    }
+    
     this.axisHelper.render(view, proj);
     this.orbitSystem.render(view, proj);
     if (this.skySphere.isReady()) {
       this.skySphere.render(view, proj);
     }
-    this.entityManager.render(view, proj, this.sun.getPosition(), this.camera.getPosition());
+    if (this.sun.isReady()) {
+      this.sun.render(view, proj, this.camera.getPosition());
+    }
+    this.entityManager.render(
+      view,
+      proj,
+      this.sun.getPosition(),
+      this.camera.getPosition()
+    );
   }
 }

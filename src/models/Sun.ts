@@ -1,5 +1,5 @@
 // src/objects/Sun.ts
-import { mat4, vec3 } from "gl-matrix";
+import { mat4, vec3, vec4 } from "gl-matrix";
 import { GLUtils } from "../core/GLUtils";
 
 export class Sun {
@@ -21,7 +21,7 @@ export class Sun {
       this.ready = true;
     });
   }
-  
+
   isReady() {
     return this.ready;
   }
@@ -33,20 +33,26 @@ export class Sun {
   render(viewMatrix: mat4, projectionMatrix: mat4, cameraPos: vec3) {
     if (!this.texture) return;
 
-    // Is sun in view?
-    const sunToCamera = vec3.subtract(vec3.create(), this.lightPos, cameraPos);
-    const forward = vec3.normalize(vec3.create(), [
-      -viewMatrix[2], -viewMatrix[6], -viewMatrix[10],
-    ]);
-    const dot = vec3.dot(vec3.normalize(vec3.create(), sunToCamera), forward);
-    if (dot < 0.7) return; // Only render if facing sun
-
     const gl = this.gl;
     gl.useProgram(this.program);
 
-    gl.disable(gl.DEPTH_TEST);
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+    gl.disable(gl.DEPTH_TEST);
+
+    // Set uniforms
+    gl.uniformMatrix4fv(
+      gl.getUniformLocation(this.program, "u_view"),
+      false,
+      viewMatrix
+    );
+    gl.uniformMatrix4fv(
+      gl.getUniformLocation(this.program, "u_proj"),
+      false,
+      projectionMatrix
+    );
+    gl.uniform3f(gl.getUniformLocation(this.program, "u_worldPos"), 0, 0, 0); // Sun at origin
+    gl.uniform1f(gl.getUniformLocation(this.program, "u_size"), 500.0); // Scale of flare in world units
 
     gl.activeTexture(gl.TEXTURE0 + 15);
     gl.bindTexture(gl.TEXTURE_2D, this.texture);
@@ -64,12 +70,7 @@ export class Sun {
     const vao = this.gl.createVertexArray()!;
     this.gl.bindVertexArray(vao);
 
-    const positions = new Float32Array([
-      -1, -1,
-       1, -1,
-      -1,  1,
-       1,  1,
-    ]);
+    const positions = new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]);
     const buffer = this.gl.createBuffer()!;
     this.gl.bindBuffer(this.gl.ARRAY_BUFFER, buffer);
     this.gl.bufferData(this.gl.ARRAY_BUFFER, positions, this.gl.STATIC_DRAW);
@@ -83,22 +84,44 @@ export class Sun {
   }
 
   static vertSrc = `#version 300 es
-  #pragma vscode_glsllint_stage : vert
-  in vec2 a_position;
-  out vec2 v_uv;
-  void main() {
-    v_uv = a_position * 0.5 + 0.5;
-    gl_Position = vec4(a_position, 0.0, 1.0);
-  }`;
+    #pragma vscode_glsllint_stage : vert
+
+    precision mediump float;
+    layout(location = 0) in vec2 a_position;
+
+    uniform mat4 u_view;
+    uniform mat4 u_proj;
+    uniform vec3 u_worldPos;
+    uniform float u_size;
+
+    out vec2 v_uv;
+
+    void main() {
+      // Billboard vectors from view matrix
+      vec3 right = vec3(u_view[0][0], u_view[1][0], u_view[2][0]);
+      vec3 up    = vec3(u_view[0][1], u_view[1][1], u_view[2][1]);
+
+      vec3 offset = a_position.x * right * u_size + a_position.y * up * u_size;
+      vec3 worldPos = u_worldPos + offset;
+
+      gl_Position = u_proj * u_view * vec4(worldPos, 1.0);
+
+      v_uv = a_position * 0.5 + 0.5; // Map from [-1,1] to [0,1]
+    }
+
+`;
 
   static fragSrc = `#version 300 es
-  #pragma vscode_glsllint_stage : frag
-  precision mediump float;
-  in vec2 v_uv;
-  uniform sampler2D u_lensflare;
-  out vec4 outColor;
-  void main() {
-    vec4 tex = texture(u_lensflare, v_uv);
-    outColor = vec4(tex.rgb, tex.a);
-  }`;
+    #pragma vscode_glsllint_stage : frag
+
+    precision mediump float;
+    uniform sampler2D u_lensflare;
+    out vec4 fragColor;
+
+    in vec2 v_uv;
+
+    void main() {
+      fragColor = texture(u_lensflare, v_uv);
+    }
+`;
 }

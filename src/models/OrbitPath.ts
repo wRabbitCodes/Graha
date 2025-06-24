@@ -1,10 +1,13 @@
-import { mat4 } from "gl-matrix";
+import { mat4, vec3 } from "gl-matrix";
 import { GLUtils } from "../core/GLUtils";
 
 export class OrbitPath {
   private vao: WebGLVertexArrayObject | null = null;
   private indexCount = 0;
   private program: WebGLProgram;
+  private perihelion = vec3.create();
+  private aphelion = vec3.create();
+
 
   constructor(
     private gl: WebGL2RenderingContext,
@@ -56,7 +59,18 @@ export class OrbitPath {
             Math.cos(Ω) * Math.sin(θ + ω) * Math.cos(i));
       const z = r * Math.sin(θ + ω) * Math.sin(i);
 
-      points.push(x, y, z);
+      // points.push(x, y, z);
+
+
+      const finalPos = vec3.fromValues(x, y, z);
+
+// Rotation matrix: -90° around X-axis
+const rotX = mat4.create();
+mat4.fromXRotation(rotX, -Math.PI / 2);
+
+vec3.transformMat4(finalPos, finalPos, rotX);
+points.push(finalPos[0], finalPos[1], finalPos[2])
+
     }
 
     const vertices = new Float32Array(points);
@@ -86,9 +100,22 @@ export class OrbitPath {
     }
     return E;
   }
+  private renderAnnotation(pos: vec3, color: [number, number, number, number]) {
+    const gl = this.gl;
+    const uColor = gl.getUniformLocation(this.program, "u_overrideColor");
+    gl.uniform4fv(uColor, color);
+
+    const model = mat4.create();
+    mat4.translate(model, model, pos);
+    mat4.scale(model, model, [0.2, 0.2, 0.2]); // small point
+
+    gl.uniformMatrix4fv(gl.getUniformLocation(this.program, "u_model"), false, model);
+    gl.drawArrays(gl.POINTS, 0, 1); // Assumes POINT primitive or make a tiny sphere
+  }
 
 
   public render(view: mat4, proj: mat4) {
+    
     const gl = this.gl;
     gl.useProgram(this.program);
     gl.bindVertexArray(this.vao);
@@ -98,6 +125,10 @@ export class OrbitPath {
     gl.uniformMatrix4fv(gl.getUniformLocation(this.program, "u_proj"), false, proj);
 
     gl.drawArrays(gl.LINE_STRIP, 0, this.indexCount);
+    // After drawing the line strip...
+    this.renderAnnotation(this.perihelion, [1, 0.2, 0.2, 1]);  // red = perihelion
+    this.renderAnnotation(this.aphelion, [0.2, 0.6, 1, 1]);   // blue = aphelion
+
     gl.bindVertexArray(null);
   }
 
