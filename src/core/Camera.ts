@@ -1,7 +1,7 @@
 import { vec3, mat4 } from "gl-matrix";
 
 export class Camera {
-  private position: vec3 = vec3.fromValues(0, 0, 0);
+  private position: vec3 = vec3.fromValues(0, 0, -80);
   private front: vec3 = vec3.fromValues(0, 0, -1);
   private up: vec3 = vec3.fromValues(0, 1, 0);
   private right: vec3 = vec3.create();
@@ -10,7 +10,7 @@ export class Camera {
 
   private yaw: number = -90;
   private pitch: number = 0;
-  private speed: number = 0.1;
+  private speed: number = 1;
   private sensitivity: number = 0.1;
 
   constructor() {
@@ -19,17 +19,25 @@ export class Camera {
   }
 
   cameraKeyboardHandler(keys: Set<string>) {
-    if (keys.has("w")) vec3.scaleAndAdd(this.position, this.position, this.front, this.speed);
-    if (keys.has("s")) vec3.scaleAndAdd(this.position, this.position, this.front, -this.speed);
-    if (keys.has("a")) vec3.scaleAndAdd(this.position, this.position, this.right, -this.speed);
-    if (keys.has("d")) vec3.scaleAndAdd(this.position, this.position, this.right, this.speed);
+    if (keys.has("w"))
+      vec3.scaleAndAdd(this.position, this.position, this.front, this.speed);
+    if (keys.has("s"))
+      vec3.scaleAndAdd(this.position, this.position, this.front, -this.speed);
+    if (keys.has("a"))
+      vec3.scaleAndAdd(this.position, this.position, this.right, -this.speed);
+    if (keys.has("d"))
+      vec3.scaleAndAdd(this.position, this.position, this.right, this.speed);
   }
-  
+
   private updateVectors() {
     const front = vec3.create();
-    front[0] = Math.cos(this.yaw * Math.PI / 180) * Math.cos(this.pitch * Math.PI / 180);
-    front[1] = Math.sin(this.pitch * Math.PI / 180);
-    front[2] = Math.sin(this.yaw * Math.PI / 180) * Math.cos(this.pitch * Math.PI / 180);
+    front[0] =
+      Math.cos((this.yaw * Math.PI) / 180) *
+      Math.cos((this.pitch * Math.PI) / 180);
+    front[1] = Math.sin((this.pitch * Math.PI) / 180);
+    front[2] =
+      Math.sin((this.yaw * Math.PI) / 180) *
+      Math.cos((this.pitch * Math.PI) / 180);
     vec3.normalize(this.front, front);
     vec3.cross(this.right, this.front, this.worldUp);
     vec3.normalize(this.right, this.right);
@@ -44,14 +52,14 @@ export class Camera {
   }
 
   cameraMouseHandler(e: MouseEvent) {
-    console.log('MOUSE MOVED | NO DRAG')
+    console.log("MOUSE MOVED | NO DRAG");
     const offsetX = e.movementX;
     const offsetY = -e.movementY; // reverse Y if needed for intuition
 
     this.yaw += offsetX * this.sensitivity;
     this.pitch += offsetY * this.sensitivity;
 
-    // Clamp pitch 
+    // Clamp pitch
     this.pitch = Math.max(-89.0, Math.min(89.0, this.pitch));
 
     this.updateVectors(); // Must update front, right, up

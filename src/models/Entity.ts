@@ -5,4 +5,5 @@ export interface Entity {
   render(viewMatrix: mat4, projectionMatrix: mat4, lightPos: vec3, cameraPos: vec3): void;
   getName(): string;
   getPosition(): vec3;
+  setPosition(newPosition: vec3): void;
 }

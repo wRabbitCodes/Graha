@@ -1,68 +1,110 @@
-// src/systems/OrbitSystem.ts
-
 import { mat4, vec3 } from "gl-matrix";
-import { OrbitPath } from "../models/OrbitPath";
 import { Entity } from "../models/Entity";
+import { OrbitPath } from "../models/OrbitPath";
 import { GLUtils } from "../core/GLUtils";
 
 type OrbitData = {
   object: Entity;
-  center: vec3;
-  radius: number;
-  speed: number;
-  angle: number;
-  path?: OrbitPath;
+  // Keplerian orbital elements:
+  semiMajorAxis: number;
+  eccentricity: number;
+  inclination: number;
+  longitudeOfAscendingNode: number;
+  argumentOfPeriapsis: number;
+  meanAnomalyAtEpoch: number;
+  orbitalPeriod: number;
+  orbitPath?: OrbitPath; // ✅ visual ellipse
+  elapsedDays?: number;
+  axialTilt?: number;
+  rotationSpeed?: number;
 };
 
 export class OrbitSystem {
   private orbits: OrbitData[] = [];
-  private gl: WebGL2RenderingContext;
-  private utils: GLUtils;
+  private readonly DEG2RAD = Math.PI / 180;
 
-  constructor(gl: WebGL2RenderingContext, utils: GLUtils) {
-    this.gl = gl;
-    this.utils = utils;
-  }
+  constructor(private gl: WebGL2RenderingContext, private utils: GLUtils) {}
 
-  addOrbitingObject(
-    object: Entity,
-    center: vec3,
-    radius: number,
-    speed: number,
-    showPath: boolean = true,
-    pathColor: [number, number, number] = [0.6, 0.6, 0.6]
-  ) {
-    const orbit: OrbitData = {
-      object,
-      center,
-      radius,
-      speed,
-      angle: 0,
-      path: showPath ? new OrbitPath(this.gl, this.utils, radius, pathColor) : undefined
-    };
+  addOrbit(orbit: OrbitData) {
+    orbit.elapsedDays = 0;
+    if (!orbit.orbitPath) {
+      orbit.orbitPath = new OrbitPath(this.gl, this.utils, {
+        semiMajorAxis: orbit.semiMajorAxis,
+        eccentricity: orbit.eccentricity,
+        inclination: orbit.inclination,
+        longitudeOfAscendingNode: orbit.longitudeOfAscendingNode,
+        argumentOfPeriapsis: orbit.argumentOfPeriapsis,
+      });
+    }
     this.orbits.push(orbit);
   }
 
   update(deltaTime: number) {
+    const daysElapsed = deltaTime / 1000 / 60 / 60 / 24; // Convert ms to days
+
     for (const orbit of this.orbits) {
-      orbit.angle += orbit.speed * deltaTime;
+      orbit.elapsedDays! += daysElapsed;
 
-      const x = orbit.center[0] + Math.cos(orbit.angle) * orbit.radius;
-      const z = orbit.center[2] + Math.sin(orbit.angle) * orbit.radius;
-      const newPosition = vec3.fromValues(x, orbit.center[1], z);
+      // Mean anomaly (degrees)
+      const Mdeg =
+        (orbit.meanAnomalyAtEpoch +
+          360 * (orbit.elapsedDays! / orbit.orbitalPeriod)) %
+        360;
+      const M = Mdeg * this.DEG2RAD;
 
-      // Must implement setPosition(vec3) in your Entity (e.g., Planet)
-      if ((orbit.object as any).setPosition) {
-        (orbit.object as any).setPosition(newPosition);
-      }
+      // Solve Kepler's equation for eccentric anomaly E
+      const E = this.solveKepler(M, orbit.eccentricity);
+
+      // Compute distance from focus (Sun)
+      const r = orbit.semiMajorAxis * (1 - orbit.eccentricity * Math.cos(E));
+
+      // True anomaly θ
+      const theta =
+        2 *
+        Math.atan2(
+          Math.sqrt(1 + orbit.eccentricity) * Math.sin(E / 2),
+          Math.sqrt(1 - orbit.eccentricity) * Math.cos(E / 2)
+        );
+
+      // Orbital parameters
+      const i = orbit.inclination * this.DEG2RAD;
+      const Ω = orbit.longitudeOfAscendingNode * this.DEG2RAD;
+      const ω = orbit.argumentOfPeriapsis * this.DEG2RAD;
+
+      // Position in 3D space
+      const x =
+        r *
+        (Math.cos(Ω) * Math.cos(theta + ω) -
+          Math.sin(Ω) * Math.sin(theta + ω) * Math.cos(i));
+      const y =
+        r *
+        (Math.sin(Ω) * Math.cos(theta + ω) +
+          Math.cos(Ω) * Math.sin(theta + ω) * Math.cos(i));
+      const z = r * Math.sin(theta + ω) * Math.sin(i);
+
+      const finalPos = vec3.fromValues(x, y, z);
+
+      // Rotation matrix: -90° around X-axis
+      const rotX = mat4.create();
+      mat4.fromXRotation(rotX, -Math.PI / 2);
+
+      vec3.transformMat4(finalPos, finalPos, rotX);
+      // Update object's position
+      orbit.object.setPosition(finalPos);
     }
   }
 
-  render(viewMatrix: mat4, projMatrix: mat4) {
+  private solveKepler(M: number, e: number): number {
+    let E = M;
+    for (let i = 0; i < 10; i++) {
+      E = E - (E - e * Math.sin(E) - M) / (1 - e * Math.cos(E));
+    }
+    return E;
+  }
+
+  render(view: mat4, proj: mat4) {
     for (const orbit of this.orbits) {
-      if (orbit.path) {
-        orbit.path.render(viewMatrix, projMatrix);
-      }
+      orbit.orbitPath?.render(view, proj);
     }
   }
 }
