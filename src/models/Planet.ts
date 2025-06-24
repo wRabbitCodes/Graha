@@ -26,13 +26,16 @@ export class Planet implements Entity {
   private spinQuat = quat.create();
   private position: vec3;
   private scale: vec3;
-  private radius: number;
   private axis = vec3.fromValues(0, 1, 0);
   private rotationPerFrame = 0.03;
   private selected = false;
 
   setSelected(val: boolean) {
     this.selected = val;
+  }
+
+  isSelected() {
+    return this.selected;
   }
 
   private orbit?: OrbitSystem;
@@ -66,7 +69,6 @@ export class Planet implements Entity {
     this.utils = utils;
     this.position = position;
     this.scale = scale;
-    this.radius = Math.max(...this.scale);
 
     quat.setAxisAngle(
       this.tiltQuat,
@@ -370,8 +372,15 @@ void main() {
   getPosition() {
     return this.position;
   }
+
+  getModelMatrix() {
+    this.updateModelMatrix();
+    return this.modelMatrix;
+  }
   getRadius() {
-    return this.radius;
+    const scale = vec3.create();
+    mat4.getScaling(scale, this.modelMatrix);
+    return Math.max(...scale);
   }
 
   static vertexShaderSrc = `#version 300 es

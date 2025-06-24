@@ -33,23 +33,26 @@ export class Raycaster {
   intersectSphere(
     rayOrigin: vec3,
     rayDir: vec3,
-    center: vec3,
+    modelMatrix: mat4,
     radius: number
-  ): number | null {
+  ) {
+    const center = vec3.create();
+    mat4.getTranslation(center, modelMatrix);
     const oc = vec3.create();
     vec3.subtract(oc, rayOrigin, center);
     const a = vec3.dot(rayDir, rayDir);
     const b = 2.0 * vec3.dot(oc, rayDir);
     const c = vec3.dot(oc, oc) - radius * radius;
     const discriminant = b * b - 4 * a * c;
-
     if (discriminant < 0) return null;
 
-    const sqrtD = Math.sqrt(discriminant);
-    const t1 = (-b - sqrtD) / (2.0 * a);
-    const t2 = (-b + sqrtD) / (2.0 * a);
+    const sqrtDisc = Math.sqrt(discriminant);
+    const t1 = (-b - sqrtDisc) / (2.0 * a);
+    const t2 = (-b + sqrtDisc) / (2.0 * a);
 
-    const t = t1 > 0 ? t1 : t2 > 0 ? t2 : null;
-    return t;
+    // Use the nearest *positive* t value
+    if (t1 > 0) return t1;
+    if (t2 > 0) return t2;
+    return null;
   }
 }

@@ -50,26 +50,23 @@ export class Scene {
       const ray = this.raycaster.getRayFromNDC(ndcX, ndcY, proj, view, this.camera.getPosition());
 
       let closestPlanet: Planet | null = null;
-      let closestDistance = Number.POSITIVE_INFINITY;
-
+      let minDistance = Infinity;
       for (const entity of this.entityManager.getEntities()) {
         if (!(entity instanceof Planet)) continue;
-        entity.setSelected(false);
 
         const t = this.raycaster.intersectSphere(
           ray.origin,
           ray.direction,
-          entity.getPosition(),
-          entity.getRadius()
+          entity.getModelMatrix(),
+          entity.getRadius(),
         );
 
-        if (t !== null && t < closestDistance) {
+        if (t !== null && t < minDistance) {
+          minDistance = t;
           closestPlanet = entity;
-          closestDistance = t;
         }
       }
-
-      closestPlanet?.setSelected(true);
+      closestPlanet?.setSelected(!closestPlanet.isSelected());
     });
 
     this.canvas.onPointerLockChange((locked) => {
