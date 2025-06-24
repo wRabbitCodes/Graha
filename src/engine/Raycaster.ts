@@ -5,7 +5,8 @@ export class Raycaster {
     ndcX: number,
     ndcY: number,
     proj: mat4,
-    view: mat4
+    view: mat4,
+    cameraPos: vec3,
   ): { origin: vec3; direction: vec3 } {
     const inverseVP = mat4.create();
     const viewProj = mat4.create();
@@ -26,7 +27,7 @@ export class Raycaster {
     vec3.subtract(direction, farPoint, nearPoint);
     vec3.normalize(direction, direction);
 
-    return { origin: nearPoint, direction };
+    return { origin: cameraPos, direction };
   }
 
   intersectSphere(
@@ -41,6 +42,9 @@ export class Raycaster {
     const b = 2.0 * vec3.dot(oc, rayDir);
     const c = vec3.dot(oc, oc) - radius * radius;
     const discriminant = b * b - 4 * a * c;
-    return discriminant >= 0;
+    if (discriminant < 0) return false;
+    const t1 = (-b - Math.sqrt(discriminant)) / (2.0 * a);
+    const t2 = (-b + Math.sqrt(discriminant)) / (2.0 * a);
+    return t1 > 0 || t2 > 0;
   }
 }

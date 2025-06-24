@@ -47,20 +47,12 @@ export class Scene {
       const proj = this.canvas.getProjectionMatrix();
       const view = this.camera.getViewMatrix();
 
-      const ray = this.raycaster.getRayFromNDC(ndcX, ndcY, proj, view);
+      const ray = this.raycaster.getRayFromNDC(ndcX, ndcY, proj, view, this.camera.getPosition());
 
       for (const entity of this.entityManager.getEntities()) {
-        if (!(entity instanceof Planet)) return;
-        if (
-          this.raycaster.intersectSphere(
-            ray.origin,
-            ray.direction,
-            entity.getPosition(),
-            entity.getRadius()
-          )
-        ) {
-          console.log("CLICKED ON", entity.getName());
-          break;
+        if (entity instanceof Planet) {
+          const hit = this.raycaster.intersectSphere(ray.origin, ray.direction, entity.getPosition(), entity.getRadius());
+          entity.setSelected(!!hit); // Only one will remain selected
         }
       }
     });
@@ -96,17 +88,21 @@ export class Scene {
 
     
     this.orbitSystem.render(view, proj);
+
     if (this.skySphere.isReady()) {
       this.skySphere.render(view, proj);
     }
-    if (this.sun.isReady()) {
-      this.sun.render(view, proj, this.camera.getPosition());
-    }
+
     this.entityManager.render(
       view,
       proj,
       this.sun.getPosition(),
       this.camera.getPosition()
     );
+
+    if (this.sun.isReady()) {
+      this.sun.render(view, proj, this.camera.getPosition());
+    }
+
   }
 }

@@ -5,19 +5,20 @@ export class AxisHelper {
   private vbo: WebGLBuffer;
   private program: WebGLProgram;
 
-  private scale = 200;
+  private scale = 5;
   constructor(private gl: WebGL2RenderingContext, private utils: any) {
     const axisVertices = new Float32Array([
       // X (red)
-      0, 0, 0, this.scale, 0, 0,
+      0, 0, 0, 0, 0, 0,
       // Y (green)
-      0, 0, 0, 0, this.scale, 0,
+      0, -this.scale, 0, 0, this.scale, 0,
       // Z (blue)
-      0, 0, 0, 0, 0, this.scale,
+      0, 0, 0, 0, 0, 0,
     ]);
 
     this.program = this.utils.createProgram(
       `#version 300 es
+      #pragma vscode_glsllint_stage : vert
       precision mediump float;
       layout(location = 0) in vec3 a_position;
       uniform mat4 u_mvp;
@@ -26,6 +27,7 @@ export class AxisHelper {
       }`,
 
       `#version 300 es
+      #pragma vscode_glsllint_stage : stage
       precision mediump float;
       out vec4 fragColor;
       uniform vec3 u_color;

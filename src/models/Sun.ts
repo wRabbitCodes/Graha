@@ -36,9 +36,9 @@ export class Sun {
     const gl = this.gl;
     gl.useProgram(this.program);
 
+    gl.depthMask(false);
     gl.enable(gl.BLEND);
     gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
-    gl.disable(gl.DEPTH_TEST);
 
     // Set uniforms
     gl.uniformMatrix4fv(
@@ -63,7 +63,7 @@ export class Sun {
     gl.bindVertexArray(null);
 
     gl.disable(gl.BLEND);
-    gl.enable(gl.DEPTH_TEST);
+    gl.depthMask(true);
   }
 
   private createQuadVAO(): WebGLVertexArrayObject {

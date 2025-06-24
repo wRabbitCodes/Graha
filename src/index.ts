@@ -18,6 +18,7 @@ const earth = new Planet(
     scene.utils,
     vec3.fromValues(0, 0, -40),
     vec3.fromValues(20, 20, 20),
+    23.44,
     "textures/4k_earth_surface.jpg",
     scene.axisHelper,
     "textures/4k_earth_normal.jpg",
@@ -35,6 +36,7 @@ const mars =  new Planet(
     scene.utils,
     vec3.fromValues(0, 0, 50),
     vec3.fromValues(15, 15, 15),
+    25.19,
     "textures/2k_mars_surface.jpg",
     scene.axisHelper,
     "textures/2k_mars_normal.png"
@@ -49,6 +51,7 @@ const jupiter =  new Planet(
     scene.utils,
     vec3.fromValues(0, 0, -150),
     vec3.fromValues(80, 80, 80),
+    3.13,
     "textures/4k_jupiter.jpg",
     scene.axisHelper,
     // "textures/4k_jupiter_bump.jpg",

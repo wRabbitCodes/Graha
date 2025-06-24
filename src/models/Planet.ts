@@ -5,23 +5,35 @@ import { OrbitSystem } from "../systems/OrbitSystems";
 import { AxisHelper } from "./AxisHelper";
 
 type PlanetTextureTypes = {
-  [Key in 'surface' | 'normal' | 'specular' | 'atmosphere']: WebGLTexture | null
-}
+  [Key in
+    | "surface"
+    | "normal"
+    | "specular"
+    | "atmosphere"]: WebGLTexture | null;
+};
 
 export class Planet implements Entity {
   private gl: WebGL2RenderingContext;
   private utils: GLUtils;
   private program: WebGLProgram;
+  private glowProgram: WebGLProgram;
   private vao?: WebGLVertexArrayObject;
   private indexCount = 0;
 
   private modelMatrix = mat4.identity(mat4.create());
   private rotationQuat = quat.create();
+  private tiltQuat = quat.create();
+  private spinQuat = quat.create();
   private position: vec3;
   private scale: vec3;
   private radius: number;
-  private axis = vec3.fromValues(0,1,0);
+  private axis = vec3.fromValues(0, 1, 0);
   private rotationPerFrame = 0.03;
+  private selected = false;
+
+  setSelected(val: boolean) {
+    this.selected = val;
+  }
 
   private orbit?: OrbitSystem;
 
@@ -34,7 +46,7 @@ export class Planet implements Entity {
   };
 
   update(deltaTime: number) {
-    this.updateRotation();
+    this.updateRotation(deltaTime);
   }
 
   constructor(
@@ -43,11 +55,12 @@ export class Planet implements Entity {
     utils: GLUtils,
     position: vec3 = vec3.create(),
     scale: vec3 = vec3.fromValues(1, 1, 1),
+    tiltAngle: number,
     private surfaceURL: string,
     private axisHelper?: AxisHelper,
     private normalMapURL?: string,
     private atmosphereURL?: string,
-    private specularURL?: string,
+    private specularURL?: string
   ) {
     this.gl = gl;
     this.utils = utils;
@@ -55,10 +68,21 @@ export class Planet implements Entity {
     this.scale = scale;
     this.radius = Math.max(...this.scale);
 
-    this.program = this.utils.createProgram(Planet.vertexShaderSrc, Planet.fragmentShaderSrc);
-    gl.useProgram(this.program);
+    quat.setAxisAngle(
+      this.tiltQuat,
+      vec3.fromValues(1, 0, 0),
+      (tiltAngle * Math.PI) / 180
+    );
+    this.program = this.utils.createProgram(
+      Planet.vertexShaderSrc,
+      Planet.fragmentShaderSrc
+    );
 
-    this.initiUniforms();
+    this.glowProgram = this.utils.createProgram(
+      Planet.glowVert,
+      Planet.glowFrag
+    );
+    this.initUniforms();
     this.setupMesh();
     this.loadTextures();
   }
@@ -67,21 +91,57 @@ export class Planet implements Entity {
     vec3.copy(this.position, pos);
   }
 
-  private initiUniforms() {
+  private initUniforms() {
     const gl = this.gl;
-    this.uniformLocations.normalMatrix = gl.getUniformLocation(this.program, "u_normalMatrix");
-    this.uniformLocations.surface = gl.getUniformLocation(this.program, "u_surfaceTexture");
-    this.uniformLocations.normal = gl.getUniformLocation(this.program, "u_normalTexture");
-    this.uniformLocations.specular = gl.getUniformLocation(this.program, "u_specularTexture");
-    this.uniformLocations.atmosphere = gl.getUniformLocation(this.program, "u_atmosphereTexture");
-    this.uniformLocations.model = gl.getUniformLocation(this.program, "u_model");
+    this.uniformLocations.normalMatrix = gl.getUniformLocation(
+      this.program,
+      "u_normalMatrix"
+    );
+    this.uniformLocations.surface = gl.getUniformLocation(
+      this.program,
+      "u_surfaceTexture"
+    );
+    this.uniformLocations.normal = gl.getUniformLocation(
+      this.program,
+      "u_normalTexture"
+    );
+    this.uniformLocations.specular = gl.getUniformLocation(
+      this.program,
+      "u_specularTexture"
+    );
+    this.uniformLocations.atmosphere = gl.getUniformLocation(
+      this.program,
+      "u_atmosphereTexture"
+    );
+    this.uniformLocations.model = gl.getUniformLocation(
+      this.program,
+      "u_model"
+    );
     this.uniformLocations.view = gl.getUniformLocation(this.program, "u_view");
-    this.uniformLocations.projection = gl.getUniformLocation(this.program, "u_proj");
-    this.uniformLocations.lightPos = gl.getUniformLocation(this.program, "u_lightPos");
-    this.uniformLocations.viewPos = gl.getUniformLocation(this.program, "u_viewPos");
-    this.uniformLocations.useNormal = gl.getUniformLocation(this.program, "u_useNormal");
-    this.uniformLocations.useSpecular = gl.getUniformLocation(this.program, "u_useSpecular");
-    this.uniformLocations.useAtmosphere = gl.getUniformLocation(this.program, "u_useAtmosphere");
+    this.uniformLocations.projection = gl.getUniformLocation(
+      this.program,
+      "u_proj"
+    );
+    this.uniformLocations.lightPos = gl.getUniformLocation(
+      this.program,
+      "u_lightPos"
+    );
+    this.uniformLocations.viewPos = gl.getUniformLocation(
+      this.program,
+      "u_viewPos"
+    );
+    this.uniformLocations.useNormal = gl.getUniformLocation(
+      this.program,
+      "u_useNormal"
+    );
+    this.uniformLocations.useSpecular = gl.getUniformLocation(
+      this.program,
+      "u_useSpecular"
+    );
+    this.uniformLocations.useAtmosphere = gl.getUniformLocation(
+      this.program,
+      "u_useAtmosphere"
+    );
   }
 
   private setupMesh() {
@@ -118,7 +178,7 @@ export class Planet implements Entity {
     gl.bufferData(gl.ARRAY_BUFFER, sphere.tangents, gl.STATIC_DRAW);
     const tangentLoc = gl.getAttribLocation(this.program, "a_tangent");
     gl.enableVertexAttribArray(tangentLoc);
-    gl.vertexAttribPointer(tangentLoc, 3, gl.FLOAT, false, 0,0);
+    gl.vertexAttribPointer(tangentLoc, 3, gl.FLOAT, false, 0, 0);
 
     const indexBuffer = gl.createBuffer()!;
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
@@ -130,31 +190,58 @@ export class Planet implements Entity {
   async loadTextures() {
     let unit = 0;
 
-    this.textures.surface = await this.utils.loadTexture(this.surfaceURL, unit++);
+    this.textures.surface = await this.utils.loadTexture(
+      this.surfaceURL,
+      unit++
+    );
 
     if (this.normalMapURL) {
-      this.textures.normal = await this.utils.loadTexture(this.normalMapURL, unit++);
+      this.textures.normal = await this.utils.loadTexture(
+        this.normalMapURL,
+        unit++
+      );
     }
 
     if (this.specularURL) {
-      this.textures.specular = await this.utils.loadTexture(this.specularURL, unit++);
+      this.textures.specular = await this.utils.loadTexture(
+        this.specularURL,
+        unit++
+      );
     }
 
     if (this.atmosphereURL) {
-      this.textures.atmosphere = await this.utils.loadTexture(this.atmosphereURL, unit++);
+      this.textures.atmosphere = await this.utils.loadTexture(
+        this.atmosphereURL,
+        unit++
+      );
     }
   }
 
-  updateRotation() {
-    const q = quat.setAxisAngle(quat.create(), this.axis, this.rotationPerFrame);
-    quat.multiply(this.rotationQuat, q, this.rotationQuat);
+  updateRotation(deltaTime: number) {
+    const qRotation = quat.setAxisAngle(
+      quat.create(),
+      this.axis,
+      (this.rotationPerFrame * deltaTime) / 100
+    );
+    quat.multiply(this.spinQuat, qRotation, this.spinQuat);
+    quat.multiply(this.rotationQuat, this.tiltQuat, this.spinQuat);
   }
 
   private updateModelMatrix() {
-    mat4.fromRotationTranslationScale(this.modelMatrix, this.rotationQuat, this.position, this.scale);
+    mat4.fromRotationTranslationScale(
+      this.modelMatrix,
+      this.rotationQuat,
+      this.position,
+      this.scale
+    );
   }
 
-  render(viewMatrix: mat4, projectionMatrix: mat4, lightPos: vec3, cameraPos: vec3) {
+  render(
+    viewMatrix: mat4,
+    projectionMatrix: mat4,
+    lightPos: vec3,
+    cameraPos: vec3
+  ) {
     const gl = this.gl;
     gl.useProgram(this.program);
     gl.bindVertexArray(this.vao!);
@@ -162,23 +249,107 @@ export class Planet implements Entity {
     this.updateModelMatrix();
     const normalMatrix = mat3.create();
     mat3.normalFromMat4(normalMatrix, this.modelMatrix);
-    gl.uniformMatrix3fv(this.uniformLocations.normalMatrix, false, normalMatrix);
+    gl.uniformMatrix3fv(
+      this.uniformLocations.normalMatrix,
+      false,
+      normalMatrix
+    );
     gl.uniformMatrix4fv(this.uniformLocations.model, false, this.modelMatrix);
     gl.uniformMatrix4fv(this.uniformLocations.view, false, viewMatrix);
-    gl.uniformMatrix4fv(this.uniformLocations.projection, false, projectionMatrix);
+    gl.uniformMatrix4fv(
+      this.uniformLocations.projection,
+      false,
+      projectionMatrix
+    );
     gl.uniform3fv(this.uniformLocations.lightPos, lightPos);
     gl.uniform3fv(this.uniformLocations.viewPos, cameraPos);
 
     gl.uniform1i(this.uniformLocations.useNormal, this.textures.normal ? 1 : 0);
-    gl.uniform1i(this.uniformLocations.useSpecular, this.textures.specular ? 1 : 0);
-    gl.uniform1i(this.uniformLocations.useAtmosphere, this.textures.atmosphere ? 1 : 0);
+    gl.uniform1i(
+      this.uniformLocations.useSpecular,
+      this.textures.specular ? 1 : 0
+    );
+    gl.uniform1i(
+      this.uniformLocations.useAtmosphere,
+      this.textures.atmosphere ? 1 : 0
+    );
 
     this.bindTextures();
 
     gl.drawElements(gl.TRIANGLES, this.indexCount, gl.UNSIGNED_SHORT, 0);
     gl.bindVertexArray(null);
+
+    if (this.selected) {
+      const gl = this.gl;
+      gl.useProgram(this.glowProgram);
+      gl.bindVertexArray(this.vao!);
+
+      const glowModel = mat4.clone(this.modelMatrix);
+      mat4.scale(glowModel, glowModel, [1.05, 1.05, 1.05]);
+
+      gl.uniformMatrix4fv(gl.getUniformLocation(this.glowProgram, "u_model"), false, glowModel);
+      gl.uniformMatrix4fv(gl.getUniformLocation(this.glowProgram, "u_view"), false, viewMatrix);
+      gl.uniformMatrix4fv(gl.getUniformLocation(this.glowProgram, "u_proj"), false, projectionMatrix);
+      gl.uniform3fv(gl.getUniformLocation(this.glowProgram, "u_cameraPos"), cameraPos);
+
+      gl.enable(gl.BLEND);
+      gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+
+      gl.enable(gl.CULL_FACE);
+      gl.cullFace(gl.FRONT); // Backface only for outline
+      gl.drawElements(gl.TRIANGLES, this.indexCount, gl.UNSIGNED_SHORT, 0);
+
+      gl.disable(gl.CULL_FACE);
+      gl.disable(gl.BLEND);
+      gl.bindVertexArray(null);
+    }
+
     this.axisHelper?.render(viewMatrix, projectionMatrix, this.modelMatrix);
   }
+
+  static glowVert = `#version 300 es
+  #
+layout(location = 0) in vec3 a_position;
+
+uniform mat4 u_model;
+uniform mat4 u_view;
+uniform mat4 u_proj;
+
+out vec3 v_worldPos;
+out vec3 v_normal;
+
+void main() {
+    vec4 worldPos = u_model * vec4(a_position, 1.0);
+    v_worldPos = worldPos.xyz;
+
+    // Normal from model matrix (assuming uniform scale)
+    v_normal = mat3(u_model) * a_position;
+
+    gl_Position = u_proj * u_view * worldPos;
+}`;
+
+static glowFrag = `#version 300 es
+precision mediump float;
+
+in vec3 v_worldPos;
+in vec3 v_normal;
+
+uniform vec3 u_cameraPos;
+
+out vec4 fragColor;
+
+void main() {
+    vec3 viewDir = normalize(u_cameraPos - v_worldPos);
+    vec3 normal = normalize(v_normal);
+
+    // Fresnel term (dot gets small at edges)
+    float fresnel = pow(1.0 - max(dot(viewDir, normal), 0.0), 2.0);
+
+    // Smooth gradient and color
+    vec3 glowColor = vec3(0.1, 0.8, 1.0); // Cyan-ish
+    fragColor = vec4(glowColor * fresnel, fresnel * 0.8); // Alpha also scales with fresnel
+}
+`;
 
   private bindTextures() {
     const gl = this.gl;
@@ -193,9 +364,15 @@ export class Planet implements Entity {
     }
   }
 
-  getName() { return this.name; }
-  getPosition() { return this.position; }
-  getRadius() { return this.radius; }
+  getName() {
+    return this.name;
+  }
+  getPosition() {
+    return this.position;
+  }
+  getRadius() {
+    return this.radius;
+  }
 
   static vertexShaderSrc = `#version 300 es
     #pragma vscode_glsllint_stage : vert
