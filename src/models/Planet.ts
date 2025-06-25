@@ -422,7 +422,9 @@ void main() {
 
   getModelMatrix() {
     this.updateModelMatrix();
-    return this.modelMatrix;
+    let model = mat4.create()
+    mat4.copy(model, this.modelMatrix);
+    return  model;
   }
   getRadius() {
     const scale = vec3.create();

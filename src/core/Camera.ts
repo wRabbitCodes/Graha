@@ -52,7 +52,6 @@ export class Camera {
   }
 
   cameraMouseHandler(e: MouseEvent) {
-    console.log("MOUSE MOVED | NO DRAG");
     const offsetX = e.movementX;
     const offsetY = -e.movementY; // reverse Y if needed for intuition
 
