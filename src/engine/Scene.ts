@@ -176,6 +176,7 @@ export class Scene {
 
     if (this.selected) {
       console.log('POPUP UPDATED AND RENDERED')
+      this.popup.update(time);
       this.popup.updatePopupPosition(this.selected.getPosition(), this.selected.getRadius());
       this.popup.draw(proj, view, this.camera.getPosition());
     }
