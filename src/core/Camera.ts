@@ -18,7 +18,7 @@ export class Camera {
     this.updateViewMatrix();
   }
 
-  cameraKeyboardHandler(keys: Set<string>) {
+  cameraKeyboardHandler(keys: Set<string>, processPipeline: () => void) {
     if (keys.has("w"))
       vec3.scaleAndAdd(this.position, this.position, this.front, this.speed);
     if (keys.has("s"))
@@ -27,6 +27,12 @@ export class Camera {
       vec3.scaleAndAdd(this.position, this.position, this.right, -this.speed);
     if (keys.has("d"))
       vec3.scaleAndAdd(this.position, this.position, this.right, this.speed);
+    processPipeline();
+
+  }
+
+  setPosition(newPosition: vec3) {
+    vec3.copy(this.position, newPosition);
   }
 
   private updateVectors() {

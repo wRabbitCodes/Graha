@@ -1,6 +1,7 @@
 import { vec3 } from "gl-matrix";
 import { Scene } from "./engine/Scene";
 import { Planet } from "./models/Planet";
+import { CollisionDetector } from "./engine/CollisionDetector";
 
 const scene = new Scene("glCanvas");
 
@@ -76,7 +77,6 @@ scene.orbitSystem.addOrbit({
   meanAnomalyAtEpoch: 358.617, // degrees (at J2000)
   orbitalPeriod: 365.256, // days (sidereal year)
 });
-
 // scene.camera.follow(scene.entityManager.getEntity("Earth")!, vec3.fromValues(30,30,30));
 let lastTime = performance.now();
 function loop(time: number) {

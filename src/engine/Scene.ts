@@ -12,6 +12,7 @@ import { Raycaster } from "./Raycaster";
 import { Planet } from "../models/Planet";
 import { BoundingBoxHelper } from "../models/BoundingBox";
 import { Popup } from "../models/PopupPanel";
+import { CollisionDetector } from "./CollisionDetector";
 
 export class Scene {
   readonly gl: WebGL2RenderingContext;
@@ -28,6 +29,7 @@ export class Scene {
   readonly axisHelper: AxisHelper;
   readonly boundingBoxHelper: BoundingBoxHelper;
   readonly popup: Popup;
+  readonly collisionDetector: CollisionDetector;
 
   private loadPopup = false;
   private selected: Planet | null = null;
@@ -56,6 +58,7 @@ export class Scene {
     this.raycaster = new Raycaster();
     this.boundingBoxHelper = new BoundingBoxHelper(this.gl);
     this.popup = new Popup(this.gl, this.utils);
+    this.collisionDetector = new CollisionDetector();
     this.canvas.enablePointerLock((ndcX, ndcY) => {
       // const ray = this.raycaster.getRayFromNDC(ndcX, ndcY, proj, view, this.camera.getPosition());
       const ray = this.raycaster.setFromViewMatrix(this.camera.getViewMatrix());
@@ -112,8 +115,8 @@ export class Scene {
           closest = t;
           selected = planet;
           this.selected = selected;
-          this.popup.setSizeRelativeToPlanet(selected.getRadius())
-        } 
+          this.popup.setSizeRelativeToPlanet(selected.getRadius());
+        }
       }
       if (selected) {
         selected.setSelected(!selected.isSelected());
@@ -135,7 +138,24 @@ export class Scene {
   }
 
   private update(time: number) {
-    this.camera.cameraKeyboardHandler(this.input.getKeys());
+    this.camera.cameraKeyboardHandler(this.input.getKeys(), () => {
+      this.collisionDetector.updateEntities(
+        this.entityManager.getEntities().map((entity) => ({
+          name: (entity as Planet).getName(),
+          obb: {
+            max: (entity as Planet).getBoundingInfo().obbMax,
+            min: (entity as Planet).getBoundingInfo().obbMin,
+            modelMatrix: (entity as Planet).getModelMatrix(),
+          },
+        }))
+      );
+      this.camera.setPosition(
+        this.collisionDetector.handleCameraCollisions({
+          position: this.camera.getPosition(),
+          radius: 1,
+        })
+      );
+    });
     this.entityManager.update(time);
   }
 
@@ -175,11 +195,13 @@ export class Scene {
     }
 
     if (this.selected) {
-      console.log('POPUP UPDATED AND RENDERED')
+      console.log("POPUP UPDATED AND RENDERED");
       this.popup.update(time);
-      this.popup.updatePopupPosition(this.selected.getPosition(), this.selected.getRadius());
+      this.popup.updatePopupPosition(
+        this.selected.getPosition(),
+        this.selected.getRadius()
+      );
       this.popup.draw(proj, view, this.camera.getPosition());
     }
-
   }
 }
