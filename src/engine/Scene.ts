@@ -47,10 +47,12 @@ export class Scene {
     this.boundingBoxHelper = new BoundingBoxHelper(this.gl);
 
     this.canvas.enablePointerLock((ndcX, ndcY) => {
-      const proj = this.canvas.getProjectionMatrix();
-      const view = this.camera.getViewMatrix();
 
-      const ray = this.raycaster.getRayFromNDC(ndcX, ndcY, proj, view, this.camera.getPosition());
+
+      // const ray = this.raycaster.getRayFromNDC(ndcX, ndcY, proj, view, this.camera.getPosition());
+      const ray = this.raycaster.setFromViewMatrix(this.camera.getViewMatrix());
+      console.log("Camera Pos:", ray.origin);
+      console.log("Ray Dir:", ray.direction);
 
       // let closestPlanet: Planet | null = null;
       // let minDistance = Infinity;
@@ -70,18 +72,33 @@ export class Scene {
       //   }
       // }
       // closestPlanet?.setSelected(!closestPlanet.isSelected());
-      let closest = Infinity;
-      let selected: Planet | null = null;
+      // let closest = Infinity;
+      // let selected: Planet | null = null;
 
-      for (const planet of this.entityManager.getEntities()) {
-        if (!(planet instanceof Planet)) continue;
-        const { modelMatrix, aabbMin, aabbMax } = planet.getBoundingInfo();
-        const t = this.raycaster.intersectRayOBB(ray.origin, ray.direction, modelMatrix, aabbMin, aabbMax);
-        if (t !== null && t < closest) {
-          closest = t;
-          selected = planet;
-        }
-      }
+      // for (const planet of this.entityManager.getEntities()) {
+      //   if (!(planet instanceof Planet)) continue;
+      //   const { modelMatrix, aabbMin, aabbMax } = planet.getBoundingInfo();
+      //   const t = this.raycaster.intersectRayOBB(ray.origin, ray.direction, modelMatrix, aabbMin, aabbMax);
+      //   if (t !== null && t < closest) {
+      //     closest = t;
+      //     selected = planet;
+      //   }
+      // }
+        let closest = Infinity;
+    let selected: Planet | null = null;
+
+    for (const planet of this.entityManager.getEntities()) {
+      if (!(planet instanceof Planet)) continue;
+
+      // const { modelMatrix, aabbMin, aabbMax } = planet.getBoundingInfo();
+      // const t = this.raycaster.intersectRayOBB(ray.origin, ray.direction, modelMatrix, aabbMin, aabbMax);
+      // console.log(`${planet.getName()} intersection t: ${t}`);
+      const t = this.raycaster.intersectSphere(ray.origin, ray.direction, planet.getModelMatrix(), planet.getRadius())
+
+      if (t !== null && t < closest) {
+        closest = t;
+        selected = planet;
+      }}
       selected?.setSelected(!selected.isSelected());
     });
 

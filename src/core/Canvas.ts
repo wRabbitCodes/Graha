@@ -142,6 +142,7 @@ export class Canvas {
 
   private isPointerLocked = false;
   private projectionMatrix = mat4.identity(mat4.create());
+  private crosshair: HTMLElement | null;
 
   constructor(id: string) {
     const el = document.getElementById(id);
@@ -153,21 +154,22 @@ export class Canvas {
     this.canvas = el;
     this.enableResizeHandler();
     this.resizeToDisplaySize();
-
-    const crosshair = document.getElementById("crosshair");
-    if (crosshair) {
-      crosshair.style.display = this.isPointerLocked ? "block" : "none";
-    }
+    this.crosshair = document.getElementById("crosshair");
   }
 
   private enableResizeHandler() {
-    this.canvas.addEventListener("resize", ()=>this.resizeToDisplaySize());
+    window.addEventListener("resize", ()=>this.resizeToDisplaySize());
   }
 
   enablePointerLock(raycasterCallback: (ndcX: number, ndcY: number) => void) {
     this.canvas.addEventListener("click", (e: MouseEvent) => {
-      if (!this.isPointerLocked) this.canvas.requestPointerLock();
+      if (!this.isPointerLocked) 
+        { 
+          if (this.crosshair) this.crosshair.style.display = "hidden";
+          this.canvas.requestPointerLock();
+        }
       else {
+        if (this.crosshair) this.crosshair.style.display = "block";
         const rect = this.canvas.getBoundingClientRect();
         const ndcX = ((e.clientX - rect.left) / rect.width) * 2 - 1;
         const ndcY = (1 - (e.clientY - rect.top) / rect.height) * 2 - 1;
@@ -177,6 +179,7 @@ export class Canvas {
   }
 
   getProjectionMatrix() {
+    this.resizeToDisplaySize();
     return this.projectionMatrix;
   }
 
