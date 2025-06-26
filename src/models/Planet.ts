@@ -1,8 +1,8 @@
 import { mat4, vec3, quat, mat3 } from "gl-matrix";
 import { GLUtils } from "../core/GLUtils";
 import { Entity } from "./Entity";
-import { OrbitSystem } from "../systems/OrbitSystems";
-import { AxisHelper } from "./AxisHelper";
+import { OrbitSystem } from "../systems/OrbitManager";
+import { AxisHelper } from "../systems/AxisPlotter";
 
 type PlanetTextureTypes = {
   [Key in

@@ -157,7 +157,7 @@ export class GLUtils {
     return program;
   }
 
-  async loadTexture(url: string, textureUnit: number): Promise<WebGLTexture> {
+  async loadTexture(url: string, textureUnit?: number): Promise<WebGLTexture> {
     const gl = this.gl;
     return new Promise((resolve, reject) => {
       const image = new Image();
@@ -167,7 +167,7 @@ export class GLUtils {
         const texture = gl.createTexture();
         if (!texture) return reject("Failed to create texture");
 
-        gl.activeTexture(gl.TEXTURE0 + textureUnit);
+        gl.activeTexture(gl.TEXTURE0 + (textureUnit ?? 0));
         gl.bindTexture(gl.TEXTURE_2D, texture);
         gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
         gl.texImage2D(

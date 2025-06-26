@@ -1,7 +1,7 @@
 // src/objects/Sun.ts
 import { mat4, vec3, vec4 } from "gl-matrix";
 import { GLUtils } from "../core/GLUtils";
-import { AxisHelper } from "./AxisHelper";
+import { AxisHelper } from "../systems/AxisPlotter";
 
 export class Sun {
   private program: WebGLProgram;

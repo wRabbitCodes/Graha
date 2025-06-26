@@ -6,11 +6,11 @@ import { EntityManager } from "./EntityManager";
 import { vec3 } from "gl-matrix";
 import { SkySphere } from "../models/SkySphere";
 import { Sun } from "../models/Sun";
-import { AxisHelper } from "../models/AxisHelper";
-import { OrbitSystem } from "../systems/OrbitSystems";
+import { AxisHelper } from "../systems/AxisPlotter";
+import { OrbitSystem } from "../systems/OrbitManager";
 import { Raycaster } from "./Raycaster";
 import { Planet } from "../models/Planet";
-import { BoundingBoxHelper } from "../models/BoundingBox";
+import { BoundingBoxHelper } from "../systems/BoundingBoxPlotter";
 import { Popup } from "../models/PopupPanel";
 import { CollisionDetector } from "./CollisionDetector";
 
@@ -19,7 +19,6 @@ export class Scene {
   readonly utils: GLUtils;
   readonly canvas: Canvas;
   readonly camera: Camera;
-  // readonly skybox: Skybox;
   readonly sun: Sun;
   readonly skySphere: SkySphere;
   readonly input: IO;
@@ -31,7 +30,6 @@ export class Scene {
   readonly popup: Popup;
   readonly collisionDetector: CollisionDetector;
 
-  private loadPopup = false;
   private selected: Planet | null = null;
 
   constructor(canvasId: string) {
@@ -64,46 +62,11 @@ export class Scene {
       const ray = this.raycaster.setFromViewMatrix(this.camera.getViewMatrix());
       console.log("Camera Pos:", ray.origin);
       console.log("Ray Dir:", ray.direction);
-
-      // let closestPlanet: Planet | null = null;
-      // let minDistance = Infinity;
-      // for (const entity of this.entityManager.getEntities()) {
-      //   if (!(entity instanceof Planet)) continue;
-
-      //   const t = this.raycaster.intersectSphere(
-      //     ray.origin,
-      //     ray.direction,
-      //     entity.getModelMatrix(),
-      //     entity.getRadius(),
-      //   );
-
-      //   if (t !== null && t < minDistance) {
-      //     minDistance = t;
-      //     closestPlanet = entity;
-      //   }
-      // }
-      // closestPlanet?.setSelected(!closestPlanet.isSelected());
-      // let closest = Infinity;
-      // let selected: Planet | null = null;
-
-      // for (const planet of this.entityManager.getEntities()) {
-      //   if (!(planet instanceof Planet)) continue;
-      //   const { modelMatrix, aabbMin, aabbMax } = planet.getBoundingInfo();
-      //   const t = this.raycaster.intersectRayOBB(ray.origin, ray.direction, modelMatrix, aabbMin, aabbMax);
-      //   if (t !== null && t < closest) {
-      //     closest = t;
-      //     selected = planet;
-      //   }
-      // }
       let closest = Infinity;
       let selected: Planet | null = null;
 
       for (const planet of this.entityManager.getEntities()) {
         if (!(planet instanceof Planet)) continue;
-
-        // const { modelMatrix, aabbMin, aabbMax } = planet.getBoundingInfo();
-        // const t = this.raycaster.intersectRayOBB(ray.origin, ray.direction, modelMatrix, aabbMin, aabbMax);
-        // console.log(`${planet.getName()} intersection t: ${t}`);
         const t = this.raycaster.intersectSphere(
           ray.origin,
           ray.direction,
