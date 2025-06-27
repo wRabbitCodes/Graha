@@ -181,6 +181,11 @@ import { PlanetFactory } from "../factory/PlanetFactory";
 import { OrbitSystem } from "../systems/OrbitManager";
 import { Canvas } from "./Canvas";
 import { Camera } from "./Camera";
+import { SkyRenderSystem } from "../engine/ecs/systems/SkyRenderSystem";
+import { SkysphereTextureComponent } from "../engine/ecs/components/SkysphereTextureComponent";
+import { Entity } from "../engine/ecs/Entity";
+import { SkyRenderComponent } from "../engine/ecs/components/RenderComponent";
+import { SkyFactory } from "../factory/SkyFactory";
 
 export class Scene {
   readonly gl: WebGL2RenderingContext;
@@ -188,11 +193,13 @@ export class Scene {
   readonly canvas: Canvas
   readonly camera: Camera;
   private registry = new Registry();
-  private orbitSystem: OrbitSystem;
-  private renderSystem: PlanetRenderSystem;
+  // private orbitSystem: OrbitSystem;
+  // private renderSystem: PlanetRenderSystem;
   private textureSystem: TextureLoadSystem;
   private renderer: Renderer;
-  private planetFactory: PlanetFactory;
+  // private planetFactory: PlanetFactory;
+  private skyRender: SkyRenderSystem;
+  private skyFactory: SkyFactory;
 
   constructor(canvasId: string) {
     this.canvas = new Canvas(canvasId);
@@ -201,10 +208,15 @@ export class Scene {
 
     this.camera = new Camera();
     this.renderer = new Renderer();
-    this.orbitSystem = new OrbitSystem(this.gl, this.utils);
-    this.renderSystem = new PlanetRenderSystem(this.renderer, this.utils, this.registry);
+    this.skyRender = new SkyRenderSystem(this.renderer, this.utils, this.registry);
+    this.skyFactory = new SkyFactory(this.gl, this.utils, this.registry);
+    
+    // this.orbitSystem = new OrbitSystem(this.gl, this.utils);
+    // this.renderSystem = new PlanetRenderSystem(this.renderer, this.utils, this.registry);
     this.textureSystem = new TextureLoadSystem(this.registry, this.utils);
-    this.planetFactory = new PlanetFactory(this.gl, this.utils, this.registry);
+    // this.planetFactory = new PlanetFactory(this.gl, this.utils, this.registry);
+    // this.skyRender =  new SkyRenderSystem(this.renderer, this.utils, this.registry);
+    
   }
 
   initialize() {
@@ -215,29 +227,30 @@ export class Scene {
     //   surfaceURL: "textures/sun.jpg",
     // });
 
-    this.planetFactory.createPlanet({
-      name: "Earth",
-      position: vec3.fromValues(0, 0, -10),
-      scale: vec3.fromValues(2, 2, 2),
-      surfaceURL: "textures/4k_earth_surface.jpg",
-      normalURL: "textures/4k_earth_normal.jpg",
-      atmosphereURL: "4k_earth_atmosphere.png",
-      specularURL: "textures/earth_spec.jpg",
-      orbitData: {
-        semiMajorAxis: 8,
-        eccentricity: 0.0167,
-        inclination: 0,
-        orbitalPeriod: 365,
-        meanAnomalyAtEpoch: 0,
-      },
-    });
-
+    // this.planetFactory.createPlanet({
+    //   name: "Earth",
+    //   position: vec3.fromValues(0, 0, -10),
+    //   scale: vec3.fromValues(2, 2, 2),
+    //   surfaceURL: "textures/4k_earth_surface.jpg",
+    //   normalURL: "textures/4k_earth_normal.jpg",
+    //   atmosphereURL: "4k_earth_atmosphere.png",
+    //   specularURL: "textures/earth_spec.jpg",
+    //   orbitData: {
+    //     semiMajorAxis: 8,
+    //     eccentricity: 0.0167,
+    //     inclination: 0,
+    //     orbitalPeriod: 365,
+    //     meanAnomalyAtEpoch: 0,
+    //   },
+    // });
     // Load other planets similarly...
+
+    const sky = this.skyFactory.createSky('textures/milkyway.png')
   }
 
   update(deltaTime: number) {
     this.textureSystem.update(deltaTime);
-    this.orbitSystem.update(deltaTime);
+    // this.orbitSystem.update(deltaTime);
 
     const context: RenderContext = {
       viewMatrix: this.camera.getViewMatrix(),
@@ -245,7 +258,8 @@ export class Scene {
       lightPos: vec3.fromValues(0,0,0),
       cameraPos: this.camera.getPosition(),
     };
-    this.renderSystem.update(deltaTime);
+    // this.renderSystem.update(deltaTime);
+    this.skyRender.update(deltaTime);
     this.renderer.flush(this.gl, context); // flush all queued RenderCommands
   }
 }

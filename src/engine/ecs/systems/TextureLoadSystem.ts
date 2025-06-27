@@ -6,19 +6,21 @@ import { COMPONENT_STATE } from "../Component";
 export class TextureLoadSystem extends System {
 
   update(_: number): void {
-    for (const entity of this.registry.getEntitiesWith(PlanetTextureComponent, SkysphereTextureComponent)) {
-      const textureComponent = this.registry.getComponent(entity, PlanetTextureComponent);
+    for (const entity of this.registry.getEntitiesWith(SkysphereTextureComponent)) {
+      // const textureComponent = this.registry.getComponent(entity, PlanetTextureComponent);
       const skysphereComponent = this.registry.getComponent(entity, SkysphereTextureComponent);
-      if (textureComponent.state == COMPONENT_STATE.UNINITIALIZED) this.loadPlanetTexures(textureComponent);
+      // if (textureComponent.state == COMPONENT_STATE.UNINITIALIZED) this.loadPlanetTexures(textureComponent);
       if (skysphereComponent.state == COMPONENT_STATE.UNINITIALIZED) this.loadSkysphereTexture(skysphereComponent);
     }
   }
 
   private async loadSkysphereTexture(component: SkysphereTextureComponent){
+    debugger;
     if (component.state !== COMPONENT_STATE.UNINITIALIZED) return;
     component.state = COMPONENT_STATE.LOADING;
     try {
-        await this.utils.loadTexture(component.skysphereURL, 0);
+        component.skysphere = await this.utils.loadTexture(component.skysphereURL, 0);
+        component.state = COMPONENT_STATE.READY;
     } catch (_) {
       component.state = COMPONENT_STATE.ERROR;
     }

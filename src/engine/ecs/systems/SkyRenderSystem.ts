@@ -29,18 +29,17 @@ export class SkyRenderSystem extends System implements IRenderSystem {
 
       if (textureComp.state !== COMPONENT_STATE.READY) return;
       renderComp.state = COMPONENT_STATE.LOADING;
-      if (!renderComp.program)
-        renderComp.program = this.utils.createProgram(``, ``);
-
-      if (!renderComp.sphereMesh) renderComp.sphereMesh = this.utils.createUVSphere(1, 30, 30);
+  
+      if (!renderComp.sphereMesh) renderComp.sphereMesh =  this.utils.createUVSphere(1, 64, 64, true);
       this.setupVAO(renderComp);
 
       this.renderer.enqueue({
         execute: (gl: WebGL2RenderingContext, ctx: RenderContext) => {
+          debugger;
           const program = renderComp.program!;
           const VAO = renderComp.VAO;
           const sphereMesh = renderComp.sphereMesh;
-          if (!program || !VAO || !sphereMesh) return;
+          if (!program || !VAO || !sphereMesh || !textureComp.skysphere) return;
 
           gl.depthFunc(gl.LEQUAL);
           gl.useProgram(renderComp.program);
