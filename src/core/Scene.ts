@@ -170,96 +170,117 @@
 // }
 
 
-import { mat4, vec3 } from "gl-matrix";
+import { vec3 } from "gl-matrix";
 import { Registry } from "../engine/ecs/Registry";
 import { PlanetRenderSystem } from "../engine/ecs/systems/PlanetRenderSystem";
-import { TextureLoadSystem } from "../engine/ecs/systems/TextureLoadSystem";
+import { SkyRenderSystem } from "../engine/ecs/systems/SkyRenderSystem";
+import { SunRenderSystem } from "../engine/ecs/systems/SunRenderSystem";
+import { TextureLoaderSystem } from "../engine/ecs/systems/TextureLoaderSystem";
 import { RenderContext } from "../engine/renderer/IRenderCommands";
 import { Renderer } from "../engine/renderer/Renderer";
 import { GLUtils } from "../engine/utils/GLUtils";
 import { PlanetFactory } from "../factory/PlanetFactory";
-import { OrbitSystem } from "../systems/OrbitManager";
-import { Canvas } from "./Canvas";
-import { Camera } from "./Camera";
-import { SkyRenderSystem } from "../engine/ecs/systems/SkyRenderSystem";
-import { SkysphereTextureComponent } from "../engine/ecs/components/SkysphereTextureComponent";
-import { Entity } from "../engine/ecs/Entity";
-import { SkyRenderComponent } from "../engine/ecs/components/RenderComponent";
 import { SkyFactory } from "../factory/SkyFactory";
+import { SunFactory } from "../factory/SunFactory";
+import { Camera } from "./Camera";
+import { Canvas } from "./Canvas";
+import { IO } from "./IO";
 
 export class Scene {
-  readonly gl: WebGL2RenderingContext;
-  readonly utils: GLUtils;
-  readonly canvas: Canvas
-  readonly camera: Camera;
+  private readonly gl: WebGL2RenderingContext;
+  private readonly utils: GLUtils;
+  private readonly canvas: Canvas;
+  private readonly camera: Camera;
+  private readonly input: IO;
+
   private registry = new Registry();
-  // private orbitSystem: OrbitSystem;
-  // private renderSystem: PlanetRenderSystem;
-  private textureSystem: TextureLoadSystem;
+
+  private textureSystem: TextureLoaderSystem;
   private renderer: Renderer;
-  // private planetFactory: PlanetFactory;
   private skyRender: SkyRenderSystem;
   private skyFactory: SkyFactory;
+  private sunRender: SunRenderSystem;
+  private sunFactory: SunFactory;
+  private planetRender: PlanetRenderSystem;
+  private planetFactory: PlanetFactory;
+
+
 
   constructor(canvasId: string) {
     this.canvas = new Canvas(canvasId);
+    this.camera = new Camera();
+    this.input = new IO(this.canvas.canvas);
+
     this.gl = this.canvas.gl;
     this.utils = new GLUtils(this.gl);
 
-    this.camera = new Camera();
+    this.textureSystem = new TextureLoaderSystem(this.registry, this.utils);
     this.renderer = new Renderer();
-    this.skyRender = new SkyRenderSystem(this.renderer, this.utils, this.registry);
-    this.skyFactory = new SkyFactory(this.gl, this.utils, this.registry);
-    
-    // this.orbitSystem = new OrbitSystem(this.gl, this.utils);
-    // this.renderSystem = new PlanetRenderSystem(this.renderer, this.utils, this.registry);
-    this.textureSystem = new TextureLoadSystem(this.registry, this.utils);
-    // this.planetFactory = new PlanetFactory(this.gl, this.utils, this.registry);
-    // this.skyRender =  new SkyRenderSystem(this.renderer, this.utils, this.registry);
-    
+    this.skyRender = new SkyRenderSystem(this.renderer, this.registry, this.utils);
+    this.skyFactory = new SkyFactory(this.utils, this.registry);
+    this.sunRender = new SunRenderSystem(this.renderer, this.registry, this.utils);
+    this.sunFactory = new SunFactory(this.utils, this.registry);
+    this.planetFactory = new PlanetFactory(this.utils, this.registry);
+    this.planetRender = new PlanetRenderSystem(this.renderer, this.registry, this.utils,);
+
+    this.canvas.enablePointerLock(() => { });
+    this.canvas.onPointerLockChange((locked) => {
+      if (!locked) {
+        this.input.disableInputs();
+        this.input.clear();
+      } else {
+        this.input.enableMouseInputs((dragging, e) => {
+          if (!dragging) this.camera.cameraMouseHandler(e);
+        });
+        this.input.enableKeyboardInputs();
+      }
+    })
   }
 
   initialize() {
-    // const sun = this.planetFactory.createPlanet({
-    //   name: "Sun",
-    //   position: vec3.fromValues(0, 0, 0),
-    //   scale: vec3.fromValues(2, 2, 2),
-    //   surfaceURL: "textures/sun.jpg",
-    // });
+    this.camera.cameraKeyboardHandler(this.input.getKeys(), () => { });
 
-    // this.planetFactory.createPlanet({
-    //   name: "Earth",
-    //   position: vec3.fromValues(0, 0, -10),
-    //   scale: vec3.fromValues(2, 2, 2),
-    //   surfaceURL: "textures/4k_earth_surface.jpg",
-    //   normalURL: "textures/4k_earth_normal.jpg",
-    //   atmosphereURL: "4k_earth_atmosphere.png",
-    //   specularURL: "textures/earth_spec.jpg",
-    //   orbitData: {
-    //     semiMajorAxis: 8,
-    //     eccentricity: 0.0167,
-    //     inclination: 0,
-    //     orbitalPeriod: 365,
-    //     meanAnomalyAtEpoch: 0,
-    //   },
-    // });
+    this.skyFactory.create('textures/milkyway.png');
+    this.sunFactory.create('textures/lensFlare.png');
+
+    let position = vec3.fromValues(0,0,5);
+    vec3.add(position, position, this.camera.getPosition());
+
+    this.planetFactory.create({
+      name: "Earth",
+      position,
+      scale: vec3.fromValues(2, 2, 2),
+      surfaceURL: "textures/4k_earth_surface.jpg",
+      normalURL: "textures/4k_earth_normal.jpg",
+      atmosphereURL: "4k_earth_atmosphere.png",
+      specularURL: "textures/earth_spec.jpg",
+      orbitData: {
+        semiMajorAxis: 8,
+        eccentricity: 0.0167,
+        inclination: 0,
+        orbitalPeriod: 365,
+        meanAnomalyAtEpoch: 0,
+      },
+    });
     // Load other planets similarly...
 
-    const sky = this.skyFactory.createSky('textures/milkyway.png')
   }
 
   update(deltaTime: number) {
+    this.canvas.resizeToDisplaySize();
     this.textureSystem.update(deltaTime);
     // this.orbitSystem.update(deltaTime);
 
     const context: RenderContext = {
       viewMatrix: this.camera.getViewMatrix(),
       projectionMatrix: this.canvas.getProjectionMatrix(),
-      lightPos: vec3.fromValues(0,0,0),
+      lightPos: vec3.fromValues(0, 0, 0),
       cameraPos: this.camera.getPosition(),
     };
     // this.renderSystem.update(deltaTime);
     this.skyRender.update(deltaTime);
+    this.sunRender.update(deltaTime);
+    this.planetRender.update(deltaTime);
     this.renderer.flush(this.gl, context); // flush all queued RenderCommands
   }
 }

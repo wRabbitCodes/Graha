@@ -6,26 +6,26 @@ import { Renderer } from "../../renderer/Renderer";
 import { System } from "../System";
 import { ModelComponent } from "../components/ModelComponent";
 import { PlanetRenderComponent } from "../components/RenderComponent";
-import { PlanetTextureComponent } from "../components/PlanetTextureComponent";
+import { TextureComponent } from "../components/TextureComponent";
 import { COMPONENT_STATE } from "../Component";
 
 export class PlanetRenderSystem extends System implements IRenderSystem {
-  constructor(public renderer: Renderer, utils: GLUtils, registry: Registry) {
+  constructor(public renderer: Renderer,registry: Registry, utils: GLUtils, ) {
     super(registry, utils);
   }
   update(deltaTime: number): void {
     for (const entity of this.registry.getEntitiesWith(PlanetRenderComponent)) {
-      const coreComp = this.registry.getComponent(entity, ModelComponent);
+      const modelComp = this.registry.getComponent(entity, ModelComponent);
       const texComp = this.registry.getComponent(
         entity,
-        PlanetTextureComponent
+        TextureComponent
       );
       const renderComp = this.registry.getComponent(
         entity,
         PlanetRenderComponent
       );
       if (
-        coreComp.state !== COMPONENT_STATE.READY ||
+        modelComp.state !== COMPONENT_STATE.READY ||
         texComp.state !== COMPONENT_STATE.READY
       )
         return;
@@ -40,6 +40,7 @@ export class PlanetRenderSystem extends System implements IRenderSystem {
 
       this.renderer.enqueue({
         execute: (gl: WebGL2RenderingContext, ctx: RenderContext) => {
+          debugger;
           gl.useProgram(renderComp.program);
           gl.bindVertexArray(renderComp.VAO);
 
@@ -47,12 +48,12 @@ export class PlanetRenderSystem extends System implements IRenderSystem {
           gl.uniformMatrix3fv(
             renderComp.uniformLocations.normalMatrix,
             false,
-            coreComp.normalMatrix
+            modelComp.normalMatrix
           );
           gl.uniformMatrix4fv(
             renderComp.uniformLocations.model,
             false,
-            coreComp.modelMatrix
+            modelComp.modelMatrix
           );
           gl.uniformMatrix4fv(
             renderComp.uniformLocations.view,
@@ -208,7 +209,7 @@ export class PlanetRenderSystem extends System implements IRenderSystem {
 
   private bindTextures(
     renderComp: PlanetRenderComponent,
-    texComp: PlanetTextureComponent
+    texComp: TextureComponent
   ) {
     const gl = this.utils.gl;
     Object.entries(texComp).forEach(([key, value], idx) => {

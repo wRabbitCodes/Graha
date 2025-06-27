@@ -1,22 +1,21 @@
 // src/factories/PlanetFactory.ts
 import { vec3 } from "gl-matrix";
-import { HierarchyComponent } from "../engine/ecs/components/HierarchyComponent";
+import { ModelComponent } from "../engine/ecs/components/ModelComponent";
 import { OrbitComponent } from "../engine/ecs/components/OrbitComponent";
-import { RenderComponent } from "../engine/ecs/components/RenderComponent";
+import { PlanetRenderComponent } from "../engine/ecs/components/RenderComponent";
+import { TextureComponent } from "../engine/ecs/components/TextureComponent";
+import { Entity } from "../engine/ecs/Entity";
 import { Registry } from "../engine/ecs/Registry";
 import { GLUtils } from "../engine/utils/GLUtils";
-import { ModelComponent } from "../engine/ecs/components/ModelComponent";
-import { PlanetTextureComponent } from "../engine/ecs/components/PlanetTextureComponent";
-import { Entity } from "../engine/ecs/Entity";
+import { IFactory } from "./IFactory";
 
-export class PlanetFactory {
+export class PlanetFactory implements IFactory {
   constructor(
-    private gl: WebGL2RenderingContext,
     private utils: GLUtils,
     private registry: Registry
   ) {}
 
-  createPlanet(params: {
+  create(params: {
     name: string;
     parent?: Entity;
     position: vec3;
@@ -33,32 +32,31 @@ export class PlanetFactory {
     const transform = new ModelComponent();
     transform.position = params.position;
     transform.scale = params.scale;
-    this.registry.addComponent(entity, ModelComponent);
+    this.registry.addComponent(entity, transform);
 
-    // Orbit (optional)
-    if (params.orbitData) {
-      const orbit = new OrbitComponent(
-        params.orbitData.semiMajorAxis || 1,
-        params.orbitData.eccentricity || 0,
-        params.orbitData.inclination || 0,
-        params.orbitData.longitudeOfAscendingNode || 0,
-        params.orbitData.argumentOfPeriapsis || 0,
-        params.orbitData.perihelion,
-        params.orbitData.aphelion,
-        params.orbitData.meanAnomalyAtEpoch || 0,
-        params.orbitData.orbitalPeriod!,
-        params.orbitData.elapsedDays
-      );
-      this.registry.addComponent(entity, orbit);
-    }
+    // // Orbit (optional)
+    // if (params.orbitData) {
+    //   const orbit = new OrbitComponent(
+    //     params.orbitData.semiMajorAxis || 1,
+    //     params.orbitData.eccentricity || 0,
+    //     params.orbitData.inclination || 0,
+    //     params.orbitData.longitudeOfAscendingNode || 0,
+    //     params.orbitData.argumentOfPeriapsis || 0,
+    //     params.orbitData.perihelion,
+    //     params.orbitData.aphelion,
+    //     params.orbitData.meanAnomalyAtEpoch || 0,
+    //     params.orbitData.orbitalPeriod!,
+    //     params.orbitData.elapsedDays
+    //   );
+    //   this.registry.addComponent(entity, orbit);
+    // }
 
     // Texture Component (to be loaded by TextureSystem)
-    const textureComponent = new PlanetTextureComponent(
-      params.surfaceURL,
-      params.normalURL,
-      params.specularURL,
-      params.atmosphereURL
-    );
+    const textureComponent = new TextureComponent();
+    textureComponent.surfaceURL = params.surfaceURL;
+    textureComponent.normalURL = params.normalURL;
+    textureComponent.specularURL = params.specularURL;
+    textureComponent.atmosphereURL = params.atmosphereURL;
     this.registry.addComponent(entity, textureComponent);
 
     // RenderComponent (VAO and programs setup)
@@ -158,10 +156,9 @@ export class PlanetFactory {
   `
     );
 
-    const render = new RenderComponent({
-      program,
-    });
-    this.registry.addComponent(entity, render);
+    const renderComp = new PlanetRenderComponent();
+    renderComp.program = program;
+    this.registry.addComponent(entity, renderComp);
     
     return entity;
   }

@@ -5,37 +5,36 @@ import { Renderer } from "../../renderer/Renderer";
 import { GLUtils } from "../../utils/GLUtils";
 import { COMPONENT_STATE } from "../Component";
 import { SkyRenderComponent } from "../components/RenderComponent";
-import { SkysphereTextureComponent } from "../components/SkysphereTextureComponent";
 import { Registry } from "../Registry";
 import { System } from "../System";
+import { TextureComponent } from "../components/TextureComponent";
 
 export class SkyRenderSystem extends System implements IRenderSystem {
   constructor(
     public renderer: Renderer,
+    registry: Registry,
     utils: GLUtils,
-    registry: Registry
   ) {
     super(registry, utils);
   }
   update(deltaTime: number) {
     for (const entity of this.registry.getEntitiesWith(
-      SkysphereTextureComponent
+      TextureComponent
     )) {
       const textureComp = this.registry.getComponent(
         entity,
-        SkysphereTextureComponent
+        TextureComponent
       );
       const renderComp = this.registry.getComponent(entity, SkyRenderComponent);
-
+      if (!renderComp) return;
       if (textureComp.state !== COMPONENT_STATE.READY) return;
       renderComp.state = COMPONENT_STATE.LOADING;
-  
-      if (!renderComp.sphereMesh) renderComp.sphereMesh =  this.utils.createUVSphere(1, 64, 64, true);
-      this.setupVAO(renderComp);
+
+      if (!renderComp.sphereMesh) renderComp.sphereMesh = this.utils.createUVSphere(1, 64, 64, true);
+      if (!renderComp.VAO) this.setupVAO(renderComp);
 
       this.renderer.enqueue({
         execute: (gl: WebGL2RenderingContext, ctx: RenderContext) => {
-          debugger;
           const program = renderComp.program!;
           const VAO = renderComp.VAO;
           const sphereMesh = renderComp.sphereMesh;

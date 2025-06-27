@@ -6,7 +6,6 @@ export class Renderer {
   private queue: IRenderCommand[] = [];
 
   enqueue(cmd: IRenderCommand) {
-    debugger;
     this.queue.push(cmd);
   }
 
