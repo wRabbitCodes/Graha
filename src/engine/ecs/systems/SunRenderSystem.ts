@@ -19,8 +19,8 @@ export class SunRenderSystem extends System implements IRenderSystem {
     for (const entity of this.registry.getEntitiesWith(SunRenderComponent)) {
       const renderComp = this.registry.getComponent(entity, SunRenderComponent);
       const textureComp = this.registry.getComponent(entity, TextureComponent);
-      if (!renderComp.program) return;
-      if (!textureComp.sun) return;
+      if (!renderComp.program) continue;
+      if (!textureComp.sun) continue;
       if (!renderComp.VAO) this.setupVAO(renderComp);
 
       this.renderer.enqueue({

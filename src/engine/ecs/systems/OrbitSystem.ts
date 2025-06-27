@@ -8,7 +8,7 @@ export class OrbitSystem extends System {
       .getEntitiesWith(OrbitComponent)
       .filter(Boolean)) {
       const component = this.registry.getComponent(entity, OrbitComponent);
-      if (component.state === COMPONENT_STATE.UNINITIALIZED) return;
+      if (component.state === COMPONENT_STATE.UNINITIALIZED) continue;
     }
   }
 }

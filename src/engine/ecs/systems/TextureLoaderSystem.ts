@@ -11,7 +11,7 @@ export class TextureLoaderSystem extends System {
         entity,
         TextureComponent
       );
-      if (textureComponent.state !== COMPONENT_STATE.UNINITIALIZED) return;
+      if (textureComponent.state !== COMPONENT_STATE.UNINITIALIZED) continue;
       textureComponent.state = COMPONENT_STATE.LOADING;
       Promise.all([
         this.loadPlanetTexures(textureComponent),

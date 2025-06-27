@@ -7,11 +7,11 @@ export class ModelComponent implements IComponent, IState {
   name?: string;
   scale?: vec3;
   position?: vec3;
-  tiltAngle?: number;
-  rotationPerFrame?: number;
+  tiltAngle = 23.44;
+  rotationPerFrame=0.3;
   axis = vec3.fromValues(0, 1, 0);
   spinQuat = quat.create();
   rotationQuat = quat.create();
   tiltQuat = quat.create();
-  modelMatrix = mat4.identity(mat4.create());
+  modelMatrix = mat4.create();
 }

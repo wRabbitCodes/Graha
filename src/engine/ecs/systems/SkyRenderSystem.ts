@@ -26,8 +26,8 @@ export class SkyRenderSystem extends System implements IRenderSystem {
         TextureComponent
       );
       const renderComp = this.registry.getComponent(entity, SkyRenderComponent);
-      if (!renderComp) return;
-      if (textureComp.state !== COMPONENT_STATE.READY) return;
+      if (!renderComp) continue;
+      if (textureComp.state !== COMPONENT_STATE.READY) continue;
       renderComp.state = COMPONENT_STATE.LOADING;
 
       if (!renderComp.sphereMesh) renderComp.sphereMesh = this.utils.createUVSphere(1, 64, 64, true);

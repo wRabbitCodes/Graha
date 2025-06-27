@@ -20,6 +20,7 @@ export class PlanetFactory implements IFactory {
     parent?: Entity;
     position: vec3;
     scale: vec3;
+    tiltAngle: number;
     surfaceURL: string;
     normalURL?: string;
     specularURL?: string;
@@ -32,6 +33,7 @@ export class PlanetFactory implements IFactory {
     const transform = new ModelComponent();
     transform.position = params.position;
     transform.scale = params.scale;
+    transform.tiltAngle = params.tiltAngle;
     this.registry.addComponent(entity, transform);
 
     // // Orbit (optional)

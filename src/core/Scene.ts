@@ -248,10 +248,11 @@ export class Scene {
       name: "Earth",
       position: vec3.fromValues(20,0,-70),
       scale: vec3.fromValues(2, 2, 2),
+      tiltAngle: 23.44,
       surfaceURL: "textures/4k_earth_surface.jpg",
       normalURL: "textures/4k_earth_normal.jpg",
-      atmosphereURL: "4k_earth_atmosphere.png",
-      specularURL: "textures/earth_spec.jpg",
+      atmosphereURL: "textures/4k_earth_atmosphere.png",
+      specularURL: "textures/earth_specular.jpg",
       orbitData: {
         semiMajorAxis: 8,
         eccentricity: 0.0167,

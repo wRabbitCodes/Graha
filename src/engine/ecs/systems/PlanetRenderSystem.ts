@@ -25,26 +25,25 @@ export class PlanetRenderSystem extends System implements IRenderSystem {
         PlanetRenderComponent
       );
       if (
-        modelComp.state !== COMPONENT_STATE.READY ||
         texComp.state !== COMPONENT_STATE.READY
       )
-        return;
-      debugger;
-      console.log("modelMatrix before enqueue", modelComp.modelMatrix);
-    
-      // OR OPTIONALLY CAN SKIP IF renderComp.program == null, hook up shader logic
-      if (Object.keys(renderComp.uniformLocations).length == 0) this.getUniformLocations(renderComp);
-      if (!renderComp.sphereMesh)
-        renderComp.sphereMesh = this.utils.createUVSphere(1, 30, 30);
+        continue;
+
+        debugger;
+      // renderComp.state = COMPONENT_STATE.LOADING;
+      if (!renderComp.sphereMesh) renderComp.sphereMesh = this.utils.createUVSphere(1, 30, 30);
+      // if (!renderComp.VAO) this.setupVAO(renderComp);
+      // if(renderComp.state === COMPONENT_STATE.UNINITIALIZED) {
+        // renderComp.sphereMesh = this.utils.createUVSphere(1, 30, 30);
+      this.getUniformLocations(renderComp);
       if (!renderComp.VAO) this.setupVAO(renderComp);
+      // renderComp.state = COMPONENT_STATE.READY;
+  
 
       this.renderer.enqueue({
         execute: (gl: WebGL2RenderingContext, ctx: RenderContext) => {
-          debugger;
-          console.log("modelMatrix during execute", modelComp.modelMatrix);
           gl.useProgram(renderComp.program);
           gl.bindVertexArray(renderComp.VAO);
-
           // Bind Uniforms
           gl.uniformMatrix3fv(
             renderComp.uniformLocations.normalMatrix,
@@ -94,7 +93,6 @@ export class PlanetRenderSystem extends System implements IRenderSystem {
       });
     }
   }
-
   private getUniformLocations(renderComp: PlanetRenderComponent) {
     const gl = this.utils.gl;
     const program = renderComp.program!;
@@ -150,6 +148,7 @@ export class PlanetRenderSystem extends System implements IRenderSystem {
   }
 
   private setupVAO(renderComp: PlanetRenderComponent) {
+    const sphere = renderComp.sphereMesh!;
     const program = renderComp.program!;
     const gl = this.utils.gl;
     const VAO = gl.createVertexArray()!;
@@ -157,54 +156,38 @@ export class PlanetRenderSystem extends System implements IRenderSystem {
 
     const posBuffer = gl.createBuffer()!;
     gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer);
-    gl.bufferData(
-      gl.ARRAY_BUFFER,
-      renderComp.sphereMesh!.positions,
-      gl.STATIC_DRAW
-    );
+    gl.bufferData(gl.ARRAY_BUFFER, sphere.positions, gl.STATIC_DRAW);
     const posLoc = gl.getAttribLocation(program, "a_position");
+    debugger;
     gl.enableVertexAttribArray(posLoc);
     gl.vertexAttribPointer(posLoc, 3, gl.FLOAT, false, 0, 0);
 
     const normalBuffer = gl.createBuffer()!;
     gl.bindBuffer(gl.ARRAY_BUFFER, normalBuffer);
-    gl.bufferData(
-      gl.ARRAY_BUFFER,
-      renderComp.sphereMesh!.normals,
-      gl.STATIC_DRAW
-    );
+    gl.bufferData(gl.ARRAY_BUFFER, sphere.normals, gl.STATIC_DRAW);
     const normalLoc = gl.getAttribLocation(program, "a_normal");
     gl.enableVertexAttribArray(normalLoc);
     gl.vertexAttribPointer(normalLoc, 3, gl.FLOAT, false, 0, 0);
 
     const uvBuffer = gl.createBuffer()!;
     gl.bindBuffer(gl.ARRAY_BUFFER, uvBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, renderComp.sphereMesh!.uvs, gl.STATIC_DRAW);
+    gl.bufferData(gl.ARRAY_BUFFER, sphere.uvs, gl.STATIC_DRAW);
     const uvLoc = gl.getAttribLocation(program, "a_uv");
     gl.enableVertexAttribArray(uvLoc);
     gl.vertexAttribPointer(uvLoc, 2, gl.FLOAT, false, 0, 0);
 
     const tangentBuffer = gl.createBuffer()!;
     gl.bindBuffer(gl.ARRAY_BUFFER, tangentBuffer);
-    gl.bufferData(
-      gl.ARRAY_BUFFER,
-      renderComp.sphereMesh!.tangents,
-      gl.STATIC_DRAW
-    );
+    gl.bufferData(gl.ARRAY_BUFFER, sphere.tangents, gl.STATIC_DRAW);
     const tangentLoc = gl.getAttribLocation(program, "a_tangent");
     gl.enableVertexAttribArray(tangentLoc);
     gl.vertexAttribPointer(tangentLoc, 3, gl.FLOAT, false, 0, 0);
 
     const indexBuffer = gl.createBuffer()!;
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
-    gl.bufferData(
-      gl.ELEMENT_ARRAY_BUFFER,
-      renderComp.sphereMesh!.indices,
-      gl.STATIC_DRAW
-    );
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, sphere.indices, gl.STATIC_DRAW);
 
     gl.bindVertexArray(null);
-
     renderComp.VAO = VAO;
   }
 
@@ -213,14 +196,34 @@ export class PlanetRenderSystem extends System implements IRenderSystem {
     texComp: TextureComponent
   ) {
     const gl = this.utils.gl;
-    let idx = 0;
-    Object.entries(texComp).forEach(([key, value]) => {
-      if (value instanceof WebGLTexture) {
-        gl.activeTexture(gl.TEXTURE0 + idx);
-        gl.bindTexture(gl.TEXTURE_2D, value);
-        gl.uniform1i(renderComp.uniformLocations[key], idx);
-        idx++;
-      }
-    });
+    if(texComp.surface) {
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, texComp.surface);
+      gl.uniform1i(renderComp.uniformLocations.surface, 0);
+    }
+    if(texComp.normal) {
+      gl.activeTexture(gl.TEXTURE1);
+      gl.bindTexture(gl.TEXTURE_2D, texComp.normal);
+      gl.uniform1i(renderComp.uniformLocations.surface, 1);
+    }
+    if(texComp.specular) {
+      gl.activeTexture(gl.TEXTURE2);
+      gl.bindTexture(gl.TEXTURE_2D, texComp.specular);
+      gl.uniform1i(renderComp.uniformLocations.surface, 2);
+    }
+    if(texComp.surface) {
+      gl.activeTexture(gl.TEXTURE3);
+      gl.bindTexture(gl.TEXTURE_2D, texComp.surface);
+      gl.uniform1i(renderComp.uniformLocations.surface, 3);
+    }
+
+    //  Object.entries(texComp).forEach(([key, value]) => {
+    //   if (value instanceof WebGLTexture) {
+    //     gl.activeTexture(gl.TEXTURE0 + idx);
+    //     gl.bindTexture(gl.TEXTURE_2D, value);
+    //     gl.uniform1i(renderComp.uniformLocations[key], idx);
+    //     idx++;
+    //   }
+    // });
   }
 }
