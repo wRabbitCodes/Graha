@@ -4,7 +4,7 @@ import { ModelComponent } from "../components/ModelComponent";
 import { COMPONENT_STATE } from "../Component";
 
 export class ModelUpdateSystem extends System {
-  async update(deltaTime: number) {
+  update(deltaTime: number) {
     for (const entity of this.registry.getEntitiesWith(ModelComponent)) {
       const coreComp = this.registry.getComponent(entity, ModelComponent);
       if (coreComp.state === COMPONENT_STATE.UNINITIALIZED) {
