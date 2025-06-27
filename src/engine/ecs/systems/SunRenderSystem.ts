@@ -25,7 +25,6 @@ export class SunRenderSystem extends System implements IRenderSystem {
 
       this.renderer.enqueue({
         execute: (gl: WebGL2RenderingContext, ctx: RenderContext) => {
-          debugger;
           gl.useProgram(renderComp.program);
 
           gl.depthMask(false);

@@ -185,6 +185,7 @@ import { SunFactory } from "../factory/SunFactory";
 import { Camera } from "./Camera";
 import { Canvas } from "./Canvas";
 import { IO } from "./IO";
+import { ModelUpdateSystem } from "../engine/ecs/systems/ModelUpdateSystem";
 
 export class Scene {
   private readonly gl: WebGL2RenderingContext;
@@ -202,6 +203,7 @@ export class Scene {
   private sunRender: SunRenderSystem;
   private sunFactory: SunFactory;
   private planetRender: PlanetRenderSystem;
+  private modelUpdate: ModelUpdateSystem;
   private planetFactory: PlanetFactory;
 
 
@@ -222,6 +224,7 @@ export class Scene {
     this.sunFactory = new SunFactory(this.utils, this.registry);
     this.planetFactory = new PlanetFactory(this.utils, this.registry);
     this.planetRender = new PlanetRenderSystem(this.renderer, this.registry, this.utils,);
+    this.modelUpdate = new ModelUpdateSystem(this.registry, this.utils);
 
     this.canvas.enablePointerLock(() => { });
     this.canvas.onPointerLockChange((locked) => {
@@ -237,18 +240,13 @@ export class Scene {
     })
   }
 
-  initialize() {
-    this.camera.cameraKeyboardHandler(this.input.getKeys(), () => { });
-
+  initialize() {    
     this.skyFactory.create('textures/milkyway.png');
     this.sunFactory.create('textures/lensFlare.png');
 
-    let position = vec3.fromValues(0,0,5);
-    vec3.add(position, position, this.camera.getPosition());
-
     this.planetFactory.create({
       name: "Earth",
-      position,
+      position: vec3.fromValues(20,0,-70),
       scale: vec3.fromValues(2, 2, 2),
       surfaceURL: "textures/4k_earth_surface.jpg",
       normalURL: "textures/4k_earth_normal.jpg",
@@ -268,19 +266,20 @@ export class Scene {
 
   update(deltaTime: number) {
     this.canvas.resizeToDisplaySize();
-    this.textureSystem.update(deltaTime);
-    // this.orbitSystem.update(deltaTime);
 
-    const context: RenderContext = {
-      viewMatrix: this.camera.getViewMatrix(),
-      projectionMatrix: this.canvas.getProjectionMatrix(),
-      lightPos: vec3.fromValues(0, 0, 0),
-      cameraPos: this.camera.getPosition(),
-    };
-    // this.renderSystem.update(deltaTime);
+    this.camera.cameraKeyboardHandler(this.input.getKeys());
+    const viewMatrix = this.camera.getViewMatrix();
+    const projectionMatrix = this.canvas.getProjectionMatrix();
+    this.textureSystem.update(deltaTime);
+    this.modelUpdate.update(deltaTime);
     this.skyRender.update(deltaTime);
     this.sunRender.update(deltaTime);
     this.planetRender.update(deltaTime);
-    this.renderer.flush(this.gl, context); // flush all queued RenderCommands
+    this.renderer.flush(this.gl, {
+      viewMatrix,
+      projectionMatrix,
+      lightPos: vec3.fromValues(0, 0, 0),
+      cameraPos: this.camera.getPosition(),
+    }); // flush all queued RenderCommands
   }
 }

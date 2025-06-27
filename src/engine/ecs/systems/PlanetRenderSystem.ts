@@ -10,7 +10,7 @@ import { TextureComponent } from "../components/TextureComponent";
 import { COMPONENT_STATE } from "../Component";
 
 export class PlanetRenderSystem extends System implements IRenderSystem {
-  constructor(public renderer: Renderer,registry: Registry, utils: GLUtils, ) {
+  constructor(public renderer: Renderer, registry: Registry, utils: GLUtils) {
     super(registry, utils);
   }
   update(deltaTime: number): void {
@@ -29,11 +29,11 @@ export class PlanetRenderSystem extends System implements IRenderSystem {
         texComp.state !== COMPONENT_STATE.READY
       )
         return;
-      if (!renderComp.program)
-        renderComp.program = this.utils.createProgram(``, ``); /// HOOK UP LOGIC (STRATEGY PATTERN TO DYNAMICALL LOAD SHADERS)
+      debugger;
+      console.log("modelMatrix before enqueue", modelComp.modelMatrix);
+    
       // OR OPTIONALLY CAN SKIP IF renderComp.program == null, hook up shader logic
-      if (Object.keys(renderComp.uniformLocations).length == 0)
-        this.getUniformLocations(renderComp);
+      if (Object.keys(renderComp.uniformLocations).length == 0) this.getUniformLocations(renderComp);
       if (!renderComp.sphereMesh)
         renderComp.sphereMesh = this.utils.createUVSphere(1, 30, 30);
       if (!renderComp.VAO) this.setupVAO(renderComp);
@@ -41,6 +41,7 @@ export class PlanetRenderSystem extends System implements IRenderSystem {
       this.renderer.enqueue({
         execute: (gl: WebGL2RenderingContext, ctx: RenderContext) => {
           debugger;
+          console.log("modelMatrix during execute", modelComp.modelMatrix);
           gl.useProgram(renderComp.program);
           gl.bindVertexArray(renderComp.VAO);
 
@@ -212,11 +213,13 @@ export class PlanetRenderSystem extends System implements IRenderSystem {
     texComp: TextureComponent
   ) {
     const gl = this.utils.gl;
-    Object.entries(texComp).forEach(([key, value], idx) => {
+    let idx = 0;
+    Object.entries(texComp).forEach(([key, value]) => {
       if (value instanceof WebGLTexture) {
-        gl.activeTexture(gl.TEXTURE0);
+        gl.activeTexture(gl.TEXTURE0 + idx);
         gl.bindTexture(gl.TEXTURE_2D, value);
-        gl.uniform1i(renderComp.uniformLocations[key]!, idx);
+        gl.uniform1i(renderComp.uniformLocations[key], idx);
+        idx++;
       }
     });
   }

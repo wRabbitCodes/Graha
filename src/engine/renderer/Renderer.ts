@@ -10,7 +10,6 @@ export class Renderer {
   }
 
   flush(gl: WebGL2RenderingContext, context: RenderContext) {
-    debugger;
     for (const cmd of this.queue) {
       cmd.execute(gl, context);
     }

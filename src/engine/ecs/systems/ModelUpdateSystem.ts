@@ -1,6 +1,7 @@
 import { mat3, mat4 } from "gl-matrix";
 import { System } from "../System";
 import { ModelComponent } from "../components/ModelComponent";
+import { COMPONENT_STATE } from "../Component";
 
 export class ModelUpdateSystem extends System {
   async update(deltaTime: number) {
@@ -19,6 +20,7 @@ export class ModelUpdateSystem extends System {
         coreComp.scale
       );
       mat3.normalFromMat4(coreComp.normalMatrix, coreComp.modelMatrix);
+      if (coreComp.state !== COMPONENT_STATE.READY) coreComp.state = COMPONENT_STATE.READY;
   }
 }
 }
