@@ -1,6 +1,6 @@
 // src/core/GLUtils.ts
 
-type SphereMesh = {
+export type SphereMesh = {
   positions: Float32Array;
   normals: Float32Array;
   tangents: Float32Array;
@@ -9,7 +9,7 @@ type SphereMesh = {
 };
 
 export class GLUtils {
-  constructor(private gl: WebGL2RenderingContext) {}
+  constructor(public gl: WebGL2RenderingContext) {}
 
   createUVSphere(
     radius: number,

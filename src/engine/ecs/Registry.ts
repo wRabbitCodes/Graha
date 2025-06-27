@@ -1,4 +1,4 @@
-import { IComponent } from "./iComponent";
+import { IComponent } from "./Component";
 import { Entity } from "./Entity";
 
 type ComponentMap = Map<Function, IComponent>;
@@ -17,7 +17,7 @@ export class Registry {
     return entity;
   }
 
-  addComponent<T extends IComponent>(entity: Entity, component: ComponentType<T>): void {
+  addComponent<T extends IComponent>(entity: Entity, component: T): void {
     this.components.get(entity.id)!.set(component.constructor, component);
   }
 

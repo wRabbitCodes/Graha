@@ -1,5 +1,5 @@
 import { mat4 } from "gl-matrix";
-import { GLUtils } from "../core/GLUtils";
+import { GLUtils } from "../engine/utils/GLUtils";
 
 export class Skybox {
   private vao: WebGLVertexArrayObject | null = null;

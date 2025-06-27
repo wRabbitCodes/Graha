@@ -1,6 +1,6 @@
 import { mat4, vec3 } from "gl-matrix";
 import { Entity } from "./Entity";
-import { GLUtils } from "../core/GLUtils";
+import { GLUtils } from "../engine/utils/GLUtils";
 
 export abstract class Star implements Entity {
   protected modelMatrix = mat4.create();

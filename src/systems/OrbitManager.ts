@@ -1,7 +1,7 @@
 import { mat4, vec3 } from "gl-matrix";
 import { Entity } from "../models/Entity";
 import { OrbitPath } from "../models/OrbitPath";
-import { GLUtils } from "../core/GLUtils";
+import { GLUtils } from "../engine/utils/GLUtils";
 
 type OrbitData = {
   object: Entity;
@@ -15,8 +15,6 @@ type OrbitData = {
   orbitalPeriod: number;
   orbitPath?: OrbitPath; // ✅ visual ellipse
   elapsedDays?: number;
-  axialTilt?: number;
-  rotationSpeed?: number;
 };
 
 export class OrbitSystem {

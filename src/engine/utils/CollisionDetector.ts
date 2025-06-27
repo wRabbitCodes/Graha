@@ -1,6 +1,6 @@
 // CollisionDetector.ts
 import { vec3, mat4, mat3 } from "gl-matrix";
-import { Raycaster } from "../engine/Raycaster"; // your existing class
+import { Raycaster } from "./Raycaster"; // your existing class
 
 export interface SphereCollider {
   center: vec3; // world-space center

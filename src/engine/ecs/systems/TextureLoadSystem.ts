@@ -1,19 +1,14 @@
-import { GLUtils } from "../../../core/GLUtils";
-import { COMPONENT_STATE } from "../../iState";
 import { PlanetTextureComponent } from "../components/PlanetTextureComponent";
-import { SkysphereTextureComponent } from "../components/SkysphereTextureComponent";
-import { Registry } from "../Registry";
 import { System } from "../System";
+import { SkysphereTextureComponent } from "../components/SkysphereTextureComponent";
+import { COMPONENT_STATE } from "../Component";
 
-export class TextureLoader extends System {
-  constructor(private gl: WebGL2RenderingContext, private utils: GLUtils) {
-    super();
-  }
+export class TextureLoadSystem extends System {
 
-  update(registry: Registry, _: number): void {
-    for (const entity of registry.getEntitiesWith(PlanetTextureComponent, SkysphereTextureComponent)) {
-      const textureComponent = registry.getComponent(entity, PlanetTextureComponent);
-      const skysphereComponent = registry.getComponent(entity, SkysphereTextureComponent);
+  update(_: number): void {
+    for (const entity of this.registry.getEntitiesWith(PlanetTextureComponent, SkysphereTextureComponent)) {
+      const textureComponent = this.registry.getComponent(entity, PlanetTextureComponent);
+      const skysphereComponent = this.registry.getComponent(entity, SkysphereTextureComponent);
       if (textureComponent.state == COMPONENT_STATE.UNINITIALIZED) this.loadPlanetTexures(textureComponent);
       if (skysphereComponent.state == COMPONENT_STATE.UNINITIALIZED) this.loadSkysphereTexture(skysphereComponent);
     }
@@ -25,7 +20,7 @@ export class TextureLoader extends System {
     try {
         await this.utils.loadTexture(component.skysphereURL, 0);
     } catch (_) {
-
+      component.state = COMPONENT_STATE.ERROR;
     }
   }
 
@@ -33,8 +28,7 @@ export class TextureLoader extends System {
     if (component.state !== COMPONENT_STATE.UNINITIALIZED) return;
     component.state = COMPONENT_STATE.LOADING;
     let promises = [];
-    if (component.surfaceURL)
-      promises.push(this.utils.loadTexture(component.surfaceURL, 0));
+    promises.push(this.utils.loadTexture(component.surfaceURL, 0));
     if (component.normalURL)
       promises.push(this.utils.loadTexture(component.normalURL, 1));
     if (component.specularURL)
@@ -47,16 +41,16 @@ export class TextureLoader extends System {
           if (result.status !== "fulfilled") return;
           switch (index) {
             case 0:
-              component.surfaceTexture = result.value;
+              component.surface = result.value;
               break;
             case 1:
-              component.normalTexture = result.value;
+              component.normal = result.value;
               break;
             case 2:
-              component.specularTexture = result.value;
+              component.specular = result.value;
               break;
             case 3:
-              component.atmosphereTexture = result.value;
+              component.atmosphere = result.value;
               break;
             default:
               break;
