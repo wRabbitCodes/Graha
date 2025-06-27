@@ -244,24 +244,25 @@ export class Scene {
     this.skyFactory.create('textures/milkyway.png');
     this.sunFactory.create('textures/lensFlare.png');
 
-    this.planetFactory.create({
-      name: "Earth",
-      position: vec3.fromValues(20,0,-70),
-      scale: vec3.fromValues(2, 2, 2),
-      tiltAngle: 23.44,
-      surfaceURL: "textures/4k_earth_surface.jpg",
-      normalURL: "textures/4k_earth_normal.jpg",
-      atmosphereURL: "textures/4k_earth_atmosphere.png",
-      specularURL: "textures/earth_specular.jpg",
-      orbitData: {
+    this.planetFactory.create(
+      "Earth",
+      vec3.fromValues(20,0,-70),
+      vec3.fromValues(2, 2, 2),
+      23.44,
+      "textures/4k_earth_surface.jpg",
+      "textures/4k_earth_normal.jpg",
+      "textures/4k_earth_specular.jpg",
+      "textures/4k_earth_atmosphere.png",
+      {
         semiMajorAxis: 8,
         eccentricity: 0.0167,
         inclination: 0,
         orbitalPeriod: 365,
         meanAnomalyAtEpoch: 0,
       },
-    });
+    );
     // Load other planets similarly...
+    this.textureSystem.update(0);
 
   }
 
@@ -271,11 +272,13 @@ export class Scene {
     this.camera.cameraKeyboardHandler(this.input.getKeys());
     const viewMatrix = this.camera.getViewMatrix();
     const projectionMatrix = this.canvas.getProjectionMatrix();
-    this.textureSystem.update(deltaTime);
+    this.gl.enable(this.gl.DEPTH_TEST);
+    this.gl.clearColor(0.0, 0.0, 0.0, 1.0);
+    this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
     this.modelUpdate.update(deltaTime);
     this.skyRender.update(deltaTime);
-    this.sunRender.update(deltaTime);
     this.planetRender.update(deltaTime);
+    this.sunRender.update(deltaTime);
     this.renderer.flush(this.gl, {
       viewMatrix,
       projectionMatrix,

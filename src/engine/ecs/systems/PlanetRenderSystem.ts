@@ -8,13 +8,14 @@ import { ModelComponent } from "../components/ModelComponent";
 import { PlanetRenderComponent } from "../components/RenderComponent";
 import { TextureComponent } from "../components/TextureComponent";
 import { COMPONENT_STATE } from "../Component";
+import { mat3 } from "gl-matrix";
 
 export class PlanetRenderSystem extends System implements IRenderSystem {
   constructor(public renderer: Renderer, registry: Registry, utils: GLUtils) {
     super(registry, utils);
   }
   update(deltaTime: number): void {
-    for (const entity of this.registry.getEntitiesWith(PlanetRenderComponent)) {
+    for (const entity of this.registry.getEntitiesWith(PlanetRenderComponent, ModelComponent, TextureComponent)) {
       const modelComp = this.registry.getComponent(entity, ModelComponent);
       const texComp = this.registry.getComponent(
         entity,
@@ -29,26 +30,19 @@ export class PlanetRenderSystem extends System implements IRenderSystem {
       )
         continue;
 
-        debugger;
-      // renderComp.state = COMPONENT_STATE.LOADING;
-      if (!renderComp.sphereMesh) renderComp.sphereMesh = this.utils.createUVSphere(1, 30, 30);
-      // if (!renderComp.VAO) this.setupVAO(renderComp);
-      // if(renderComp.state === COMPONENT_STATE.UNINITIALIZED) {
-        // renderComp.sphereMesh = this.utils.createUVSphere(1, 30, 30);
-      this.getUniformLocations(renderComp);
-      if (!renderComp.VAO) this.setupVAO(renderComp);
-      // renderComp.state = COMPONENT_STATE.READY;
-  
-
+      if (renderComp.state === COMPONENT_STATE.UNINITIALIZED) this.initialize(renderComp);
       this.renderer.enqueue({
         execute: (gl: WebGL2RenderingContext, ctx: RenderContext) => {
           gl.useProgram(renderComp.program);
           gl.bindVertexArray(renderComp.VAO);
           // Bind Uniforms
+
+          const normalMatrix = mat3.create();
+          mat3.normalFromMat4(normalMatrix, modelComp.modelMatrix);
           gl.uniformMatrix3fv(
             renderComp.uniformLocations.normalMatrix,
             false,
-            modelComp.normalMatrix
+            normalMatrix
           );
           gl.uniformMatrix4fv(
             renderComp.uniformLocations.model,
@@ -93,6 +87,15 @@ export class PlanetRenderSystem extends System implements IRenderSystem {
       });
     }
   }
+
+  private initialize(renderComp: PlanetRenderComponent) {
+    renderComp.state = COMPONENT_STATE.LOADING;
+    this.getUniformLocations(renderComp);
+    renderComp.sphereMesh = this.utils.createUVSphere(1, 30, 30);
+    this.setupVAO(renderComp);
+    renderComp.state = COMPONENT_STATE.READY;
+  }
+
   private getUniformLocations(renderComp: PlanetRenderComponent) {
     const gl = this.utils.gl;
     const program = renderComp.program!;
@@ -158,7 +161,6 @@ export class PlanetRenderSystem extends System implements IRenderSystem {
     gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer);
     gl.bufferData(gl.ARRAY_BUFFER, sphere.positions, gl.STATIC_DRAW);
     const posLoc = gl.getAttribLocation(program, "a_position");
-    debugger;
     gl.enableVertexAttribArray(posLoc);
     gl.vertexAttribPointer(posLoc, 3, gl.FLOAT, false, 0, 0);
 
@@ -196,34 +198,14 @@ export class PlanetRenderSystem extends System implements IRenderSystem {
     texComp: TextureComponent
   ) {
     const gl = this.utils.gl;
-    if(texComp.surface) {
-      gl.activeTexture(gl.TEXTURE0);
-      gl.bindTexture(gl.TEXTURE_2D, texComp.surface);
-      gl.uniform1i(renderComp.uniformLocations.surface, 0);
-    }
-    if(texComp.normal) {
-      gl.activeTexture(gl.TEXTURE1);
-      gl.bindTexture(gl.TEXTURE_2D, texComp.normal);
-      gl.uniform1i(renderComp.uniformLocations.surface, 1);
-    }
-    if(texComp.specular) {
-      gl.activeTexture(gl.TEXTURE2);
-      gl.bindTexture(gl.TEXTURE_2D, texComp.specular);
-      gl.uniform1i(renderComp.uniformLocations.surface, 2);
-    }
-    if(texComp.surface) {
-      gl.activeTexture(gl.TEXTURE3);
-      gl.bindTexture(gl.TEXTURE_2D, texComp.surface);
-      gl.uniform1i(renderComp.uniformLocations.surface, 3);
-    }
-
-    //  Object.entries(texComp).forEach(([key, value]) => {
-    //   if (value instanceof WebGLTexture) {
-    //     gl.activeTexture(gl.TEXTURE0 + idx);
-    //     gl.bindTexture(gl.TEXTURE_2D, value);
-    //     gl.uniform1i(renderComp.uniformLocations[key], idx);
-    //     idx++;
-    //   }
-    // });
-  }
+    let idx = 0;
+    Object.entries(texComp).forEach(([key, value]) => {
+      if (value instanceof WebGLTexture) {
+        gl.activeTexture(gl.TEXTURE0 + idx);
+        gl.bindTexture(gl.TEXTURE_2D, value);
+        gl.uniform1i(renderComp.uniformLocations[key], idx);
+        idx++;
+      }
+    });
+}
 }

@@ -19,7 +19,7 @@ export class SkyRenderSystem extends System implements IRenderSystem {
   }
   update(deltaTime: number) {
     for (const entity of this.registry.getEntitiesWith(
-      TextureComponent
+      SkyRenderComponent
     )) {
       const textureComp = this.registry.getComponent(
         entity,

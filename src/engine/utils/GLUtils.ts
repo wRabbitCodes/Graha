@@ -17,7 +17,6 @@ export class GLUtils {
     longBands: number,
     invert = false
   ): SphereMesh {
-    debugger;
     const positions: number[] = [];
     const normals: number[] = [];
     const uvs: number[] = [];

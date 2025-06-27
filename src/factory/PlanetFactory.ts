@@ -15,25 +15,25 @@ export class PlanetFactory implements IFactory {
     private registry: Registry
   ) {}
 
-  create(params: {
-    name: string;
-    parent?: Entity;
-    position: vec3;
-    scale: vec3;
-    tiltAngle: number;
-    surfaceURL: string;
-    normalURL?: string;
-    specularURL?: string;
-    atmosphereURL?: string;
-    orbitData?: Partial<OrbitComponent>;
-  }): Entity {
+  create(
+    name: string,
+    position: vec3,
+    scale: vec3,
+    tiltAngle: number,
+    surfaceURL: string,
+    normalURL?: string,
+    specularURL?: string,
+    atmosphereURL?: string,
+    orbitData?: Partial<OrbitComponent>,
+    parent?: Entity,
+  ): Entity {
     const entity = this.registry.createEntity();
 
     // Transform
     const transform = new ModelComponent();
-    transform.position = params.position;
-    transform.scale = params.scale;
-    transform.tiltAngle = params.tiltAngle;
+    transform.position = position;
+    transform.scale = scale;
+    transform.tiltAngle = tiltAngle;
     this.registry.addComponent(entity, transform);
 
     // // Orbit (optional)
@@ -55,10 +55,10 @@ export class PlanetFactory implements IFactory {
 
     // Texture Component (to be loaded by TextureSystem)
     const textureComponent = new TextureComponent();
-    textureComponent.surfaceURL = params.surfaceURL;
-    textureComponent.normalURL = params.normalURL;
-    textureComponent.specularURL = params.specularURL;
-    textureComponent.atmosphereURL = params.atmosphereURL;
+    textureComponent.surfaceURL = surfaceURL;
+    textureComponent.normalURL = normalURL;
+    textureComponent.specularURL = specularURL;
+    textureComponent.atmosphereURL = atmosphereURL;
     this.registry.addComponent(entity, textureComponent);
 
     // RenderComponent (VAO and programs setup)

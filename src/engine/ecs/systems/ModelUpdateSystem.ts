@@ -8,11 +8,13 @@ export class ModelUpdateSystem extends System {
     for (const entity of this.registry.getEntitiesWith(ModelComponent)) {
       const coreComp = this.registry.getComponent(entity, ModelComponent);
       if (coreComp.state === COMPONENT_STATE.UNINITIALIZED) {
-        coreComp.tiltQuat = quat.setAxisAngle(
-          coreComp.tiltQuat,
+        let tiltQuat = quat.create();
+        quat.setAxisAngle(
+          tiltQuat,
           vec3.fromValues(1, 0, 0),
           (coreComp.tiltAngle * Math.PI) / 180
         );
+        coreComp.tiltQuat = tiltQuat;
         coreComp.state = COMPONENT_STATE.READY;
       }
       if (coreComp.state === COMPONENT_STATE.READY) {
@@ -21,19 +23,29 @@ export class ModelUpdateSystem extends System {
           coreComp.axis,
           (coreComp.rotationPerFrame * deltaTime) / 100
         );
-        quat.multiply(coreComp.spinQuat, qRotation, coreComp.spinQuat);
+        const spinQuat = quat.create();
+        const rotationQuat = quat.create();
+        const modelMatrix = mat4.create();
+
+        quat.copy(spinQuat, coreComp.spinQuat!);
+        quat.copy(rotationQuat, coreComp.rotationQuat!)
+        mat4.copy(modelMatrix, coreComp.modelMatrix!)
+
+        quat.multiply(spinQuat, qRotation, spinQuat);
         quat.multiply(
-          coreComp.rotationQuat,
-          coreComp.tiltQuat,
-          coreComp.spinQuat
+          rotationQuat,
+          coreComp.tiltQuat!,
+          spinQuat
         );
         mat4.fromRotationTranslationScale(
-          coreComp.modelMatrix,
-          coreComp.rotationQuat,
+          modelMatrix,
+          rotationQuat,
           coreComp.position!,
           coreComp.scale!
         );
-        mat3.normalFromMat4(coreComp.normalMatrix, coreComp.modelMatrix);
+        coreComp.spinQuat = spinQuat;
+        coreComp.rotationQuat = rotationQuat;
+        coreComp.modelMatrix = modelMatrix;
       }
     }
   }

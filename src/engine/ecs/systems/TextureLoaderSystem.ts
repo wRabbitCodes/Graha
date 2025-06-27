@@ -3,7 +3,6 @@ import { System } from "../System";
 import { COMPONENT_STATE } from "../Component";
 
 export class TextureLoaderSystem extends System {
-  private finalTextureComp = new TextureComponent(); // Ensure Consistency between different texture sources;
 
   update(_: number): void {
     for (const entity of this.registry.getEntitiesWith(TextureComponent)) {
@@ -13,39 +12,37 @@ export class TextureLoaderSystem extends System {
       );
       if (textureComponent.state !== COMPONENT_STATE.UNINITIALIZED) continue;
       textureComponent.state = COMPONENT_STATE.LOADING;
-      Promise.all([
-        this.loadPlanetTexures(textureComponent),
-        this.loadSkysphereTexture(textureComponent),
-        this.loadSunTexture(textureComponent),
-      ]).then(() => (this.finalTextureComp.state = COMPONENT_STATE.READY)).finally(()=>{
-        this.registry.removeComponent(entity, TextureComponent);
-        this.registry.addComponent(entity, this.finalTextureComp);
-      });
+      this.loadPlanetTexures(textureComponent);
+      this.loadSkysphereTexture(textureComponent);
+      this.loadSunTexture(textureComponent);
     }
   }
 
   private async loadSunTexture(component: TextureComponent) {
     if (!component.sunURL) return;
-    this.finalTextureComp.sun = await this.utils.loadTexture(
+    component.sun = await this.utils.loadTexture(
       component.sunURL,
       5
     );
+    component.state = COMPONENT_STATE.READY;
   }
 
   private async loadSkysphereTexture(component: TextureComponent) {
     if (!component.skysphereURL) return;
-    this.finalTextureComp.skysphere = await this.utils.loadTexture(
+    component.skysphere = await this.utils.loadTexture(
       component.skysphereURL,
       4
     );
+    component.state = COMPONENT_STATE.READY;
   }
 
   private async loadPlanetTexures(component: TextureComponent) {
     if (!component.surfaceURL) return;
-
-    this.finalTextureComp.surface = await this.utils.loadTexture(component.surfaceURL, 0)
-    this.finalTextureComp.normal = await this.utils.loadTexture(component.surfaceURL, 1)
-    this.finalTextureComp.specular = await this.utils.loadTexture(component.surfaceURL, 2)
-    this.finalTextureComp.atmosphere = await this.utils.loadTexture(component.surfaceURL, 3)
+    component.surface = await this.utils.loadTexture(component.surfaceURL, 0)
+    debugger;
+    if (component.normalURL) component.normal = await this.utils.loadTexture(component.normalURL, 1)
+    if (component.specularURL) component.specular = await this.utils.loadTexture(component.specularURL, 2)
+    if (component.atmosphereURL) component.atmosphere = await this.utils.loadTexture(component.atmosphereURL, 3)
+    component.state = COMPONENT_STATE.READY;
   }
 }
