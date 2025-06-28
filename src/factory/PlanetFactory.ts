@@ -10,7 +10,7 @@ import { GLUtils } from "../engine/utils/GLUtils";
 import { IFactory } from "./IFactory";
 
 const DISTANCE_SCALE = 5e4;
-const RADIUS_SCALE = 1e2; // make radii 10× smaller
+const RADIUS_SCALE = 5e2; // make radii 10× smaller
 function toDist(u_km: number) {
   return u_km / DISTANCE_SCALE;
 }

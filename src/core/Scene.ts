@@ -386,7 +386,6 @@ export class Scene {
 
   update(deltaTime: number) {
     this.camera.cameraKeyboardHandler(this.input.getKeys());
-
     const viewMatrix = this.camera.getViewMatrix();
     const projectionMatrix = this.canvas.getProjectionMatrix();
     this.gl.enable(this.gl.DEPTH_TEST);

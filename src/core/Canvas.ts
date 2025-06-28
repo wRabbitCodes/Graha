@@ -198,7 +198,7 @@ export class Canvas {
       this.canvas.width = width;
       this.canvas.height = height;
       this.gl.viewport(0, 0, width, height);
-      mat4.perspective(this.projectionMatrix, Math.PI / 2, width/height, 0.1, 10000);
+      mat4.perspective(this.projectionMatrix, Math.PI / 4, width/height, 0.1, 10000);
     }
   }
 }
