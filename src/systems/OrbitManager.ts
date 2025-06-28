@@ -1,7 +1,7 @@
 import { mat4, vec3 } from "gl-matrix";
 import { Entity } from "../models/Entity";
 import { OrbitPath } from "../models/OrbitPath";
-import { GLUtils } from "../engine/utils/GLUtils";
+import { GLUtils } from "../utils/GLUtils";
 
 type OrbitData = {
   object: Entity;

@@ -1,8 +1,8 @@
 import { mat4 } from "gl-matrix";
-import { RenderContext } from "../../renderer/IRenderCommands";
-import { IRenderSystem } from "../../renderer/IRenderSystem";
-import { Renderer } from "../../renderer/Renderer";
-import { GLUtils } from "../../utils/GLUtils";
+import { RenderContext } from "../../command/IRenderCommands";
+import { IRenderSystem } from "../../command/IRenderSystem";
+import { Renderer } from "../../command/Renderer";
+import { GLUtils } from "../../../utils/GLUtils";
 import { COMPONENT_STATE } from "../Component";
 import { SkyRenderComponent } from "../components/RenderComponent";
 import { Registry } from "../Registry";

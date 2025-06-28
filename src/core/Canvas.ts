@@ -163,6 +163,7 @@ export class Canvas {
 
   enablePointerLock(raycasterCallback: (ndcX: number, ndcY: number) => void) {
     this.canvas.addEventListener("click", (e: MouseEvent) => {
+      e.preventDefault();
       if (!this.isPointerLocked) 
         { 
           if (this.crosshair) this.crosshair.style.display = "hidden";

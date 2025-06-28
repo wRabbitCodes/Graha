@@ -6,11 +6,12 @@ import { PlanetRenderComponent } from "../engine/ecs/components/RenderComponent"
 import { TextureComponent } from "../engine/ecs/components/TextureComponent";
 import { Entity } from "../engine/ecs/Entity";
 import { Registry } from "../engine/ecs/Registry";
-import { GLUtils } from "../engine/utils/GLUtils";
+import { GLUtils } from "../utils/GLUtils";
 import { IFactory } from "./IFactory";
+import { EntitySelectionComponent } from "../engine/ecs/components/EntitySelectionComponent";
 
 const DISTANCE_SCALE = 5e4;
-const RADIUS_SCALE = 5e2; // make radii 10× smaller
+const RADIUS_SCALE = 9e1; // make radii 10× smaller
 function toDist(u_km: number) {
   return u_km / DISTANCE_SCALE;
 }
@@ -83,6 +84,11 @@ export class PlanetFactory implements IFactory {
     textureComponent.nightURL = params.nightURL;
     this.registry.addComponent(entity, textureComponent);
 
+    //Selectable
+    const selectionComp = new EntitySelectionComponent();
+    this.registry.addComponent(entity, selectionComp);
+
+
     // RenderComponent (VAO and programs setup)
     // const program = ShaderStrategy.getDefaultProgram(this.gl, this.utils);
     const program = this.utils.createProgram(
@@ -118,100 +124,103 @@ export class PlanetFactory implements IFactory {
       gl_Position = u_proj * u_view * worldPos;
     }
   `,
-      `#version 300 es
-precision mediump float;
+  `#version 300 es
+  #pragma vscode_glsllint_stage : frag
+  precision mediump float;
 
-in vec2 v_uv;
-in vec3 v_fragPos;
-in vec3 v_normal;
-in mat3 v_TBN;
+  in vec2 v_uv;
+  in vec3 v_fragPos;
+  in vec3 v_normal;
+  in mat3 v_TBN;
 
-uniform sampler2D u_surfaceTexture;
-uniform sampler2D u_normalTexture;
-uniform sampler2D u_specularTexture;
-uniform sampler2D u_atmosphereTexture;
-uniform sampler2D u_nightTexture;
+  uniform sampler2D u_surfaceTexture;
+  uniform sampler2D u_normalTexture;
+  uniform sampler2D u_specularTexture;
+  uniform sampler2D u_atmosphereTexture;
+  uniform sampler2D u_nightTexture;
 
-uniform bool u_useNormal;
-uniform bool u_useSpecular;
-uniform bool u_useAtmosphere;
-uniform bool u_useNight;
+  uniform bool u_useNormal;
+  uniform bool u_useSpecular;
+  uniform bool u_useAtmosphere;
+  uniform bool u_useNight;
 
-uniform float u_atmosphereRotation;
+  uniform float u_atmosphereRotation;
 
-uniform vec3 u_lightPos;
-uniform vec3 u_viewPos;
+  uniform vec3 u_lightPos;
+  uniform vec3 u_viewPos;
 
-out vec4 fragColor;
+  out vec4 fragColor;
 
-void main() {
-  vec3 fallbackColor = vec3(0.4, 0.7, 1.0);
-  vec3 surfaceColor = texture(u_surfaceTexture, v_uv).rgb;
-  if (length(surfaceColor) < 0.01) surfaceColor = fallbackColor;
+  void main() {
+    vec3 fallbackColor = vec3(0.4, 0.7, 1.0);
+    vec3 surfaceColor = texture(u_surfaceTexture, v_uv).rgb;
+    if (length(surfaceColor) < 0.01) surfaceColor = fallbackColor;
 
-  vec3 normal = normalize(v_normal);
-  if (u_useNormal) {
-    vec3 sampledNormal = texture(u_normalTexture, v_uv).rgb;
-    sampledNormal = normalize(sampledNormal * 2.0 - 1.0);
-    normal = normalize(v_TBN * sampledNormal);
-  }
+    vec3 normal = normalize(v_normal);
+    if (u_useNormal) {
+      vec3 sampledNormal = texture(u_normalTexture, v_uv).rgb;
+      sampledNormal = normalize(sampledNormal * 2.0 - 1.0);
+      normal = normalize(v_TBN * sampledNormal);
+    }
 
-  vec3 lightDir = normalize(u_lightPos - v_fragPos);
-  vec3 viewDir = normalize(u_viewPos - v_fragPos);
-  vec3 reflectDir = reflect(-lightDir, normal);
-  float diff = max(dot(normal, lightDir), 0.0);
+    vec3 lightDir = normalize(u_lightPos - v_fragPos);
+    vec3 viewDir = normalize(u_viewPos - v_fragPos);
+    vec3 reflectDir = reflect(-lightDir, normal);
+    float diff = max(dot(normal, lightDir), 0.0);
 
-  float dayFactor = smoothstep(0.05, 0.25, diff);  // soft transition
-  float nightFactor = 1.0 - dayFactor;
+    float dayFactor = smoothstep(0.05, 0.25, diff);  // soft transition
+    float nightFactor = clamp(1.0 - diff, 0.0, 1.0); 
+    nightFactor = pow(nightFactor, 3.0);
 
-  // --- NIGHT COLOR ---
-  vec3 nightColor = vec3(0.0);
-  if (u_useNight) {
-    nightColor = texture(u_nightTexture, v_uv).rgb;
-  }
+    // --- NIGHT COLOR ---
+    vec3 nightColor = vec3(0.0);
+    if (u_useNight) {
+      nightColor = texture(u_nightTexture, v_uv).rgb;
+    }
 
-  // --- DAY LIGHTING ---
-  vec3 lightColor = vec3(1.0, 1.0, 0.9);
-  vec3 ambient = 0.05 * lightColor;
-  vec3 diffuse = diff * lightColor;
+    // --- DAY LIGHTING ---
+    vec3 lightColor = vec3(1.0, 1.0, 0.9);
+    vec3 ambient = 0.05 * lightColor;
+    vec3 diffuse = diff * lightColor;
 
-  float spec = 0.0;
-  if (u_useSpecular && dayFactor > 0.0) {
-    float specStrength = texture(u_specularTexture, v_uv).r;
-    spec = pow(max(dot(viewDir, reflectDir), 0.0), 32.0) * specStrength * 0.8;
-  }
+    float spec = 0.0;
+    if (u_useSpecular && dayFactor > 0.0) {
+      float specStrength = texture(u_specularTexture, v_uv).r;
+      spec = pow(max(dot(viewDir, reflectDir), 0.0), 32.0) * specStrength * 0.8;
+    }
 
-  // --- DAY LIGHTED COLOR ---
-  vec3 dayLitColor = (ambient + diffuse) * surfaceColor + vec3(spec);
+    // --- DAY LIGHTED COLOR ---
+    vec3 dayLitColor = (ambient + diffuse) * surfaceColor + vec3(spec);
 
-  // --- FINAL BLENDING ---
-  vec3 finalColor = mix(nightColor, dayLitColor, dayFactor);
+    // --- FINAL BLENDING ---
+    vec3 finalColor = mix(nightColor, dayLitColor, dayFactor);
 
-  fragColor = vec4(finalColor, 1.0);
-}`);
+    fragColor = vec4(finalColor, 1.0);
+  }`);
 
 
-    const atmosphereProgram = this.utils.createProgram(
-      `#version 300 es
-        precision mediump float;
+  const atmosphereProgram = this.utils.createProgram(
+   `#version 300 es
+    precision mediump float;
 
-        layout(location = 0)in vec3 a_position;
-        layout(location = 2)in vec2 a_uv;
+    layout(location = 0)in vec3 a_position;
+    layout(location = 2)in vec2 a_uv;
 
-        uniform mat4 u_model;
-        uniform mat4 u_view;
-        uniform mat4 u_proj;
+    uniform mat4 u_model;
+    uniform mat4 u_view;
+    uniform mat4 u_proj;
 
-        out vec2 v_uv;
-        out vec3 v_worldPos;
+    out vec2 v_uv;
+    out vec3 v_worldPos;
 
-        void main() {
-          v_uv = a_uv;
-          vec4 worldPos = u_model * vec4(a_position, 1.0);
-          v_worldPos = worldPos.xyz;
-          gl_Position = u_proj * u_view * worldPos;
-        }`,
-        `#version 300 es
+    void main() {
+      v_uv = a_uv;
+      vec4 worldPos = u_model * vec4(a_position, 1.0);
+      v_worldPos = worldPos.xyz;
+      gl_Position = u_proj * u_view * worldPos;
+    }`,
+
+   `#version 300 es
     #pragma vscode_glsllint_stage : frag
     precision mediump float;
 
@@ -242,7 +251,6 @@ void main() {
         u.y
       );
     }
-
     void main() {
       // --- Base UV rotation for clouds
       vec2 rotatedUV = vec2(mod(v_uv.x + u_rotation, 1.0), v_uv.y);

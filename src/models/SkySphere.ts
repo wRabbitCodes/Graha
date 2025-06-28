@@ -1,5 +1,5 @@
 import { mat4 } from "gl-matrix";
-import { GLUtils } from "../engine/utils/GLUtils";
+import { GLUtils } from "../utils/GLUtils";
 
 export class SkySphere {
   private vao: WebGLVertexArrayObject | null = null;

@@ -1,7 +1,7 @@
-import { RenderContext } from "../../renderer/IRenderCommands";
-import { IRenderSystem } from "../../renderer/IRenderSystem";
-import { Renderer } from "../../renderer/Renderer";
-import { GLUtils } from "../../utils/GLUtils";
+import { RenderContext } from "../../command/IRenderCommands";
+import { IRenderSystem } from "../../command/IRenderSystem";
+import { Renderer } from "../../command/Renderer";
+import { GLUtils } from "../../../utils/GLUtils";
 import { SunRenderComponent } from "../components/RenderComponent";
 import { TextureComponent } from "../components/TextureComponent";
 import { Registry } from "../Registry";
@@ -27,6 +27,7 @@ export class SunRenderSystem extends System implements IRenderSystem {
         execute: (gl: WebGL2RenderingContext, ctx: RenderContext) => {
           gl.useProgram(renderComp.program);
 
+          gl.disable(gl.DEPTH);
           gl.depthMask(false);
           gl.enable(gl.BLEND);
           gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
@@ -55,6 +56,7 @@ export class SunRenderSystem extends System implements IRenderSystem {
 
           gl.disable(gl.BLEND);
           gl.depthMask(true);
+          gl.enable(gl.DEPTH);
         }
       });
     }

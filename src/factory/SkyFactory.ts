@@ -3,7 +3,7 @@ import { SkyRenderComponent } from "../engine/ecs/components/RenderComponent";
 import { TextureComponent } from "../engine/ecs/components/TextureComponent";
 import { Entity } from "../engine/ecs/Entity";
 import { Registry } from "../engine/ecs/Registry";
-import { GLUtils } from "../engine/utils/GLUtils";
+import { GLUtils } from "../utils/GLUtils";
 import { IFactory } from "./IFactory";
 
 export class SkyFactory implements IFactory{

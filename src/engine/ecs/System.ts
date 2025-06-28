@@ -1,4 +1,5 @@
-import { GLUtils } from "../utils/GLUtils";
+import { GLUtils } from "../../utils/GLUtils";
+import { COMPONENT_STATE, IComponent, IState } from "./Component";
 import { Registry } from "./Registry";
 
 export abstract class System {

@@ -1,6 +1,6 @@
 // src/objects/Sun.ts
 import { mat4, vec3, vec4 } from "gl-matrix";
-import { GLUtils } from "../engine/utils/GLUtils";
+import { GLUtils } from "../utils/GLUtils";
 import { AxisHelper } from "../systems/AxisPlotter";
 
 export class Sun {

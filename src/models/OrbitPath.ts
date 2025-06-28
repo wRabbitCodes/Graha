@@ -1,5 +1,5 @@
 import { mat4, vec3 } from "gl-matrix";
-import { GLUtils } from "../engine/utils/GLUtils";
+import { GLUtils } from "../utils/GLUtils";
 
 export class OrbitPath {
   private vao: WebGLVertexArrayObject | null = null;
