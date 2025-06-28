@@ -47,6 +47,7 @@ export class PlanetFactory implements IFactory {
     );
     // Transform
     const transform = new ModelComponent();
+    transform.name = params.name;
     transform.position = vec3.fromValues(orbitRadius, 0, 0);
     transform.scale = planetScale;
     transform.tiltAngle = params.tiltAngle;
