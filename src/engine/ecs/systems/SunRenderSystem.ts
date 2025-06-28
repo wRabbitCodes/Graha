@@ -43,7 +43,7 @@ export class SunRenderSystem extends System implements IRenderSystem {
             ctx.projectionMatrix
           );
           gl.uniform3f(gl.getUniformLocation(renderComp.program!, "u_worldPos"), 0, 0, 0); // Sun at origin
-          gl.uniform1f(gl.getUniformLocation(renderComp.program!, "u_size"), 500.0); // Scale of flare in world units
+          gl.uniform1f(gl.getUniformLocation(renderComp.program!, "u_size"), 1000.0); // Scale of flare in world units
 
           gl.activeTexture(gl.TEXTURE0);
           gl.bindTexture(gl.TEXTURE_2D, textureComp.sun!);

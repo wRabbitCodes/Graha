@@ -9,56 +9,77 @@ import { Registry } from "../engine/ecs/Registry";
 import { GLUtils } from "../engine/utils/GLUtils";
 import { IFactory } from "./IFactory";
 
-export class PlanetFactory implements IFactory {
-  constructor(
-    private utils: GLUtils,
-    private registry: Registry
-  ) {}
+const DISTANCE_SCALE = 5e4;
+const RADIUS_SCALE = 1e2; // make radii 10× smaller
+function toDist(u_km: number) {
+  return u_km / DISTANCE_SCALE;
+}
+function toRad(u_km: number) {
+  return u_km / RADIUS_SCALE;
+}
 
-  create(
-    name: string,
-    position: vec3,
-    scale: vec3,
-    tiltAngle: number,
-    surfaceURL: string,
-    normalURL?: string,
-    specularURL?: string,
-    atmosphereURL?: string,
-    orbitData?: Partial<OrbitComponent>,
-    parent?: Entity,
-  ): Entity {
+export type PlanetData = {
+  name: string;
+  radius: number;
+  tiltAngle: number;
+  surfaceURL: string;
+  normalURL?: string;
+  specularURL?: string;
+  atmosphereURL?: string;
+  nightURL?: string;
+  siderealDay?: number;
+  axis?: vec3;
+  orbitData?: Partial<OrbitComponent>;
+  parent?: Entity;
+};
+
+export class PlanetFactory implements IFactory {
+  constructor(private utils: GLUtils, private registry: Registry) {}
+
+  create(params: PlanetData): Entity {
     const entity = this.registry.createEntity();
 
+    const orbitRadius = toDist(params.orbitData?.semiMajorAxis!);
+    const planetScale = vec3.fromValues(
+      toRad(params.radius),
+      toRad(params.radius),
+      toRad(params.radius)
+    );
     // Transform
     const transform = new ModelComponent();
-    transform.position = position;
-    transform.scale = scale;
-    transform.tiltAngle = tiltAngle;
+    transform.position = vec3.fromValues(orbitRadius, 0, 0);
+    transform.scale = planetScale;
+    transform.tiltAngle = params.tiltAngle;
+    transform.siderealDay = params.siderealDay ?? 24;
+    transform.axis = params.axis ?? vec3.fromValues(0, 1, 0);
     this.registry.addComponent(entity, transform);
 
-    // // Orbit (optional)
-    // if (params.orbitData) {
-    //   const orbit = new OrbitComponent(
-    //     params.orbitData.semiMajorAxis || 1,
-    //     params.orbitData.eccentricity || 0,
-    //     params.orbitData.inclination || 0,
-    //     params.orbitData.longitudeOfAscendingNode || 0,
-    //     params.orbitData.argumentOfPeriapsis || 0,
-    //     params.orbitData.perihelion,
-    //     params.orbitData.aphelion,
-    //     params.orbitData.meanAnomalyAtEpoch || 0,
-    //     params.orbitData.orbitalPeriod!,
-    //     params.orbitData.elapsedDays
-    //   );
-    //   this.registry.addComponent(entity, orbit);
-    // }
+    // Orbit (optional)
+    if (params.orbitData) {
+      let orbit = new OrbitComponent();
+      orbit.semiMajorAxis = params.orbitData.semiMajorAxis;
+      orbit.eccentricity = params.orbitData.eccentricity;
+      orbit.inclination = params.orbitData.inclination;
+      orbit.longitudeOfAscendingNode =
+        params.orbitData.longitudeOfAscendingNode;
+      orbit.argumentOfPeriapsis = params.orbitData.argumentOfPeriapsis;
+      orbit.perihelion = params.orbitData.perihelion ?? vec3.create();
+      orbit.aphelion = params.orbitData.aphelion ?? vec3.create();
+      orbit.meanAnomalyAtEpoch = params.orbitData.meanAnomalyAtEpoch;
+      orbit.orbitalPeriod = params.orbitData.orbitalPeriod;
+      orbit.elapsedDays = params.orbitData.elapsedDays;
 
+      orbit.distanceScale = DISTANCE_SCALE;
+
+      this.registry.addComponent(entity, orbit);
+    }
     // Texture Component (to be loaded by TextureSystem)
     const textureComponent = new TextureComponent();
-    textureComponent.surfaceURL = surfaceURL;
-    textureComponent.normalURL = normalURL;
-    textureComponent.specularURL = specularURL;
-    textureComponent.atmosphereURL = atmosphereURL;
+    textureComponent.surfaceURL = params.surfaceURL;
+    textureComponent.normalURL = params.normalURL;
+    textureComponent.specularURL = params.specularURL;
+    textureComponent.atmosphereURL = params.atmosphereURL;
+    textureComponent.nightURL = params.nightURL;
     this.registry.addComponent(entity, textureComponent);
 
     // RenderComponent (VAO and programs setup)
@@ -97,71 +118,160 @@ export class PlanetFactory implements IFactory {
     }
   `,
       `#version 300 es
+precision mediump float;
+
+in vec2 v_uv;
+in vec3 v_fragPos;
+in vec3 v_normal;
+in mat3 v_TBN;
+
+uniform sampler2D u_surfaceTexture;
+uniform sampler2D u_normalTexture;
+uniform sampler2D u_specularTexture;
+uniform sampler2D u_atmosphereTexture;
+uniform sampler2D u_nightTexture;
+
+uniform bool u_useNormal;
+uniform bool u_useSpecular;
+uniform bool u_useAtmosphere;
+uniform bool u_useNight;
+
+uniform float u_atmosphereRotation;
+
+uniform vec3 u_lightPos;
+uniform vec3 u_viewPos;
+
+out vec4 fragColor;
+
+void main() {
+  vec3 fallbackColor = vec3(0.4, 0.7, 1.0);
+  vec3 surfaceColor = texture(u_surfaceTexture, v_uv).rgb;
+  if (length(surfaceColor) < 0.01) surfaceColor = fallbackColor;
+
+  vec3 normal = normalize(v_normal);
+  if (u_useNormal) {
+    vec3 sampledNormal = texture(u_normalTexture, v_uv).rgb;
+    sampledNormal = normalize(sampledNormal * 2.0 - 1.0);
+    normal = normalize(v_TBN * sampledNormal);
+  }
+
+  vec3 lightDir = normalize(u_lightPos - v_fragPos);
+  vec3 viewDir = normalize(u_viewPos - v_fragPos);
+  vec3 reflectDir = reflect(-lightDir, normal);
+  float diff = max(dot(normal, lightDir), 0.0);
+
+  float dayFactor = smoothstep(0.05, 0.25, diff);  // soft transition
+  float nightFactor = 1.0 - dayFactor;
+
+  // --- NIGHT COLOR ---
+  vec3 nightColor = vec3(0.0);
+  if (u_useNight) {
+    nightColor = texture(u_nightTexture, v_uv).rgb;
+  }
+
+  // --- DAY LIGHTING ---
+  vec3 lightColor = vec3(1.0, 1.0, 0.9);
+  vec3 ambient = 0.05 * lightColor;
+  vec3 diffuse = diff * lightColor;
+
+  float spec = 0.0;
+  if (u_useSpecular && dayFactor > 0.0) {
+    float specStrength = texture(u_specularTexture, v_uv).r;
+    spec = pow(max(dot(viewDir, reflectDir), 0.0), 32.0) * specStrength * 0.8;
+  }
+
+  // --- DAY LIGHTED COLOR ---
+  vec3 dayLitColor = (ambient + diffuse) * surfaceColor + vec3(spec);
+
+  // --- FINAL BLENDING ---
+  vec3 finalColor = mix(nightColor, dayLitColor, dayFactor);
+
+  fragColor = vec4(finalColor, 1.0);
+}`);
+
+
+    const atmosphereProgram = this.utils.createProgram(
+      `#version 300 es
+        precision mediump float;
+
+        layout(location = 0)in vec3 a_position;
+        layout(location = 2)in vec2 a_uv;
+
+        uniform mat4 u_model;
+        uniform mat4 u_view;
+        uniform mat4 u_proj;
+
+        out vec2 v_uv;
+        out vec3 v_worldPos;
+
+        void main() {
+          v_uv = a_uv;
+          vec4 worldPos = u_model * vec4(a_position, 1.0);
+          v_worldPos = worldPos.xyz;
+          gl_Position = u_proj * u_view * worldPos;
+        }`,
+        `#version 300 es
     #pragma vscode_glsllint_stage : frag
     precision mediump float;
 
     in vec2 v_uv;
-    in vec3 v_fragPos;
-    in vec3 v_normal;
-    in mat3 v_TBN;
+    in vec3 v_worldPos;
 
-    uniform sampler2D u_surfaceTexture;
-    uniform sampler2D u_normalTexture;
-    uniform sampler2D u_specularTexture;
     uniform sampler2D u_atmosphereTexture;
-
-    uniform bool u_useNormal;
-    uniform bool u_useSpecular;
-    uniform bool u_useAtmosphere;
-
-    uniform vec3 u_lightPos;
-    uniform vec3 u_viewPos;
+    uniform float u_rotation;       // horizontal scroll for cloud motion
+    uniform float u_opacity;        // base opacity of atmosphere
+    uniform float u_time;           // time for animation
+    uniform float u_fogDensity;     // controls fog thickness (e.g. 0.015)
+    uniform vec3 u_cameraPos;       // for depth/distance-based fog
 
     out vec4 fragColor;
 
-    void main() {
-      vec3 fallbackColor = vec3(0.4, 0.7, 1.0);
-      vec3 baseColor = texture(u_surfaceTexture, v_uv).rgb;
-      if (length(baseColor) < 0.01) baseColor = fallbackColor;
-
-      vec3 normal = normalize(v_normal);
-      if (u_useNormal) {
-        vec3 sampledNormal = texture(u_normalTexture, v_uv).rgb;
-        sampledNormal = normalize(sampledNormal * 2.0 - 1.0);
-        normal = normalize(v_TBN * sampledNormal); // Convert to world space
-      }
-
-      vec3 lightColor = vec3(1.0, 1.0, 0.9);
-      vec3 lightDir = normalize(u_lightPos - v_fragPos);
-      float diff = max(dot(normal, lightDir), 0.0);
-      vec3 diffuse = diff * lightColor;
-
-      vec3 ambient = 0.05 * lightColor;
-      vec3 viewDir = normalize(u_viewPos - v_fragPos);
-      vec3 reflectDir = reflect(-lightDir, normal);
-
-      float spec = 0.0;
-      if (u_useSpecular) {
-        float specStrength = texture(u_specularTexture, v_uv).r;
-        spec = pow(max(dot(viewDir, reflectDir), 0.0), 32.0) * specStrength * .8;
-      }
-
-      vec3 finalColor = (ambient + diffuse) * baseColor + vec3(spec);
-
-      if (u_useAtmosphere) {
-        vec3 atmo = texture(u_atmosphereTexture, v_uv).rgb;
-        finalColor += atmo * 0.3;
-      }
-
-      fragColor = vec4(finalColor, 1.0);
+    float hash(vec2 p) {
+      return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453123);
     }
-  `
-    );
+
+    // 2D pseudo-noise
+    float noise(vec2 uv) {
+      vec2 i = floor(uv);
+      vec2 f = fract(uv);
+      vec2 u = f * f * (3.0 - 2.0 * f);
+      return mix(
+        mix(hash(i + vec2(0, 0)), hash(i + vec2(1, 0)), u.x),
+        mix(hash(i + vec2(0, 1)), hash(i + vec2(1, 1)), u.x),
+        u.y
+      );
+    }
+
+    void main() {
+      // --- Base UV rotation for clouds
+      vec2 rotatedUV = vec2(mod(v_uv.x + u_rotation, 1.0), v_uv.y);
+      
+      // --- Add turbulence noise to UVs
+      float turbulence = noise(rotatedUV * 8.0 + u_time * 0.1);
+      vec2 distortedUV = rotatedUV + 0.01 * vec2(turbulence, turbulence);
+
+      // --- Sample cloud texture
+      vec3 atmosphereColor = texture(u_atmosphereTexture, distortedUV).rgb;
+
+      // --- Distance from camera (fog based on depth)
+      float dist = length(u_cameraPos - v_worldPos);
+      float fogFactor = 1.0 - exp(-pow(dist * u_fogDensity, 1.2)); // smoothstep fog
+      fogFactor = clamp(fogFactor, 0.0, 1.0);
+
+      // --- Fade out atmosphere based on fog and vertical latitude (optional)
+      float lat = abs(v_uv.y - 0.5) * 2.0;
+      float latFade = smoothstep(1.0, 0.6, lat); // fade near poles
+      float alpha = u_opacity * latFade * fogFactor;
+
+      fragColor = vec4(atmosphereColor, alpha);
+    }
+    `);
 
     const renderComp = new PlanetRenderComponent();
     renderComp.program = program;
+    renderComp.atmosphereProgram = atmosphereProgram;
     this.registry.addComponent(entity, renderComp);
-    
+
     return entity;
   }
 }

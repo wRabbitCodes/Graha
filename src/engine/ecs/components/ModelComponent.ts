@@ -7,7 +7,7 @@ export class ModelComponent implements IComponent, IState {
   scale?: vec3;
   position?: vec3;
   tiltAngle = 23.44;
-  rotationPerFrame=0.3;
+  siderealDay=1; // hours;
   axis = vec3.fromValues(0, 1, 0);
   spinQuat = quat.create();
   rotationQuat=quat.create();

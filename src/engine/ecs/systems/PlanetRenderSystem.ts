@@ -8,13 +8,15 @@ import { ModelComponent } from "../components/ModelComponent";
 import { PlanetRenderComponent } from "../components/RenderComponent";
 import { TextureComponent } from "../components/TextureComponent";
 import { COMPONENT_STATE } from "../Component";
-import { mat3 } from "gl-matrix";
+import { mat3, mat4, vec2, vec3 } from "gl-matrix";
 
 export class PlanetRenderSystem extends System implements IRenderSystem {
+  private atmosphereRotation = 0;
   constructor(public renderer: Renderer, registry: Registry, utils: GLUtils) {
     super(registry, utils);
   }
   update(deltaTime: number): void {
+    this.atmosphereRotation = (this.atmosphereRotation + deltaTime * 1 / 5.5e9) % 1.0;
     for (const entity of this.registry.getEntitiesWith(PlanetRenderComponent, ModelComponent, TextureComponent)) {
       const modelComp = this.registry.getComponent(entity, ModelComponent);
       const texComp = this.registry.getComponent(
@@ -26,11 +28,14 @@ export class PlanetRenderSystem extends System implements IRenderSystem {
         PlanetRenderComponent
       );
       if (
-        texComp.state !== COMPONENT_STATE.READY
+        texComp.state !== COMPONENT_STATE.READY ||
+        modelComp.state !== COMPONENT_STATE.READY
       )
         continue;
 
       if (renderComp.state === COMPONENT_STATE.UNINITIALIZED) this.initialize(renderComp);
+      
+      //Render Planets
       this.renderer.enqueue({
         execute: (gl: WebGL2RenderingContext, ctx: RenderContext) => {
           gl.useProgram(renderComp.program);
@@ -74,7 +79,16 @@ export class PlanetRenderSystem extends System implements IRenderSystem {
             renderComp.uniformLocations.useAtmosphere,
             texComp.atmosphere ? 1 : 0
           );
-
+          gl.uniform1i(
+            renderComp.uniformLocations.useNight,
+            texComp.night ? 1 : 0
+          );
+          renderComp.uniformLocations.atmosphereRotation = gl.getUniformLocation(renderComp.atmosphereProgram!, "u_atmosphereRotation");
+          // if (renderComp.uniformLocations.atmosphereRotation) {
+          // this.atmosphereRotate += deltaTime * 1/5.5e9;
+          // gl.uniform1f(renderComp.uniformLocations.atmosphereRotation, this.atmosphereRotate);
+          // }
+          
           this.bindTextures(renderComp, texComp);
           gl.drawElements(
             gl.TRIANGLES,
@@ -85,6 +99,44 @@ export class PlanetRenderSystem extends System implements IRenderSystem {
           gl.bindVertexArray(null);
         },
       });
+
+      if (!renderComp.atmosphereProgram || !texComp.atmosphere) continue;
+      //Render Atmosphere
+      this.renderer.enqueue({
+        execute: (gl: WebGL2RenderingContext, ctx: RenderContext) => {
+          gl.useProgram(renderComp.atmosphereProgram!);
+          gl.bindVertexArray(renderComp.VAO);
+
+          // Apply slight scale for atmosphere shell
+          const atmosphereModel = mat4.clone(modelComp.modelMatrix);
+          mat4.scale(atmosphereModel, atmosphereModel, [1.01, 1.01, 1.01]);
+
+          gl.uniformMatrix4fv(gl.getUniformLocation(renderComp.atmosphereProgram!, "u_model"), false, atmosphereModel);
+          gl.uniformMatrix4fv(gl.getUniformLocation(renderComp.atmosphereProgram!, "u_view"), false, ctx.viewMatrix);
+          gl.uniformMatrix4fv(gl.getUniformLocation(renderComp.atmosphereProgram!, "u_proj"), false, ctx.projectionMatrix);
+          gl.uniform1f(gl.getUniformLocation(renderComp.atmosphereProgram!, "u_rotation"), this.atmosphereRotation);
+          gl.uniform1f(gl.getUniformLocation(renderComp.atmosphereProgram!, "u_opacity"), 0.3);
+          gl.uniform1f(gl.getUniformLocation(renderComp.atmosphereProgram!, "u_time"), Date.now()/1000);
+          gl.uniform1f(gl.getUniformLocation(renderComp.atmosphereProgram!, "u_fogDensity"), 0.02);
+
+
+          // Bind atmosphere texture
+          gl.activeTexture(gl.TEXTURE4);
+          gl.bindTexture(gl.TEXTURE_2D, texComp.atmosphere!);
+          gl.uniform1i(gl.getUniformLocation(renderComp.atmosphereProgram!, "u_atmosphereTexture"), 4);
+
+          // Render with additive blending
+          gl.enable(gl.BLEND);
+          gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+          gl.depthMask(false);
+
+          gl.drawElements(gl.TRIANGLES, renderComp.sphereMesh!.indices.length, gl.UNSIGNED_SHORT, 0);
+
+          gl.depthMask(true);
+          gl.disable(gl.BLEND);
+          gl.bindVertexArray(null);
+        }
+      })
     }
   }
 
@@ -119,6 +171,10 @@ export class PlanetRenderSystem extends System implements IRenderSystem {
       program,
       "u_atmosphereTexture"
     );
+    renderComp.uniformLocations.night = gl.getUniformLocation(
+      program,
+      "u_nightTexture"
+    );
     renderComp.uniformLocations.model = gl.getUniformLocation(
       program,
       "u_model"
@@ -147,6 +203,14 @@ export class PlanetRenderSystem extends System implements IRenderSystem {
     renderComp.uniformLocations.useAtmosphere = gl.getUniformLocation(
       program,
       "u_useAtmosphere"
+    );
+    renderComp.uniformLocations.useNight = gl.getUniformLocation(
+      program,
+      "u_useNight"
+    );
+    renderComp.uniformLocations.atmosphereRotation = gl.getUniformLocation(
+      program,
+      "u_atmosphereRotation"
     );
   }
 

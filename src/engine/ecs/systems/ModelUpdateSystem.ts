@@ -1,7 +1,7 @@
-import { mat3, mat4, quat, vec3 } from "gl-matrix";
+import { mat4, quat, vec3 } from "gl-matrix";
+import { COMPONENT_STATE } from "../Component";
 import { System } from "../System";
 import { ModelComponent } from "../components/ModelComponent";
-import { COMPONENT_STATE } from "../Component";
 
 export class ModelUpdateSystem extends System {
   update(deltaTime: number) {
@@ -18,34 +18,31 @@ export class ModelUpdateSystem extends System {
         coreComp.state = COMPONENT_STATE.READY;
       }
       if (coreComp.state === COMPONENT_STATE.READY) {
+        const siderealDayMs = coreComp.siderealDay * 3600 * 1000 * 24;
+
+        // Rotation speed in radians/ms, scaled
+        const rotationSpeedRadPerMs = (2 * Math.PI) / siderealDayMs;
+
+        // Rotation angle this frame
+        const angleRad = rotationSpeedRadPerMs * deltaTime;
         const qRotation = quat.setAxisAngle(
           quat.create(),
           coreComp.axis,
-          (coreComp.rotationPerFrame * deltaTime) / 100
+          angleRad
         );
-        const spinQuat = quat.create();
-        const rotationQuat = quat.create();
-        const modelMatrix = mat4.create();
 
-        quat.copy(spinQuat, coreComp.spinQuat!);
-        quat.copy(rotationQuat, coreComp.rotationQuat!)
-        mat4.copy(modelMatrix, coreComp.modelMatrix!)
-
-        quat.multiply(spinQuat, qRotation, spinQuat);
+        quat.multiply(coreComp.spinQuat, qRotation, coreComp.spinQuat);
         quat.multiply(
-          rotationQuat,
+          coreComp.rotationQuat,
           coreComp.tiltQuat!,
-          spinQuat
+          coreComp.spinQuat
         );
         mat4.fromRotationTranslationScale(
-          modelMatrix,
-          rotationQuat,
+          coreComp.modelMatrix,
+          coreComp.rotationQuat,
           coreComp.position!,
           coreComp.scale!
         );
-        coreComp.spinQuat = spinQuat;
-        coreComp.rotationQuat = rotationQuat;
-        coreComp.modelMatrix = modelMatrix;
       }
     }
   }

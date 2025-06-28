@@ -22,7 +22,7 @@ export class TextureLoaderSystem extends System {
     if (!component.sunURL) return;
     component.sun = await this.utils.loadTexture(
       component.sunURL,
-      5
+      16
     );
     component.state = COMPONENT_STATE.READY;
   }
@@ -31,7 +31,7 @@ export class TextureLoaderSystem extends System {
     if (!component.skysphereURL) return;
     component.skysphere = await this.utils.loadTexture(
       component.skysphereURL,
-      4
+      15
     );
     component.state = COMPONENT_STATE.READY;
   }
@@ -39,10 +39,10 @@ export class TextureLoaderSystem extends System {
   private async loadPlanetTexures(component: TextureComponent) {
     if (!component.surfaceURL) return;
     component.surface = await this.utils.loadTexture(component.surfaceURL, 0)
-    debugger;
     if (component.normalURL) component.normal = await this.utils.loadTexture(component.normalURL, 1)
     if (component.specularURL) component.specular = await this.utils.loadTexture(component.specularURL, 2)
     if (component.atmosphereURL) component.atmosphere = await this.utils.loadTexture(component.atmosphereURL, 3)
+    if (component.nightURL) component.night = await this.utils.loadTexture(component.nightURL, 4)
     component.state = COMPONENT_STATE.READY;
   }
 }

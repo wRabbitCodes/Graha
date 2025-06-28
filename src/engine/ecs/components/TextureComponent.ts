@@ -8,6 +8,7 @@ export class TextureComponent implements IComponent, IState {
     atmosphere?: WebGLTexture;
     skysphere?: WebGLTexture;
     sun?: WebGLTexture;
+    night?: WebGLTexture;
     
     skysphereURL?: string;
     sunURL?: string;
@@ -15,4 +16,5 @@ export class TextureComponent implements IComponent, IState {
     normalURL?: string;
     specularURL?: string;
     atmosphereURL?: string;
+    nightURL?: string;
 }
