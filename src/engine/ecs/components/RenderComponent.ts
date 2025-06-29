@@ -19,7 +19,11 @@ export class SkyRenderComponent extends RenderComponent {
   sphereMesh?: SphereMesh;
 }
 
-export class SunRenderComponent extends RenderComponent { }
+export class SunRenderComponent extends RenderComponent {
+  sphereMesh?: SphereMesh;
+  coreVAO: WebGLVertexArrayObject | null = null;
+  coreProgram: WebGLProgram | null = null;
+ }
 
 export class SelectionGlowRenderComponent extends RenderComponent {
   vertShader = `#version 300 es

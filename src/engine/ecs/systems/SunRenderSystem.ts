@@ -7,32 +7,25 @@ import { TextureComponent } from "../components/TextureComponent";
 import { Registry } from "../Registry";
 import { System } from "../System";
 import { SETTINGS } from "../../../config/settings";
+import { COMPONENT_STATE } from "../Component";
+import { mat4, vec2, vec3 } from "gl-matrix";
 
 export class SunRenderSystem extends System implements IRenderSystem {
-  constructor(
-    public renderer: Renderer,
-    registry: Registry,
-    utils: GLUtils,
-  ) {
+  constructor(public renderer: Renderer, registry: Registry, utils: GLUtils) {
     super(registry, utils);
-  };
+  }
   update(deltaTime: number): void {
     for (const entity of this.registry.getEntitiesWith(SunRenderComponent)) {
       const renderComp = this.registry.getComponent(entity, SunRenderComponent);
       const textureComp = this.registry.getComponent(entity, TextureComponent);
-      if (!renderComp.program) continue;
-      if (!textureComp.sun) continue;
-      if (!renderComp.VAO) this.setupVAO(renderComp);
+      if (textureComp.state !== COMPONENT_STATE.READY) continue;
+      if (renderComp.state === COMPONENT_STATE.UNINITIALIZED)
+        this.initialize(renderComp);
+      if (renderComp.state !== COMPONENT_STATE.READY) continue;
 
-      this.renderer.enqueue({
+       this.renderer.enqueue({
         execute: (gl: WebGL2RenderingContext, ctx: RenderContext) => {
           gl.useProgram(renderComp.program);
-
-          gl.disable(gl.DEPTH);
-          gl.depthMask(false);
-          gl.enable(gl.BLEND);
-          gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
-
           // Set uniforms
           gl.uniformMatrix4fv(
             gl.getUniformLocation(renderComp.program!, "u_view"),
@@ -44,12 +37,26 @@ export class SunRenderSystem extends System implements IRenderSystem {
             false,
             ctx.projectionMatrix
           );
-          gl.uniform3f(gl.getUniformLocation(renderComp.program!, "u_worldPos"), 0, 0, 0); // Sun at origin
-          gl.uniform1f(gl.getUniformLocation(renderComp.program!, "u_size"), SETTINGS.SUN_SIZE / SETTINGS.SIZE_SCALE); // Scale of flare in world units
+          gl.uniform3fv(
+            gl.getUniformLocation(renderComp.program!, "u_worldPos"),
+            ctx.lightPos,
+          ); // Sun at origin
+          gl.uniform1f(
+            gl.getUniformLocation(renderComp.program!, "u_size"),
+            SETTINGS.SUN_SIZE / SETTINGS.SIZE_SCALE
+          ); // Scale of flare in world units
 
           gl.activeTexture(gl.TEXTURE0);
           gl.bindTexture(gl.TEXTURE_2D, textureComp.sun!);
-          gl.uniform1i(gl.getUniformLocation(renderComp.program!, "u_lensflare"), 0);
+          gl.uniform1i(
+            gl.getUniformLocation(renderComp.program!, "u_lensflare"),
+            0
+          );
+
+          gl.disable(gl.DEPTH_TEST);
+          gl.depthMask(false);
+          gl.enable(gl.BLEND);
+          gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
 
           gl.bindVertexArray(renderComp.VAO);
           gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
@@ -61,6 +68,12 @@ export class SunRenderSystem extends System implements IRenderSystem {
         }
       });
     }
+  }
+
+  private initialize(renderComp: SunRenderComponent) {
+    renderComp.state = COMPONENT_STATE.LOADING;
+    this.setupVAO(renderComp);
+    renderComp.state = COMPONENT_STATE.READY;
   }
 
   private setupVAO(renderComp: SunRenderComponent) {

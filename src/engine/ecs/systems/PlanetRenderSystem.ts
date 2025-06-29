@@ -9,7 +9,6 @@ import { PlanetRenderComponent } from "../components/RenderComponent";
 import { TextureComponent } from "../components/TextureComponent";
 import { COMPONENT_STATE } from "../Component";
 import { mat3, mat4, vec2, vec3 } from "gl-matrix";
-import { EntitySelectionComponent } from "../components/EntitySelectionComponent";
 
 export class PlanetRenderSystem extends System implements IRenderSystem {
   private atmosphereRotation = 0;
