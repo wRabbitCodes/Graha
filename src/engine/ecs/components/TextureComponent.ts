@@ -17,4 +17,7 @@ export class TextureComponent implements IComponent, IState {
     specularURL?: string;
     atmosphereURL?: string;
     nightURL?: string;
+
+    tagFontURL?: string;
+    tagFontFamily?: string;
 }

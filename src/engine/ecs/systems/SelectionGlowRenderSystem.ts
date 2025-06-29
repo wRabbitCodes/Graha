@@ -22,7 +22,6 @@ export class SelectionGlowRenderSystem extends System implements IRenderSystem {
     for (const entity of this.registry.getEntitiesWith(
       EntitySelectionComponent,
     )) {
-      debugger;
       const selectionComp = this.registry.getComponent(
         entity,
         EntitySelectionComponent

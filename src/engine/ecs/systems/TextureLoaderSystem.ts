@@ -12,9 +12,13 @@ export class TextureLoaderSystem extends System {
       );
       if (textureComponent.state !== COMPONENT_STATE.UNINITIALIZED) continue;
       textureComponent.state = COMPONENT_STATE.LOADING;
-      this.loadPlanetTexures(textureComponent);
-      this.loadSkysphereTexture(textureComponent);
-      this.loadSunTexture(textureComponent);
+      Promise.all([
+      this.loadPlanetTexures(textureComponent),
+      this.loadSkysphereTexture(textureComponent),
+      this.loadSunTexture(textureComponent),
+      this.loadTagFont(textureComponent),
+      ]).then(()=> textureComponent.state = COMPONENT_STATE.READY);
+
     }
   }
 
@@ -24,7 +28,6 @@ export class TextureLoaderSystem extends System {
       component.sunURL,
       16
     );
-    component.state = COMPONENT_STATE.READY;
   }
 
   private async loadSkysphereTexture(component: TextureComponent) {
@@ -43,6 +46,12 @@ export class TextureLoaderSystem extends System {
     if (component.specularURL) component.specular = await this.utils.loadTexture(component.specularURL, 2)
     if (component.atmosphereURL) component.atmosphere = await this.utils.loadTexture(component.atmosphereURL, 3)
     if (component.nightURL) component.night = await this.utils.loadTexture(component.nightURL, 4)
-    component.state = COMPONENT_STATE.READY;
+  }
+
+  private async loadTagFont(component: TextureComponent) {
+    if (component.tagFontFamily === undefined || component.tagFontURL === undefined) return;
+    const font = new FontFace(component.tagFontFamily!, `url("${component.tagFontURL}")`);
+    await font.load();
+    (document as any).fonts.add(font);
   }
 }
