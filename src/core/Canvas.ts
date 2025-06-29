@@ -10,6 +10,7 @@
 //   public isPointerLockedOnCanvas: boolean = false;
 
 import { mat4 } from "gl-matrix";
+import { SETTINGS } from "../config/settings";
 
 // import { GLUtils } from "./GLUtils";
 
@@ -199,7 +200,7 @@ export class Canvas {
       this.canvas.width = width;
       this.canvas.height = height;
       this.gl.viewport(0, 0, width, height);
-      mat4.perspective(this.projectionMatrix, Math.PI / 4, width/height, 0.1, 10000);
+      mat4.perspective(this.projectionMatrix, Math.PI / 4, width/height, 0.1, SETTINGS.FAR_PLANE/ SETTINGS.DISTANCE_SCALE);
     }
   }
 }

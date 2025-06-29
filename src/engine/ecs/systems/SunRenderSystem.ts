@@ -6,6 +6,7 @@ import { SunRenderComponent } from "../components/RenderComponent";
 import { TextureComponent } from "../components/TextureComponent";
 import { Registry } from "../Registry";
 import { System } from "../System";
+import { SETTINGS } from "../../../config/settings";
 
 export class SunRenderSystem extends System implements IRenderSystem {
   constructor(
@@ -44,7 +45,7 @@ export class SunRenderSystem extends System implements IRenderSystem {
             ctx.projectionMatrix
           );
           gl.uniform3f(gl.getUniformLocation(renderComp.program!, "u_worldPos"), 0, 0, 0); // Sun at origin
-          gl.uniform1f(gl.getUniformLocation(renderComp.program!, "u_size"), 1000.0); // Scale of flare in world units
+          gl.uniform1f(gl.getUniformLocation(renderComp.program!, "u_size"), SETTINGS.SUN_SIZE / SETTINGS.SIZE_SCALE); // Scale of flare in world units
 
           gl.activeTexture(gl.TEXTURE0);
           gl.bindTexture(gl.TEXTURE_2D, textureComp.sun!);

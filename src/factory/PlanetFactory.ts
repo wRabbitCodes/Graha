@@ -9,15 +9,7 @@ import { Registry } from "../engine/ecs/Registry";
 import { GLUtils } from "../utils/GLUtils";
 import { IFactory } from "./IFactory";
 import { EntitySelectionComponent } from "../engine/ecs/components/EntitySelectionComponent";
-
-const DISTANCE_SCALE = 5e4;
-const RADIUS_SCALE = 9e1; // make radii 10× smaller
-function toDist(u_km: number) {
-  return u_km / DISTANCE_SCALE;
-}
-function toRad(u_km: number) {
-  return u_km / RADIUS_SCALE;
-}
+import { SETTINGS } from "../config/settings";
 
 export type PlanetData = {
   name: string;
@@ -40,11 +32,11 @@ export class PlanetFactory implements IFactory {
   create(params: PlanetData): Entity {
     const entity = this.registry.createEntity();
 
-    const orbitRadius = toDist(params.orbitData?.semiMajorAxis!);
+    const orbitRadius =params.orbitData?.semiMajorAxis! / SETTINGS.DISTANCE_SCALE;
     const planetScale = vec3.fromValues(
-      toRad(params.radius),
-      toRad(params.radius),
-      toRad(params.radius)
+      params.radius / SETTINGS.SIZE_SCALE,
+      params.radius / SETTINGS.SIZE_SCALE,
+      params.radius / SETTINGS.SIZE_SCALE,
     );
     // Transform
     const transform = new ModelComponent();
@@ -70,8 +62,6 @@ export class PlanetFactory implements IFactory {
       orbit.meanAnomalyAtEpoch = params.orbitData.meanAnomalyAtEpoch;
       orbit.orbitalPeriod = params.orbitData.orbitalPeriod;
       orbit.elapsedDays = params.orbitData.elapsedDays;
-
-      orbit.distanceScale = DISTANCE_SCALE;
 
       this.registry.addComponent(entity, orbit);
     }

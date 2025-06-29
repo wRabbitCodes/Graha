@@ -4,6 +4,7 @@ import { OrbitComponent } from "../components/OrbitComponent";
 import { ModelComponent } from "../components/ModelComponent";
 import { COMPONENT_STATE } from "../Component";
 import { mat4, vec3 } from "gl-matrix";
+import { SETTINGS } from "../../../config/settings";
 
 // An ECS-based OrbitSystem that drives TransformComponent positions from Keplerian data
 export class OrbitSystem extends System {
@@ -42,7 +43,7 @@ export class OrbitSystem extends System {
 
     // Compute distance from focus (Sun)
     let r = orbit.semiMajorAxis! * (1 - orbit.eccentricity! * Math.cos(E));
-    r = r / (orbit?.distanceScale ?? 1);
+    r = r / (SETTINGS.DISTANCE_SCALE ?? 1);
 
     // True anomaly θ
     const theta =
