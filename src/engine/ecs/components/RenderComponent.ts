@@ -23,7 +23,7 @@ export class SunRenderComponent extends RenderComponent {
   sphereMesh?: SphereMesh;
   coreVAO: WebGLVertexArrayObject | null = null;
   coreProgram: WebGLProgram | null = null;
- }
+}
 
 export class SelectionGlowRenderComponent extends RenderComponent {
   vertShader = `#version 300 es
@@ -77,15 +77,15 @@ export class TagRenderComponent extends RenderComponent {
   center: vec3 = vec3.create();
   color: vec4 = [0.2, 1.0, 0.8, 0.8];
   modelMatrix: mat4 = mat4.create();
-  texCanvas?: HTMLCanvasElement;
+  textCanvas?: HTMLCanvasElement;
   time = 0;
   flickerOffset = Math.random() * 100;
-  blinkTimer = 0;
-  isBlinking = false;
-  pulseStrength = 0;
-  pulseDecayRate = 1.5; // seconds
-  isReady = false;
-  texture?:WebGLTexture;
+  // blinkTimer = 0;
+  // isBlinking = false;
+  // pulseStrength = 0;
+  // pulseDecayRate = 1.5; // seconds
+  // isReady = false;
+  texture?: WebGLTexture;
   readonly popupQuad = new Float32Array([
     // x, y,    u, v
     -0.5, -0.5, 0, 0, 0.5, -0.5, 1, 0, -0.5, 0.5, 0, 1, 0.5, 0.5, 1, 1,
@@ -107,15 +107,13 @@ export class TagRenderComponent extends RenderComponent {
       vec4 world = u_model * vec4(a_position, 0.0, 1.0);
       gl_Position = u_proj * u_view * world;
     }`;
+
   fragShader = `#version 300 es
     precision mediump float;
 
     in vec2 v_uv;
     uniform sampler2D u_text;
     uniform float u_time;
-    uniform float u_offset;
-    uniform float u_pulse;
-    uniform int u_blinking;
 
     out vec4 fragColor;
 
@@ -128,28 +126,36 @@ export class TagRenderComponent extends RenderComponent {
       vec4 base = texture(u_text, v_uv);
       if (base.a < 0.1) discard;
 
-      float t = u_time + u_offset;
+      float cycleTime = mod(u_time, 4.0);
 
-      // Color hue cycling
-      float hue = mod(t * 0.1 + v_uv.x * 0.1, 1.0);
-      vec3 glowColor = hsv2rgb(vec3(hue, 0.8, 1.0));
+      float brightness = 0.4; // baseline dim
 
-      // Radial halo
-      float dist = length(v_uv - vec2(0.5));
-      float halo = smoothstep(0.45, 0.0, dist);
+      // Left to right fill phase (between 0.5 and 2.5 sec)
+      if (cycleTime > 0.5 && cycleTime <= 2.5) {
+        float fillProgress = (cycleTime - 0.5) / 2.0;
+        if (v_uv.x <= fillProgress) {
+          brightness = 1.0;
+        }
+      }
 
-      // Flicker base using sin
-      float flicker = 0.85 + 0.15 * sin(t * 6.0 + sin(t * 1.2));
+      // Fully lit
+      if (cycleTime > 2.5 && cycleTime <= 3.5) {
+        brightness = 1.0;
+      }
 
-      // Blink override
-      float intensity = (u_blinking == 1) ? 0.0 : flicker;
+      // Flicker off (short gap at end)
+      if (cycleTime > 3.5) {
+        brightness = 0.4;
+      }
 
-      // Pulse boost
-      intensity += u_pulse * 0.5;
+      // Animate hue while glowing
+      float hue = mod(u_time * 0.1, 1.0);
+      vec3 neonColor = hsv2rgb(vec3(hue, 0.8, 1.0));
 
-      vec3 finalColor = mix(base.rgb, glowColor, 0.5) * intensity;
-      float alpha = base.a * intensity + halo * 0.4;
+      vec3 finalColor = mix(vec3(0.0), neonColor, brightness);
+      float finalAlpha = base.a * brightness;
 
-      fragColor = vec4(finalColor, alpha);
-    }`;
+      fragColor = vec4(finalColor, finalAlpha);
+    }
+    `;
 }

@@ -10,4 +10,6 @@ export type RenderContext = {
   projectionMatrix: mat4;
   cameraPos: vec3,
   lightPos: vec3,
+  canvasWidth: number,
+  canvasHeight: number,
 }

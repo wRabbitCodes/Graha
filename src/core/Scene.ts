@@ -424,6 +424,8 @@ export class Scene {
       projectionMatrix,
       lightPos: vec3.fromValues(0, 0, 0),
       cameraPos: this.camera.getPosition(),
+      canvasHeight: this.canvas.canvas.height,
+      canvasWidth: this.canvas.canvas.width,
     }); // flush all queued RenderCommands
   }
 }

@@ -86,19 +86,6 @@ export class SelectionTagSystem extends System implements IRenderSystem {
                     );
 
                     gl.uniform1f(gl.getUniformLocation(renderComp.program!, "u_time"), renderComp.time);
-                    gl.uniform1f(
-                        gl.getUniformLocation(renderComp.program!, "u_offset"),
-                        renderComp.flickerOffset
-                    );
-                    gl.uniform1f(
-                        gl.getUniformLocation(renderComp.program!, "u_pulse"),
-                        renderComp.pulseStrength
-                    );
-                    gl.uniform1i(
-                        gl.getUniformLocation(renderComp.program!, "u_blinking"),
-                        renderComp.isBlinking ? 1 : 0
-                    );
-
                     gl.activeTexture(gl.TEXTURE0);
                     gl.bindTexture(gl.TEXTURE_2D, renderComp.texture!);
                     gl.uniform1i(gl.getUniformLocation(renderComp.program!, "u_text"), 0);
@@ -143,51 +130,20 @@ export class SelectionTagSystem extends System implements IRenderSystem {
     private bindTextTexture(modelComp: ModelComponent, component: TagRenderComponent) {
         const gl = this.utils.gl;
         const canvas = document.createElement("canvas");
-        component.texCanvas = canvas;
-        canvas.width = 512;
-        canvas.height = 128;
+        component.textCanvas = canvas;
+        canvas.width = 1024;
+        canvas.height = 256;
 
         // Load the local font
         const ctx = canvas.getContext("2d")!;
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-        // Background fill
-        ctx.fillStyle = "rgba(10, 10, 30, 0.9)";
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-        // === Text Settings ===
-        const fontSize = 48;
-        ctx.font = `bold ${fontSize}px NeonSans`;
+        ctx.font = `120px NeonSans`;
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-
-        const textX = canvas.width / 2;
-        const textY = canvas.height / 2;
-
-        // === Glow-only outline ===
-        ctx.shadowColor = "#00ffff";
-        ctx.shadowBlur = 30;
-        ctx.fillStyle = "transparent"; // no fill for base text
-        ctx.strokeStyle = "#00ffff";
-        ctx.lineWidth = 2;
-        ctx.strokeText(modelComp.name!, textX, textY); // glow from stroke
-
-        // === Black border behind fill ===
-        ctx.shadowBlur = 0; // disable shadow temporarily
-        ctx.strokeStyle = "black";
-        ctx.lineWidth = 4;
-        ctx.strokeText(modelComp.name!, textX, textY); // black outline
-
-        // === Fill with neon cyan ===
-        ctx.fillStyle = "#00ffff";
-        ctx.fillText(modelComp.name!, textX, textY); // filled core
-
-        // === Border frame around canvas (optional) ===
-        ctx.strokeStyle = "#00ffff";
-        ctx.lineWidth = 3;
-        ctx.shadowColor = "#00ffff";
-        ctx.shadowBlur = 12;
-        ctx.strokeRect(4, 4, canvas.width - 8, canvas.height - 8);
+        ctx.lineWidth = 4;   // strokeText outline width
+        ctx.shadowBlur = 0;  // Disable blur
+        ctx.fillStyle = "#00ffff"; // Neon cyan color
+        ctx.fillText(modelComp.name!, canvas.width / 2, canvas.height / 2);
 
         // === Upload to GPU ===
         const tex = gl.createTexture()!;
@@ -203,42 +159,17 @@ export class SelectionTagSystem extends System implements IRenderSystem {
 
 
     private updateTag(dt: number, renderComp: TagRenderComponent, modelComp: ModelComponent) {
-        renderComp.time += dt / 1000;
-
-        // === Random Hard Blinks ===
-        renderComp.blinkTimer -= dt / 10;
-        if (renderComp.blinkTimer <= 0) {
-            // 5% chance every 1.5s to blink
-            if (Math.random() < 0.05) {
-                renderComp.isBlinking = true;
-                renderComp.blinkTimer = 3; // off for 50ms
-            } else {
-                renderComp.isBlinking = false;
-                renderComp.blinkTimer = 1.5;
-            }
-        }
-        // SET SIZE RELATIVE TO PLANET
-        const widthRatio = 6; // Width is 1.5× radius
-        const heightRatio = 3; // Height is 0.75× radius
+        renderComp.time += dt / 50000000;
         const scale = vec3.create();
         mat4.getScaling(scale, modelComp.modelMatrix);
         const radius = Math.max(...scale);
-
-
-        vec2.set(renderComp.size, radius * widthRatio, radius * heightRatio);
-        // Trigger Pulse
-        renderComp.pulseStrength = 1.0;
-        // === Pulse fade out ===
-        if (renderComp.pulseStrength > 0) {
-            renderComp.pulseStrength -= (dt / 1000) * renderComp.pulseDecayRate;
-            renderComp.pulseStrength = Math.max(renderComp.pulseStrength, 0);
-        }
+        vec2.set(renderComp.size, radius + renderComp.textCanvas?.width!, radius + renderComp.textCanvas?.height!);
         const offsetY = radius;
         const popupPos = vec3.create();
         vec3.set(
             popupPos,
             modelComp.position![0],
-            modelComp.position![1] + offsetY + renderComp.texCanvas?.height!,
+            modelComp.position![1] + offsetY + renderComp.textCanvas?.height!,
             modelComp.position![2]
         );
         mat4.fromTranslation(renderComp.modelMatrix, popupPos);

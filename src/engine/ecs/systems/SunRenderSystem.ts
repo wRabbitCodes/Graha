@@ -1,14 +1,13 @@
+import { SETTINGS } from "../../../config/settings";
+import { GLUtils } from "../../../utils/GLUtils";
 import { RenderContext } from "../../command/IRenderCommands";
 import { IRenderSystem } from "../../command/IRenderSystem";
 import { Renderer } from "../../command/Renderer";
-import { GLUtils } from "../../../utils/GLUtils";
+import { COMPONENT_STATE } from "../Component";
 import { SunRenderComponent } from "../components/RenderComponent";
 import { TextureComponent } from "../components/TextureComponent";
 import { Registry } from "../Registry";
 import { System } from "../System";
-import { SETTINGS } from "../../../config/settings";
-import { COMPONENT_STATE } from "../Component";
-import { mat4, vec2, vec3 } from "gl-matrix";
 
 export class SunRenderSystem extends System implements IRenderSystem {
   constructor(public renderer: Renderer, registry: Registry, utils: GLUtils) {
