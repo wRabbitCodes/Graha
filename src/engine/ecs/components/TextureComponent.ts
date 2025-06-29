@@ -18,6 +18,6 @@ export class TextureComponent implements IComponent, IState {
     atmosphereURL?: string;
     nightURL?: string;
 
-    tagFontURL?: string;
-    tagFontFamily?: string;
+    tagFontURL='fonts/NeonSans.ttf';
+    tagFontFamily='NeonSans';
 }
