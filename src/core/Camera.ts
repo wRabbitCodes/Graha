@@ -7,10 +7,11 @@ export class Camera {
   private right: vec3 = vec3.create();
   private worldUp: vec3 = vec3.fromValues(0, 1, 0);
   private viewMatrix: mat4 = mat4.identity(mat4.create());
+  private radius = 50;
 
   private yaw: number = -90;
   private pitch: number = 0;
-  private speed: number = 1;
+  private speed: number = 3;
   private sensitivity: number = 0.1;
 
   constructor() {
@@ -78,5 +79,9 @@ export class Camera {
 
   getPosition(): vec3 {
     return this.position;
+  }
+
+  getRadius() {
+    return this.radius;
   }
 }

@@ -189,6 +189,9 @@ import { Camera } from "./Camera";
 import { Canvas } from "./Canvas";
 import { IO } from "./IO";
 import { SelectionTagSystem } from "../engine/ecs/systems/SelectionTagSystem";
+import { CCDSystem } from "../engine/ecs/systems/CCDSystem";
+import { BBPlotRenderSystem } from "../engine/ecs/systems/BBPlotRenderSystem";
+import { OrbitPathRenderSystem } from "../engine/ecs/systems/OrbitPathRenderSystem";
 
 export class Scene {
   private readonly gl: WebGL2RenderingContext;
@@ -212,6 +215,9 @@ export class Scene {
   private rayCaster: Raycaster;
   private selectionGlowRender: SelectionGlowRenderSystem;
   private selectionTagRender: SelectionTagSystem;
+  private ccdSystem: CCDSystem;
+  private bbpRenderSystem: BBPlotRenderSystem;
+  private orbitTracer: OrbitPathRenderSystem;
 
   constructor(canvasId: string) {
     this.canvas = new Canvas(canvasId);
@@ -231,10 +237,9 @@ export class Scene {
     this.rayCaster = new Raycaster();
     this.entitySelectionSystem = new EntitySelectionSystem(this.rayCaster, this.camera, this.registry, this.utils);
     this.selectionGlowRender = new SelectionGlowRenderSystem(this.renderer, this.registry, this.utils);
-
     this.textureSystem = new TextureLoaderSystem(this.registry, this.utils);
-
     this.selectionTagRender = new SelectionTagSystem(this.renderer, this.registry, this.utils);
+    this.ccdSystem = new CCDSystem(this.camera, this.registry, this.utils);
 
     this.skyFactory = new SkyFactory(this.utils, this.registry);
     this.sunRender = new SunRenderSystem(
@@ -251,6 +256,8 @@ export class Scene {
     );
     this.modelUpdate = new ModelUpdateSystem(this.registry, this.utils);
     this.orbitSystem = new OrbitSystem(this.registry, this.utils);
+    this.bbpRenderSystem = new BBPlotRenderSystem(this.renderer, this.registry, this.utils);
+    this.orbitTracer = new OrbitPathRenderSystem(this.renderer, this.registry, this.utils);
 
     this.canvas.enablePointerLock((x, y) => {
       this.entitySelectionSystem.update(0); 
@@ -411,10 +418,14 @@ export class Scene {
     
     this.skyRender.update(deltaTime);
 
-    this.orbitSystem.update(deltaTime);
-    this.modelUpdate.update(deltaTime);
-    this.planetRender.update(deltaTime);
 
+    this.planetRender.update(deltaTime);
+    this.modelUpdate.update(deltaTime);
+    this.orbitSystem.update(deltaTime);
+    this.orbitTracer.update(deltaTime);
+
+    this.ccdSystem.update(deltaTime);
+    this.bbpRenderSystem.update(deltaTime);
     this.selectionGlowRender.update(deltaTime);
     this.selectionTagRender.update(deltaTime);
 

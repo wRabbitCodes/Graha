@@ -10,6 +10,7 @@ import { GLUtils } from "../utils/GLUtils";
 import { IFactory } from "./IFactory";
 import { EntitySelectionComponent } from "../engine/ecs/components/EntitySelectionComponent";
 import { SETTINGS } from "../config/settings";
+import { CCDComponent } from "../engine/ecs/components/CCDComponent";
 
 export type PlanetData = {
   name: string;
@@ -78,6 +79,9 @@ export class PlanetFactory implements IFactory {
     const selectionComp = new EntitySelectionComponent();
     this.registry.addComponent(entity, selectionComp);
 
+    // CCD
+    const ccdComp = new CCDComponent();
+    this.registry.addComponent(entity, ccdComp);
 
     // RenderComponent (VAO and programs setup)
     // const program = ShaderStrategy.getDefaultProgram(this.gl, this.utils);

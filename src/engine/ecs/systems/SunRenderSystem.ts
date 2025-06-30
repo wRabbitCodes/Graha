@@ -22,7 +22,7 @@ export class SunRenderSystem extends System implements IRenderSystem {
         this.initialize(renderComp);
       if (renderComp.state !== COMPONENT_STATE.READY) continue;
 
-       this.renderer.enqueue({
+      this.renderer.enqueue({
         execute: (gl: WebGL2RenderingContext, ctx: RenderContext) => {
           gl.useProgram(renderComp.program);
           // Set uniforms
@@ -38,11 +38,11 @@ export class SunRenderSystem extends System implements IRenderSystem {
           );
           gl.uniform3fv(
             gl.getUniformLocation(renderComp.program!, "u_worldPos"),
-            ctx.lightPos,
+            ctx.lightPos
           ); // Sun at origin
           gl.uniform1f(
             gl.getUniformLocation(renderComp.program!, "u_size"),
-            SETTINGS.SUN_SIZE / SETTINGS.SIZE_SCALE
+            (SETTINGS.SUN_SIZE / SETTINGS.SIZE_SCALE) * 5
           ); // Scale of flare in world units
 
           gl.activeTexture(gl.TEXTURE0);
@@ -52,7 +52,7 @@ export class SunRenderSystem extends System implements IRenderSystem {
             0
           );
 
-          gl.disable(gl.DEPTH_TEST);
+          // gl.disable(gl.DEPTH_TEST);
           gl.depthMask(false);
           gl.enable(gl.BLEND);
           gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
@@ -63,8 +63,8 @@ export class SunRenderSystem extends System implements IRenderSystem {
 
           gl.disable(gl.BLEND);
           gl.depthMask(true);
-          gl.enable(gl.DEPTH);
-        }
+          // gl.enable(gl.DEPTH_TEST);
+        },
       });
     }
   }

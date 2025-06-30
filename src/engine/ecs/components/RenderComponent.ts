@@ -72,7 +72,7 @@ export class SelectionGlowRenderComponent extends RenderComponent {
 }
 
 export class TagRenderComponent extends RenderComponent {
-  state: COMPONENT_STATE = COMPONENT_STATE.UNINITIALIZED;
+  currentText = "";
   size: vec2 = vec2.fromValues(5, 2.5);
   center: vec3 = vec3.create();
   color: vec4 = [0.2, 1.0, 0.8, 0.8];
@@ -93,20 +93,38 @@ export class TagRenderComponent extends RenderComponent {
 
   vertShader = `#version 300 es
     precision mediump float;
+
     layout(location = 0) in vec2 a_position;
     layout(location = 1) in vec2 a_uv;
 
-    uniform mat4 u_model;
     uniform mat4 u_view;
     uniform mat4 u_proj;
+    uniform vec3 u_worldPos;
+    uniform float u_basePixelSize;
+    uniform vec2 u_viewportSize;
 
     out vec2 v_uv;
 
     void main() {
-      v_uv = a_uv;
-      vec4 world = u_model * vec4(a_position, 0.0, 1.0);
-      gl_Position = u_proj * u_view * world;
-    }`;
+        vec3 right = vec3(u_view[0][0], u_view[1][0], u_view[2][0]);
+        vec3 up    = vec3(u_view[0][1], u_view[1][1], u_view[2][1]);
+
+        // Estimate distance from camera to label
+        vec4 viewPos = u_view * vec4(u_worldPos, 1.0);
+        float dist = abs(viewPos.z); // distance in view space
+
+        // Approximate NDC pixel scale factor
+        float ndcPixelSize = 2.0 / u_viewportSize.y; // NDC per pixel (height-based)
+
+        float scale = u_basePixelSize * ndcPixelSize * dist;
+
+        vec3 offset = a_position.x * scale * right + a_position.y * scale * up;
+        vec3 finalPos = u_worldPos + offset;
+
+        gl_Position = u_proj * u_view * vec4(finalPos, 1.0);
+        v_uv = a_uv;
+    }
+    `;
 
   fragShader = `#version 300 es
     precision mediump float;
@@ -158,4 +176,52 @@ export class TagRenderComponent extends RenderComponent {
       fragColor = vec4(finalColor, finalAlpha);
     }
     `;
+}
+
+export class BBPlotRenderComponent extends RenderComponent {
+  vertexShader = `#version 300 es
+    precision highp float;
+    layout(location = 0) in vec3 a_position;
+    uniform mat4 u_model;
+    uniform mat4 u_view;
+    uniform mat4 u_proj;
+    void main() {
+      gl_Position = u_proj * u_view * u_model * vec4(a_position, 1.0);
+    }
+  `;
+
+  fragmentShader = `#version 300 es
+    precision mediump float;
+    out vec4 fragColor;
+    void main() {
+      fragColor = vec4(1.0, 0.0, 0.0, 1.0); // red wireframe
+    }
+  `;
+
+  sphereMesh?: SphereMesh;
+}
+
+export class OrbitPathRenderComponent extends RenderComponent {
+  vertSrc = `#version 300 es
+    #pragma vscode_glsllint_stage : vert
+    precision mediump float;
+    layout(location = 0) in vec3 a_position;
+    uniform mat4 u_model, u_view, u_proj;
+    void main() {
+      gl_Position = u_proj * u_view * u_model * vec4(a_position, 1.0);
+    }
+  `;
+
+  fragSrc = `#version 300 es
+    #pragma vscode_glsllint_stage : frag
+    precision mediump float;
+    out vec4 fragColor;
+    void main() {
+      fragColor = vec4(1.0, 1.0, 1.0, 0.6); // white translucent orbit
+    }
+  `;
+
+  pathVertices: number[] = [];
+  perihelion = vec3.create();
+  aphelion = vec3.create();
 }
