@@ -5,7 +5,10 @@ import { OrbitComponent } from "../engine/ecs/components/OrbitComponent";
 const SECONDS_PER_DAY = 86400;
 const JD_J2000 = 2451545.0;
 
-export class OrbitUtils {
+export class OrbitAnamolyCalculator {
+  static indexAtTime(currentTime: any, orbitComp: OrbitComponent) {
+    throw new Error("Method not implemented.");
+  }
   /** Solve Kepler's Equation: M = E - e*sin(E) */
   static solveKepler(M: number, e: number): number {
     let E = M;

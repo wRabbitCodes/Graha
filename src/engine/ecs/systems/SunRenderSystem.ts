@@ -42,7 +42,7 @@ export class SunRenderSystem extends System implements IRenderSystem {
           ); // Sun at origin
           gl.uniform1f(
             gl.getUniformLocation(renderComp.program!, "u_size"),
-            (SETTINGS.SUN_SIZE / SETTINGS.SIZE_SCALE) * 5
+            SETTINGS.SUN_SIZE / SETTINGS.SIZE_SCALE * 6
           ); // Scale of flare in world units
 
           gl.activeTexture(gl.TEXTURE0);

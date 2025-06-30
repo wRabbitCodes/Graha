@@ -11,7 +11,7 @@ export class Camera {
 
   private yaw: number = -90;
   private pitch: number = 0;
-  private speed: number = 3;
+  private speed: number = 60;
   private sensitivity: number = 0.1;
 
   constructor() {

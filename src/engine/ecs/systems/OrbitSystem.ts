@@ -1,10 +1,10 @@
-import { System } from "../System";
-import { Registry } from "../Registry";
-import { OrbitComponent } from "../components/OrbitComponent";
-import { ModelComponent } from "../components/ModelComponent";
-import { COMPONENT_STATE } from "../Component";
 import { mat4, vec3 } from "gl-matrix";
 import { SETTINGS } from "../../../config/settings";
+import { OrbitAnamolyCalculator } from "../../../utils/OrbitAnamolyCalculator";
+import { COMPONENT_STATE } from "../Component";
+import { System } from "../System";
+import { ModelComponent } from "../components/ModelComponent";
+import { OrbitComponent } from "../components/OrbitComponent";
 
 // An ECS-based OrbitSystem that drives TransformComponent positions from Keplerian data
 export class OrbitSystem extends System {
@@ -19,46 +19,32 @@ export class OrbitSystem extends System {
       if (model.state !== COMPONENT_STATE.READY) continue;
 
       if (orbit.state === COMPONENT_STATE.UNINITIALIZED) {
+        const simStart = "2025-06-30T00:00:00Z";
+        orbit.epochTime = OrbitAnamolyCalculator.calculateEpochTime(simStart);
+        orbit.meanAnomalyAtEpoch = (orbit.meanAnomalyAtEpoch * Math.PI) / 180;
         orbit.elapsedDays = 0;
+        orbit.pathPoints = this.generateOrbitPathPoints(orbit, 180);
         orbit.state = COMPONENT_STATE.READY;
       }
-      model.position = this.calcultePosition(deltaTime, orbit);
+      model.position = this.calculatePositionFromTime(orbit);
     }
   }
 
-  private calcultePosition(deltaTime: number, orbit: OrbitComponent) {
-    const daysElapsed = deltaTime / 1000 / 60 / 60 / 24; // Convert ms to days
+  private calculatePositionFromTime(orbit: OrbitComponent): vec3 {
+    const now = performance.now() / 1000; // seconds
+    const theta = OrbitAnamolyCalculator.trueAnomalyAtTime(now, orbit);
+    return this.positionFromTrueAnomaly(theta, orbit);
+  }
 
-    orbit.elapsedDays! += daysElapsed;
-
-    // Mean anomaly (degrees)
-    const Mdeg =
-      (orbit.meanAnomalyAtEpoch! +
-        360 * (orbit.elapsedDays! / orbit.orbitalPeriod!)) %
-      360;
-    const M = Mdeg * this.DEG2RAD;
-
-    // Solve Kepler's equation for eccentric anomaly E
-    const E = this.solveKepler(M, orbit.eccentricity!);
-
-    // Compute distance from focus (Sun)
+  private positionFromTrueAnomaly(theta: number, orbit: OrbitComponent): vec3 {
+    const E = 2 * Math.atan(Math.tan(theta / 2) * Math.sqrt((1 - orbit.eccentricity!) / (1 + orbit.eccentricity!)));
     let r = orbit.semiMajorAxis! * (1 - orbit.eccentricity! * Math.cos(E));
     r = r / (SETTINGS.DISTANCE_SCALE ?? 1);
 
-    // True anomaly θ
-    const theta =
-      2 *
-      Math.atan2(
-        Math.sqrt(1 + orbit.eccentricity!) * Math.sin(E / 2),
-        Math.sqrt(1 - orbit.eccentricity!) * Math.cos(E / 2)
-      );
-
-    // Orbital parameters
     const i = orbit.inclination! * this.DEG2RAD;
     const Ω = orbit.longitudeOfAscendingNode! * this.DEG2RAD;
     const ω = orbit.argumentOfPeriapsis! * this.DEG2RAD;
 
-    // Position in 3D space
     const x =
       r *
       (Math.cos(Ω) * Math.cos(theta + ω) -
@@ -70,21 +56,24 @@ export class OrbitSystem extends System {
     const z = r * Math.sin(theta + ω) * Math.sin(i);
 
     const finalPos = vec3.fromValues(x, y, z);
-
-    // Rotation matrix: -90° around X-axis
     const rotX = mat4.create();
     mat4.fromXRotation(rotX, -Math.PI / 2);
-
     vec3.transformMat4(finalPos, finalPos, rotX);
-    // Update object's position
     return finalPos;
   }
 
-  private solveKepler(M: number, e: number): number {
-    let E = M;
-    for (let i = 0; i < 10; i++) {
-      E = E - (E - e * Math.sin(E) - M) / (1 - e * Math.cos(E));
+  private generateOrbitPathPoints(orbit: OrbitComponent, segments: number): number[] {
+    const points: number[] = [];
+    for (let j = 0; j <= segments; j++) {
+      const M = (j / segments) * 2 * Math.PI;
+      const E = OrbitAnamolyCalculator.solveKepler(M, orbit.eccentricity!);
+      const theta = 2 * Math.atan2(
+        Math.sqrt(1 + orbit.eccentricity!) * Math.sin(E / 2),
+        Math.sqrt(1 - orbit.eccentricity!) * Math.cos(E / 2)
+      );
+      const pos = this.positionFromTrueAnomaly(theta, orbit);
+      points.push(pos[0], pos[1], pos[2]);
     }
-    return E;
+    return points;
   }
-}
+} 

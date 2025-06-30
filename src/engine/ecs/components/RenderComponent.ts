@@ -203,52 +203,51 @@ export class BBPlotRenderComponent extends RenderComponent {
 
 export class OrbitPathRenderComponent extends RenderComponent {
   pathSegmentCount = 180;
-
+  
   vertSrc = `#version 300 es
-  #pragma vscode_glsllint_stage : vert
-precision mediump float;
-
 layout(location = 0) in vec3 a_position;
+layout(location = 1) in float a_index;
 
-uniform mat4 u_model, u_view, u_proj;
-uniform float u_segmentCount;
-uniform float u_headIndex;
+uniform mat4 u_model;
+uniform mat4 u_view;
+uniform mat4 u_proj;
 
-out float v_fade;
+uniform float u_totalVerts;
+uniform float u_pulseStart;
+uniform float u_pulseEnd;
+
+out float v_alpha;
 out float v_colorT;
 
 void main() {
-  int vertexId = gl_VertexID;
-  float idx = float(vertexId);
-  v_colorT = idx / u_segmentCount;
+  float idx = mod(a_index, u_totalVerts);
+  float pulseLength = mod(u_pulseEnd - u_pulseStart + u_totalVerts, u_totalVerts);
 
-  // Fade out past tail
-  float trailStart = u_headIndex - (u_segmentCount * 0.5); // 50% tail
-  // v_fade = smoothstep(u_headIndex, trailStart, idx);
-  if (idx > u_headIndex) {
-    v_fade = 0.0; // completely transparent outside head
-  } else {
-    float tailStart = u_headIndex - u_segmentCount * 0.5;
-    v_fade = smoothstep(tailStart, u_headIndex, idx); // fades from tail to head
-  }
+  // Distance from head (pulseStart) in the looped space
+  float distFromStart = mod(idx - u_pulseStart + u_totalVerts, u_totalVerts);
 
+  // Normalized distance in pulse [0.0, 1.0], outside range if not in pulse
+  float t = distFromStart / pulseLength;
+
+  // Smooth fade-in and fade-out (symmetric)
+  float fade = smoothstep(0.0, 0.1, t) * (1.0 - smoothstep(0.9, 1.0, t));
+  float inPulse = step(0.0, pulseLength - distFromStart); // 1 if inside, else 0
+
+  v_alpha = inPulse * fade;
+  v_colorT = t;
 
   gl_Position = u_proj * u_view * u_model * vec4(a_position, 1.0);
 }
-
 `;
 
   fragSrc = `#version 300 es
-    #pragma vscode_glsllint_stage : frag
-
 precision mediump float;
 
-in float v_fade;
+in float v_alpha;
 in float v_colorT;
 
 out vec4 fragColor;
 
-// Hue shift (like tag labels)
 vec3 hue(float t) {
   float r = abs(t * 6.0 - 3.0) - 1.0;
   float g = 2.0 - abs(t * 6.0 - 2.0);
@@ -257,14 +256,48 @@ vec3 hue(float t) {
 }
 
 void main() {
+  if (v_alpha < 0.01) discard;
   vec3 color = hue(v_colorT);
-  float alpha = v_fade;
-  if (alpha < 0.01) discard;
-  fragColor = vec4(color, alpha);
+  fragColor = vec4(color, v_alpha);
 }
 `;
 
-  pathVertices: number[] = [];
-  perihelion = vec3.create();
-  aphelion = vec3.create();
+
+baseVertShader=`#version 300 es
+layout(location = 0) in vec3 a_position;
+
+uniform mat4 u_model;
+uniform mat4 u_view;
+uniform mat4 u_proj;
+
+uniform float u_segmentCount;
+uniform float u_planetIndex;  // planet's position index in path
+uniform float u_fadeSpan;     // controls how many segments before/after will fade
+
+out float v_alpha;
+
+void main() {
+  float index = float(gl_VertexID);
+  float dist = abs(index - u_planetIndex);
+  dist = min(dist, u_segmentCount - dist); // loop around
+
+  float fade = smoothstep(0.0, u_fadeSpan, dist); // fade near planet
+
+  v_alpha = fade;
+  gl_Position = u_proj * u_view * u_model * vec4(a_position, 1.0);
+}
+`;
+
+baseFragShader = `#version 300 es
+precision mediump float;
+
+in float v_alpha;
+out vec4 fragColor;
+
+void main() {
+  fragColor = vec4(1.0, 1.0, 1.0, v_alpha * 0.15); // white with soft alpha
+}
+`;
+
+baseProgram?: WebGLProgram;
 }

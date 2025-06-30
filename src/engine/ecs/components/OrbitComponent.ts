@@ -15,4 +15,5 @@ export class OrbitComponent implements IComponent, IState {
   epochTime = 0;
   orbitalPeriod?: number;
   elapsedDays?: number;
+  pathPoints: number[] = [];
 }
