@@ -33,7 +33,7 @@ export class PlanetFactory implements IFactory {
   create(params: PlanetData): Entity {
     const entity = this.registry.createEntity();
 
-    const orbitRadius =(params.orbitData?.semiMajorAxis! + SETTINGS.SUN_SIZE) / SETTINGS.DISTANCE_SCALE;
+    const orbitRadius =(params.orbitData?.semiMajorAxis!)/ SETTINGS.DISTANCE_SCALE;
     const planetScale = vec3.fromValues(
       params.radius / SETTINGS.SIZE_SCALE,
       params.radius / SETTINGS.SIZE_SCALE,

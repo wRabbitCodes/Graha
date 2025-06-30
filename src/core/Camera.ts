@@ -1,4 +1,5 @@
 import { vec3, mat4 } from "gl-matrix";
+import { SETTINGS } from "../config/settings";
 
 export class Camera {
   private position: vec3 = vec3.fromValues(0, 0, -80);
@@ -7,12 +8,10 @@ export class Camera {
   private right: vec3 = vec3.create();
   private worldUp: vec3 = vec3.fromValues(0, 1, 0);
   private viewMatrix: mat4 = mat4.identity(mat4.create());
-  private radius = 50;
+  private radius = 1;
 
   private yaw: number = -90;
   private pitch: number = 0;
-  private speed: number = 60;
-  private sensitivity: number = 0.1;
 
   constructor() {
     this.updateVectors();
@@ -21,13 +20,13 @@ export class Camera {
 
   cameraKeyboardHandler(keys: Set<string>, processPipeline: (() => void) | null = null) {
     if (keys.has("w"))
-      vec3.scaleAndAdd(this.position, this.position, this.front, this.speed);
+      vec3.scaleAndAdd(this.position, this.position, this.front, SETTINGS.CAMERA_SPEED);
     if (keys.has("s"))
-      vec3.scaleAndAdd(this.position, this.position, this.front, -this.speed);
+      vec3.scaleAndAdd(this.position, this.position, this.front, -SETTINGS.CAMERA_SPEED);
     if (keys.has("a"))
-      vec3.scaleAndAdd(this.position, this.position, this.right, -this.speed);
+      vec3.scaleAndAdd(this.position, this.position, this.right, -SETTINGS.CAMERA_SPEED);
     if (keys.has("d"))
-      vec3.scaleAndAdd(this.position, this.position, this.right, this.speed);
+      vec3.scaleAndAdd(this.position, this.position, this.right, SETTINGS.CAMERA_SPEED);
     this.updateVectors();
     if (processPipeline) processPipeline();
 
@@ -63,8 +62,8 @@ export class Camera {
     const offsetX = e.movementX;
     const offsetY = -e.movementY; // reverse Y if needed for intuition
 
-    this.yaw += offsetX * this.sensitivity;
-    this.pitch += offsetY * this.sensitivity;
+    this.yaw += offsetX * SETTINGS.MOUSE_SENSITIVITY;
+    this.pitch += offsetY * SETTINGS.MOUSE_SENSITIVITY;
 
     // Clamp pitch
     this.pitch = Math.max(-89.0, Math.min(89.0, this.pitch));
