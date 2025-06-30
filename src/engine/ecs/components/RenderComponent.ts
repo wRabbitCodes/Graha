@@ -202,24 +202,67 @@ export class BBPlotRenderComponent extends RenderComponent {
 }
 
 export class OrbitPathRenderComponent extends RenderComponent {
+  pathSegmentCount = 180;
+
   vertSrc = `#version 300 es
-    #pragma vscode_glsllint_stage : vert
-    precision mediump float;
-    layout(location = 0) in vec3 a_position;
-    uniform mat4 u_model, u_view, u_proj;
-    void main() {
-      gl_Position = u_proj * u_view * u_model * vec4(a_position, 1.0);
-    }
-  `;
+  #pragma vscode_glsllint_stage : vert
+precision mediump float;
+
+layout(location = 0) in vec3 a_position;
+
+uniform mat4 u_model, u_view, u_proj;
+uniform float u_segmentCount;
+uniform float u_headIndex;
+
+out float v_fade;
+out float v_colorT;
+
+void main() {
+  int vertexId = gl_VertexID;
+  float idx = float(vertexId);
+  v_colorT = idx / u_segmentCount;
+
+  // Fade out past tail
+  float trailStart = u_headIndex - (u_segmentCount * 0.5); // 50% tail
+  // v_fade = smoothstep(u_headIndex, trailStart, idx);
+  if (idx > u_headIndex) {
+    v_fade = 0.0; // completely transparent outside head
+  } else {
+    float tailStart = u_headIndex - u_segmentCount * 0.5;
+    v_fade = smoothstep(tailStart, u_headIndex, idx); // fades from tail to head
+  }
+
+
+  gl_Position = u_proj * u_view * u_model * vec4(a_position, 1.0);
+}
+
+`;
 
   fragSrc = `#version 300 es
     #pragma vscode_glsllint_stage : frag
-    precision mediump float;
-    out vec4 fragColor;
-    void main() {
-      fragColor = vec4(1.0, 1.0, 1.0, 0.6); // white translucent orbit
-    }
-  `;
+
+precision mediump float;
+
+in float v_fade;
+in float v_colorT;
+
+out vec4 fragColor;
+
+// Hue shift (like tag labels)
+vec3 hue(float t) {
+  float r = abs(t * 6.0 - 3.0) - 1.0;
+  float g = 2.0 - abs(t * 6.0 - 2.0);
+  float b = 2.0 - abs(t * 6.0 - 4.0);
+  return clamp(vec3(r, g, b), 0.0, 1.0);
+}
+
+void main() {
+  vec3 color = hue(v_colorT);
+  float alpha = v_fade;
+  if (alpha < 0.01) discard;
+  fragColor = vec4(color, alpha);
+}
+`;
 
   pathVertices: number[] = [];
   perihelion = vec3.create();

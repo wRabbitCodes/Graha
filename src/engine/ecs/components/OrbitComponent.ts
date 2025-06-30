@@ -11,7 +11,8 @@ export class OrbitComponent implements IComponent, IState {
   argumentOfPeriapsis?: number;
   perihelion = vec3.create();
   aphelion = vec3.create();
-  meanAnomalyAtEpoch?: number;
+  meanAnomalyAtEpoch = 0
+  epochTime = 0;
   orbitalPeriod?: number;
   elapsedDays?: number;
 }

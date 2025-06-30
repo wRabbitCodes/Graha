@@ -60,7 +60,6 @@ export class PlanetFactory implements IFactory {
       orbit.argumentOfPeriapsis = params.orbitData.argumentOfPeriapsis;
       orbit.perihelion = params.orbitData.perihelion ?? vec3.create();
       orbit.aphelion = params.orbitData.aphelion ?? vec3.create();
-      orbit.meanAnomalyAtEpoch = params.orbitData.meanAnomalyAtEpoch;
       orbit.orbitalPeriod = params.orbitData.orbitalPeriod;
       orbit.elapsedDays = params.orbitData.elapsedDays;
 

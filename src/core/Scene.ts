@@ -341,6 +341,7 @@ export class Scene {
       tiltAngle: 177.36, // retrograde rotation
       siderealDay: 5832.5,
       surfaceURL: "textures/2k_venus.jpg",
+      atmosphereURL: "textures/4k_venus_atmosphere.jpg",
       orbitData: {
         semiMajorAxis: 108_209_475,
         eccentricity: 0.0067,
