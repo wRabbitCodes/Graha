@@ -172,6 +172,7 @@ export class Canvas {
         }
       else {
         if (this.crosshair) this.crosshair.style.display = "block";
+        if (e.button !== 0) return;
         const rect = this.canvas.getBoundingClientRect();
         const ndcX = ((e.clientX - rect.left) / rect.width) * 2 - 1;
         const ndcY = (1 - (e.clientY - rect.top) / rect.height) * 2 - 1;

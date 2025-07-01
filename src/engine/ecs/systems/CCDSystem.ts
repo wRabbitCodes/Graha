@@ -7,6 +7,7 @@ import { Camera } from "../../../core/Camera";
 import { Registry } from "../Registry";
 import { GLUtils } from "../../../utils/GLUtils";
 
+// CCD => Camera Collision Detection
 export class CCDSystem extends System {
   constructor(private camera: Camera, registry: Registry, utils: GLUtils) {
     super(registry, utils);
@@ -37,9 +38,7 @@ export class CCDSystem extends System {
     const r = this.camera.getRadius();
     const alpha = 0.2;
 
-    const scaler = vec3.create();
-    mat4.getScaling(scaler, modelComp.modelMatrix);
-    const radius = Math.max(...scaler) * 5;
+    const radius = Math.max(...modelComp.scale!) * modelComp.boundingBoxScale;
 
     const translator = vec3.create();
     mat4.getTranslation(translator, modelComp.modelMatrix);

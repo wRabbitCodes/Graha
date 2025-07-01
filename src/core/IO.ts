@@ -14,18 +14,18 @@ export class IO {
     document.addEventListener("keyup", (e) => this.keys.delete(e.key), { signal: this.controller.signal });
   }
 
-  enableMouseInputs(mouseMoveCallback?: Callback, wheelCallback?: Callback) {
+  enableMouseInputs(mouseMoveCallback?: Callback, wheelCallback?: Callback, clickAndDragCallback?: Callback) {
     this.canvasElement.addEventListener("mousedown", (e) => {
-        if (e.button === 0) this.isMouseDragging = true; // Left click
+        if (e.button === 2) this.isMouseDragging = true; // Right Click
     }, {signal: this.controller.signal});
     
     this.canvasElement.addEventListener("mouseup", (e) => {
-        if (e.button === 0) this.isMouseDragging = false; // Release left click
+        if (e.button === 2) this.isMouseDragging = false; // Release left click
     }, {signal: this.controller.signal});
     
     this.canvasElement.addEventListener("mousemove", (e) => {
-      if (!mouseMoveCallback) return;
-      mouseMoveCallback(this.isMouseDragging, e);
+      if (!this.isMouseDragging && mouseMoveCallback) mouseMoveCallback(e);
+      if (this.isMouseDragging && clickAndDragCallback) clickAndDragCallback(e);
     }, {signal: this.controller.signal});
 
 

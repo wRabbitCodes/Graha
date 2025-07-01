@@ -11,6 +11,12 @@ export class Camera {
   private radius = 5;
   private orientation: quat = quat.create();
 
+  private isLatched = false;
+  private latchedTarget: vec3 = vec3.create(); // where camera looks at
+  private latchedRadius = 50;
+  private azimuth = 0; // θ
+  private elevation = 0.4; // φ
+
   constructor() {
     quat.identity(this.orientation);
     this.updateVectorsFromQuat();
@@ -18,11 +24,57 @@ export class Camera {
   }
 
   update(deltaTime: number) {
+    if (this.isLatched) {
+      const x = this.latchedRadius * Math.cos(this.elevation) * Math.sin(this.azimuth);
+      const y = this.latchedRadius * Math.sin(this.elevation);
+      const z = this.latchedRadius * Math.cos(this.elevation) * Math.cos(this.azimuth);
+
+      const offset = vec3.fromValues(x, y, z);
+      vec3.add(this.position, this.latchedTarget, offset);
+
+      const tempView = mat4.create();
+      mat4.lookAt(tempView, this.position, this.latchedTarget, this.worldUp);
+
+      mat4.copy(this.viewMatrix, tempView);
+      return;
+
+    } 
     this.updateVectorsFromQuat();
     this.updateViewMatrix();
+    
   }
 
-  cameraMouseHandler(e: MouseEvent) {
+  // Enable latch mode to view around an entity
+  enableEntityView(target: vec3, radius: number) {
+    vec3.copy(this.latchedTarget, target);
+    this.latchedRadius = radius;
+    this.isLatched = true;
+
+    // Initialize angles from current camera position
+    const offset = vec3.subtract(vec3.create(), this.position, target);
+    this.latchedRadius = vec3.length(offset);
+
+    // Compute spherical angles from position
+    this.azimuth = Math.atan2(offset[0], offset[2]);
+    this.elevation = Math.asin(offset[1] / this.latchedRadius);
+  }
+
+  // Exit latch mode
+  disableEntityView() {
+    this.isLatched = false;
+  }
+
+  latchedLookMouseHandler(e: MouseEvent) {
+    if (this.isLatched) {
+      const sensitivity = SETTINGS.MOUSE_SENSITIVITY;
+      this.azimuth   -= e.movementX * sensitivity;
+      this.elevation -= e.movementY * sensitivity;
+      this.elevation = Math.max(Math.min(this.elevation, Math.PI/2 - 0.01), -Math.PI/2 + 0.01);
+      return; // bypass FPS orientation
+    }
+  }
+
+  freeLookMouseHandler(e: MouseEvent) {
     const sensitivity = SETTINGS.MOUSE_SENSITIVITY;
     const yawQuat = quat.setAxisAngle(quat.create(), this.worldUp, -e.movementX * sensitivity);
     const right = vec3.transformQuat(vec3.create(), [1, 0, 0], this.orientation);
@@ -31,18 +83,15 @@ export class Camera {
     quat.mul(this.orientation, yawQuat, this.orientation);
     quat.mul(this.orientation, pitchQuat, this.orientation);
 
-    this.updateVectorsFromQuat();
   }
 
   cameraKeyboardHandler(keys: Set<string>, processPipeline: (() => void) | null = null) {
+    if (this.isLatched) return;
     // Movement controls
     if (keys.has("w")) vec3.scaleAndAdd(this.position, this.position, this.front, SETTINGS.CAMERA_SPEED);
     if (keys.has("s")) vec3.scaleAndAdd(this.position, this.position, this.front, -SETTINGS.CAMERA_SPEED);
     if (keys.has("a")) vec3.scaleAndAdd(this.position, this.position, this.right, -SETTINGS.CAMERA_SPEED);
     if (keys.has("d")) vec3.scaleAndAdd(this.position, this.position, this.right, SETTINGS.CAMERA_SPEED);
-
-    this.updateVectorsFromQuat();
-    if (processPipeline) processPipeline();
   }
 
   setPosition(newPosition: vec3) {
@@ -76,9 +125,18 @@ export class Camera {
     const center = vec3.add(vec3.create(), this.position, this.front);
     mat4.lookAt(this.viewMatrix, this.position, center, this.up);
   }
+  
+  lookAt(target: vec3) {
+    const forward = vec3.subtract(vec3.create(), target, this.position);
+    vec3.normalize(forward, forward);
+
+    // Use camera's world up to resolve ambiguity
+    const q = this.lookRotation(forward, this.worldUp);
+    quat.copy(this.orientation, q);
+  }
+
 
   private lookRotation(forward: vec3, up: vec3): quat {
-    // Use forward directly as the z-axis to align camera's negative z-axis (forward) with target
     const zAxis = vec3.normalize(vec3.create(), forward);
 
     let r = vec3.cross(vec3.create(), up, zAxis);
@@ -89,7 +147,6 @@ export class Camera {
     vec3.normalize(r, r);
 
     const u = vec3.cross(vec3.create(), zAxis, r);
-    // Create rotation matrix with right, up, and forward as z-axis
     const m = mat3.fromValues(r[0], u[0], zAxis[0], r[1], u[1], zAxis[1], r[2], u[2], zAxis[2]);
     const q = quat.fromMat3(quat.create(), m);
     quat.normalize(q, q);

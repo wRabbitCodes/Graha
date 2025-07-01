@@ -3,7 +3,7 @@ export const SETTINGS = {
   CAMERA_SPEED: 3,
   MOUSE_SENSITIVITY: 0.001,
   BASE_DISTANCE_SCALE: 6e3,
-  BASE_SIZE_SCALE: 2.5e2,
+  BASE_SIZE_SCALE: 1e1,
   BASE_FAR_PLANE: 5e11,
   BASE_SUN_SIZE: 7e6, // 7e5 actual but texture only contains 10% sun
 
@@ -20,6 +20,7 @@ export const SETTINGS = {
   },
 
   get SUN_SIZE() {
-    return this.BASE_SUN_SIZE / this.SIZE_SCALE * 1.5;
+    // return this.BASE_SUN_SIZE / this.SIZE_SCALE * 1.5;
+    return 2e3;
   }
 };

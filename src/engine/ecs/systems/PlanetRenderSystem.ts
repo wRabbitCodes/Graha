@@ -160,7 +160,7 @@ export class PlanetRenderSystem extends System implements IRenderSystem {
 
           // Render with additive blending
           gl.enable(gl.CULL_FACE);
-          gl.enable(gl.FRONT_FACE);
+          gl.cullFace(gl.FRONT_FACE);
           gl.enable(gl.BLEND);
           gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
           gl.depthMask(false);

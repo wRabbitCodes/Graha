@@ -193,6 +193,7 @@ import { CCDSystem } from "../engine/ecs/systems/CCDSystem";
 import { BBPlotRenderSystem } from "../engine/ecs/systems/BBPlotRenderSystem";
 import { OrbitPathRenderSystem } from "../engine/ecs/systems/OrbitPathRenderSystem";
 import { SETTINGS } from "../config/settings";
+import { CameraLatchSystem } from "../engine/ecs/systems/CameraLatchSystem";
 
 export class Scene {
   private readonly gl: WebGL2RenderingContext;
@@ -216,6 +217,7 @@ export class Scene {
   private rayCaster: Raycaster;
   private selectionGlowRender: SelectionGlowRenderSystem;
   private selectionTagRender: SelectionTagSystem;
+  private cameraLatchSystem: CameraLatchSystem;
   private ccdSystem: CCDSystem;
   private bbpRenderSystem: BBPlotRenderSystem;
   private orbitTracer: OrbitPathRenderSystem;
@@ -280,7 +282,7 @@ export class Scene {
       this.registry,
       this.utils
     );
-
+    this.cameraLatchSystem = new CameraLatchSystem(this.camera, this.input, this.registry, this.utils);
     this.canvas.enablePointerLock((x, y) => {
       this.entitySelectionSystem.update(0);
     });
@@ -290,13 +292,9 @@ export class Scene {
         this.input.clear();
       } else {
         this.input.enableMouseInputs(
-          (dragging, e) => {
-            if (!dragging) this.camera.cameraMouseHandler(e);
-          },
-          // (lagrangePoint: vec3) => {
-          //   // When user scrolls wheel to cycle lagrange points:
-          //   this.camera.cameraKeyboardHandler();
-          // }
+          (e) => this.camera.freeLookMouseHandler(e),
+          ()=>{},
+          (e) => this.camera.latchedLookMouseHandler(e),
         );
         this.input.enableKeyboardInputs();
       }
@@ -307,43 +305,43 @@ export class Scene {
     this.skyFactory.create("textures/milkyway.png");
     this.sunFactory.create("textures/lensFlare.png");
 
-    // this.planetFactory.create({
-    //   name: "Earth",
-    //   radius: 6371,
-    //   tiltAngle: 23.44,
-    //   siderealDay: 23.9,
-    //   surfaceURL: "textures/8k_earth_daymap.jpg",
-    //   normalURL: "textures/8k_earth_normal_map.png",
-    //   specularURL: "textures/8k_earth_specular_map.png",
-    //   atmosphereURL: "textures/8k_earth_clouds.jpg",
-    //   nightURL: "textures/8k_earth_nightmap.jpg",
-    //   orbitData: {
-    //     semiMajorAxis: 149_600_000, // in km (1 AU)
-    //     eccentricity: 0.01671022, // nearly circular
-    //     inclination: 0.00005, // degrees, very close to 0
-    //     longitudeOfAscendingNode: -11.26064, // Ω in degrees
-    //     argumentOfPeriapsis: 114.20783, // ω in degrees
-    //     meanAnomalyAtEpoch: 358.617, // degrees (at J2000)
-    //     orbitalPeriod: 365.256, // days (sidereal year)
-    //   },
-    // });
-
     this.planetFactory.create({
-      name: "Jupiter",
-      radius: 69911, // radius in km
-      tiltAngle: 3.13, // axial tilt in degrees
-      surfaceURL: "textures/4k_jupiter.jpg", // surface texture
-      siderealDay: 9.9,
+      name: "Earth",
+      radius: 6371,
+      tiltAngle: 23.44,
+      siderealDay: 23.9,
+      surfaceURL: "textures/8k_earth_daymap.jpg",
+      normalURL: "textures/8k_earth_normal_map.png",
+      specularURL: "textures/8k_earth_specular_map.png",
+      atmosphereURL: "textures/8k_earth_clouds.jpg",
+      nightURL: "textures/8k_earth_nightmap.jpg",
       orbitData: {
-        semiMajorAxis: 778_340_821, // in km (~5.2 AU)
-        eccentricity: 0.0489,
-        inclination: 1.305, // degrees
-        longitudeOfAscendingNode: 100.492,
-        argumentOfPeriapsis: 273.867,
-        meanAnomalyAtEpoch: 19.65, // degrees at J2000
-        orbitalPeriod: 4332.59, // in days (~11.86 Earth years)
+        semiMajorAxis: 149_600_000, // in km (1 AU)
+        eccentricity: 0.01671022, // nearly circular
+        inclination: 0.00005, // degrees, very close to 0
+        longitudeOfAscendingNode: -11.26064, // Ω in degrees
+        argumentOfPeriapsis: 114.20783, // ω in degrees
+        meanAnomalyAtEpoch: 358.617, // degrees (at J2000)
+        orbitalPeriod: 365.256, // days (sidereal year)
       },
     });
+
+    // this.planetFactory.create({
+    //   name: "Jupiter",
+    //   radius: 69911, // radius in km
+    //   tiltAngle: 3.13, // axial tilt in degrees
+    //   surfaceURL: "textures/4k_jupiter.jpg", // surface texture
+    //   siderealDay: 9.9,
+    //   orbitData: {
+    //     semiMajorAxis: 778_340_821, // in km (~5.2 AU)
+    //     eccentricity: 0.0489,
+    //     inclination: 1.305, // degrees
+    //     longitudeOfAscendingNode: 100.492,
+    //     argumentOfPeriapsis: 273.867,
+    //     meanAnomalyAtEpoch: 19.65, // degrees at J2000
+    //     orbitalPeriod: 4332.59, // in days (~11.86 Earth years)
+    //   },
+    // });
 
     // this.planetFactory.create({
     //   name: "Mercury",
@@ -362,41 +360,41 @@ export class Scene {
     //   },
     // });
 
-    this.planetFactory.create({
-      name: "Venus",
-      radius: 6051.8,
-      tiltAngle: 177.36, // retrograde rotation
-      siderealDay: 5832.5,
-      surfaceURL: "textures/2k_venus.jpg",
-      // atmosphereURL: "textures/4k_venus_atmosphere.jpg",
-      orbitData: {
-        semiMajorAxis: 108_209_475,
-        eccentricity: 0.0067,
-        inclination: 3.394,
-        longitudeOfAscendingNode: 76.68,
-        argumentOfPeriapsis: 54.884,
-        meanAnomalyAtEpoch: 50.115,
-        orbitalPeriod: 224.701,
-      },
-    });
+    // this.planetFactory.create({
+    //   name: "Venus",
+    //   radius: 6051.8,
+    //   tiltAngle: 177.36, // retrograde rotation
+    //   siderealDay: 5832.5,
+    //   surfaceURL: "textures/2k_venus.jpg",
+    //   // atmosphereURL: "textures/4k_venus_atmosphere.jpg",
+    //   orbitData: {
+    //     semiMajorAxis: 108_209_475,
+    //     eccentricity: 0.0067,
+    //     inclination: 3.394,
+    //     longitudeOfAscendingNode: 76.68,
+    //     argumentOfPeriapsis: 54.884,
+    //     meanAnomalyAtEpoch: 50.115,
+    //     orbitalPeriod: 224.701,
+    //   },
+    // });
 
-    this.planetFactory.create({
-      name: "Mars",
-      radius: 3389.5, // radius in km
-      tiltAngle: 25.19, // axial tilt in degrees
-      siderealDay: 24.6,
-      surfaceURL: "textures/2k_mars_surface.jpg",
-      normalURL: "textures/2k_mars_normal.png",
-      orbitData: {
-        semiMajorAxis: 227_939_200, // in km (~1.52 AU)
-        eccentricity: 0.0935,
-        inclination: 1.85,
-        longitudeOfAscendingNode: 49.558,
-        argumentOfPeriapsis: 286.502,
-        meanAnomalyAtEpoch: 19.412, // degrees at J2000
-        orbitalPeriod: 686.971, // in days (~1.88 Earth years)
-      },
-    });
+    // this.planetFactory.create({
+    //   name: "Mars",
+    //   radius: 3389.5, // radius in km
+    //   tiltAngle: 25.19, // axial tilt in degrees
+    //   siderealDay: 24.6,
+    //   surfaceURL: "textures/2k_mars_surface.jpg",
+    //   normalURL: "textures/2k_mars_normal.png",
+    //   orbitData: {
+    //     semiMajorAxis: 227_939_200, // in km (~1.52 AU)
+    //     eccentricity: 0.0935,
+    //     inclination: 1.85,
+    //     longitudeOfAscendingNode: 49.558,
+    //     argumentOfPeriapsis: 286.502,
+    //     meanAnomalyAtEpoch: 19.412, // degrees at J2000
+    //     orbitalPeriod: 686.971, // in days (~1.88 Earth years)
+    //   },
+    // });
 
     // this.planetFactory.create({
     //   name: "Saturn",
@@ -455,10 +453,11 @@ export class Scene {
     this.bbpRenderSystem.update(deltaTime);
     this.selectionGlowRender.update(deltaTime);
     this.selectionTagRender.update(deltaTime);
+    this.camera.update(deltaTime/1000);
+    this.cameraLatchSystem.update(deltaTime);
 
     this.sunRender.update(deltaTime);
 
-    this.camera.update(deltaTime/1000);
     this.renderer.flush(this.gl, {
       viewMatrix,
       projectionMatrix,

@@ -13,4 +13,5 @@ export class ModelComponent implements IComponent, IState {
   rotationQuat=quat.create();
   tiltQuat=quat.create();
   modelMatrix=mat4.create();
+  boundingBoxScale = 3;
 }

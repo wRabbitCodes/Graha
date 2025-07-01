@@ -24,7 +24,7 @@ export class ModelUpdateSystem extends System {
         const rotationSpeedRadPerMs = (2 * Math.PI) / siderealDayMs;
 
         // Rotation angle this frame
-        const angleRad = rotationSpeedRadPerMs * deltaTime;
+        const angleRad = rotationSpeedRadPerMs * deltaTime * 86400;
         const qRotation = quat.setAxisAngle(
           quat.create(),
           coreComp.axis,
@@ -43,6 +43,8 @@ export class ModelUpdateSystem extends System {
           coreComp.position!,
           coreComp.scale!
         );
+
+        
       }
     }
   }
