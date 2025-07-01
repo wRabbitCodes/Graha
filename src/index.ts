@@ -79,7 +79,7 @@ let lastTime = performance.now();
 function loop(time: number) {
   const deltaTime = time - lastTime; // in milliseconds
   lastTime = time;
-  scene.update(deltaTime*86400*0.7);
+  scene.update(deltaTime);
   requestAnimationFrame(loop);
 }
 

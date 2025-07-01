@@ -192,6 +192,7 @@ import { SelectionTagSystem } from "../engine/ecs/systems/SelectionTagSystem";
 import { CCDSystem } from "../engine/ecs/systems/CCDSystem";
 import { BBPlotRenderSystem } from "../engine/ecs/systems/BBPlotRenderSystem";
 import { OrbitPathRenderSystem } from "../engine/ecs/systems/OrbitPathRenderSystem";
+import { SETTINGS } from "../config/settings";
 
 export class Scene {
   private readonly gl: WebGL2RenderingContext;
@@ -235,10 +236,23 @@ export class Scene {
     );
 
     this.rayCaster = new Raycaster();
-    this.entitySelectionSystem = new EntitySelectionSystem(this.rayCaster, this.camera, this.registry, this.utils);
-    this.selectionGlowRender = new SelectionGlowRenderSystem(this.renderer, this.registry, this.utils);
+    this.entitySelectionSystem = new EntitySelectionSystem(
+      this.rayCaster,
+      this.camera,
+      this.registry,
+      this.utils
+    );
+    this.selectionGlowRender = new SelectionGlowRenderSystem(
+      this.renderer,
+      this.registry,
+      this.utils
+    );
     this.textureSystem = new TextureLoaderSystem(this.registry, this.utils);
-    this.selectionTagRender = new SelectionTagSystem(this.renderer, this.registry, this.utils);
+    this.selectionTagRender = new SelectionTagSystem(
+      this.renderer,
+      this.registry,
+      this.utils
+    );
     this.ccdSystem = new CCDSystem(this.camera, this.registry, this.utils);
 
     this.skyFactory = new SkyFactory(this.utils, this.registry);
@@ -256,24 +270,39 @@ export class Scene {
     );
     this.modelUpdate = new ModelUpdateSystem(this.registry, this.utils);
     this.orbitSystem = new OrbitSystem(this.registry, this.utils);
-    this.bbpRenderSystem = new BBPlotRenderSystem(this.renderer, this.registry, this.utils);
-    this.orbitTracer = new OrbitPathRenderSystem(this.renderer, this.registry, this.utils);
+    this.bbpRenderSystem = new BBPlotRenderSystem(
+      this.renderer,
+      this.registry,
+      this.utils
+    );
+    this.orbitTracer = new OrbitPathRenderSystem(
+      this.renderer,
+      this.registry,
+      this.utils
+    );
 
     this.canvas.enablePointerLock((x, y) => {
-      this.entitySelectionSystem.update(0); 
+      this.entitySelectionSystem.update(0);
     });
     this.canvas.onPointerLockChange((locked) => {
       if (!locked) {
         this.input.disableInputs();
         this.input.clear();
       } else {
-        this.input.enableMouseInputs((dragging, e) => {
-          if (!dragging) this.camera.cameraMouseHandler(e);
-        });
+        this.input.enableMouseInputs(
+          (dragging, e) => {
+            if (!dragging) this.camera.cameraMouseHandler(e);
+          },
+          (lagrangePoint: vec3) => {
+            debugger;
+            // When user scrolls wheel to cycle lagrange points:
+            this.camera.startLookAtSunThenMove(lagrangePoint);
+
+          }
+        );
         this.input.enableKeyboardInputs();
       }
     });
-
   }
 
   initialize() {
@@ -289,7 +318,7 @@ export class Scene {
       normalURL: "textures/8k_earth_normal_map.png",
       specularURL: "textures/8k_earth_specular_map.png",
       atmosphereURL: "textures/8k_earth_clouds.jpg",
-      nightURL:"textures/8k_earth_nightmap.jpg",
+      nightURL: "textures/8k_earth_nightmap.jpg",
       orbitData: {
         semiMajorAxis: 149_600_000, // in km (1 AU)
         eccentricity: 0.01671022, // nearly circular
@@ -346,7 +375,7 @@ export class Scene {
         semiMajorAxis: 108_209_475,
         eccentricity: 0.0067,
         inclination: 3.394,
-        longitudeOfAscendingNode: 76.680,
+        longitudeOfAscendingNode: 76.68,
         argumentOfPeriapsis: 54.884,
         meanAnomalyAtEpoch: 50.115,
         orbitalPeriod: 224.701,
@@ -363,7 +392,7 @@ export class Scene {
       orbitData: {
         semiMajorAxis: 227_939_200, // in km (~1.52 AU)
         eccentricity: 0.0935,
-        inclination: 1.850,
+        inclination: 1.85,
         longitudeOfAscendingNode: 49.558,
         argumentOfPeriapsis: 286.502,
         meanAnomalyAtEpoch: 19.412, // degrees at J2000
@@ -391,7 +420,7 @@ export class Scene {
     this.planetFactory.create({
       name: "Uranus",
       radius: 25362,
-      tiltAngle: 7.77,  // Tilt ~98°, use low value + flipped axis
+      tiltAngle: 7.77, // Tilt ~98°, use low value + flipped axis
       axis: [0, -1, 0], // Retrograde
       siderealDay: 17.24,
       surfaceURL: "textures/2k_uranus.jpg",
@@ -416,9 +445,8 @@ export class Scene {
     this.gl.enable(this.gl.DEPTH_TEST);
     this.gl.clearColor(0.0, 0.0, 0.0, 1.0);
     this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
-    
-    this.skyRender.update(deltaTime);
 
+    this.skyRender.update(deltaTime);
 
     this.planetRender.update(deltaTime);
     this.modelUpdate.update(deltaTime);
@@ -431,6 +459,8 @@ export class Scene {
     this.selectionTagRender.update(deltaTime);
 
     this.sunRender.update(deltaTime);
+
+    this.camera.update(deltaTime/1000);
     this.renderer.flush(this.gl, {
       viewMatrix,
       projectionMatrix,
