@@ -7,195 +7,53 @@ export class Camera {
   private up: vec3 = vec3.fromValues(0, 1, 0);
   private right: vec3 = vec3.create();
   private worldUp: vec3 = vec3.fromValues(0, 1, 0);
-  private viewMatrix: mat4 = mat4.identity(mat4.create());
-  private radius = 1;
+  private viewMatrix: mat4 = mat4.create();
+  private radius = 5;
 
-  private overrideLookAt: boolean = false;
-  private lookTarget: vec3 = vec3.fromValues(0, 0, 0);
-
-  private yaw: number = -90;
-  private pitch: number = 0;
-
-  private rotationQuat: quat = quat.create();
-
-  // Animation state
-  private animPhase: "idle" | "rotating" | "moving" = "idle";
-  private animTime = 0;
-  private animDurationRotate = 4.0; // seconds
-  private animDurationMove = 8.0; // seconds
-  private startQuat: quat = quat.create();
-  private targetQuat: quat = quat.create();
-  private startPos: vec3 = vec3.create();
-  private targetPos: vec3 = vec3.create();
-
-  private lockedOnSun: boolean = false;
+  private orientation: quat = quat.create();
 
   constructor() {
-    this.updateVectors();
+    quat.identity(this.orientation);
+    this.updateVectorsFromQuat();
     this.updateViewMatrix();
-    quat.identity(this.rotationQuat);
-  }
-
-  // Call to start smooth animation: rotate to look at sun, then move to targetPos
-  startLookAtSunThenMove(targetPosition: vec3) {
-    this.animPhase = "rotating";
-    this.animTime = 0;
-    this.lockedOnSun = true;
-    vec3.copy(this.targetPos, targetPosition);
-    vec3.copy(this.startPos, this.position);
-
-    quat.copy(this.startQuat, this.getOrientationQuat());
-
-    const toSunDir = vec3.create();
-    vec3.subtract(toSunDir, this.position, this.lookTarget);
-    vec3.normalize(toSunDir, toSunDir);
-
-    this.targetQuat = this.lookRotation(toSunDir, this.worldUp);
-  }
-
-  getOrientationQuat(): quat {
-    const z = vec3.create();
-    vec3.scale(z, this.front, -1);
-    const x = vec3.create();
-    vec3.cross(x, this.up, z);
-    vec3.normalize(x, x);
-    const y = vec3.create();
-    vec3.cross(y, z, x);
-
-    const mat = mat3.fromValues(
-      x[0], y[0], z[0],
-      x[1], y[1], z[1],
-      x[2], y[2], z[2]
-    );
-
-    const q = quat.create();
-    quat.fromMat3(q, mat);
-    return q;
-  }
-
-  lookRotation(forward: vec3, up: vec3): quat {
-    const f = vec3.create();
-    vec3.normalize(f, forward);
-
-    const r = vec3.create();
-    vec3.cross(r, up, f);
-    if (vec3.length(r) < 0.0001) {
-      // forward and up are parallel, choose another up
-      if (Math.abs(f[1]) < 0.999) {
-        vec3.cross(r, vec3.fromValues(0, 1, 0), f);
-      } else {
-        vec3.cross(r, vec3.fromValues(1, 0, 0), f);
-      }
-    }
-    vec3.normalize(r, r);
-
-    const u = vec3.create();
-    vec3.cross(u, f, r);
-
-    const m = mat3.fromValues(
-      r[0], u[0], f[0],
-      r[1], u[1], f[1],
-      r[2], u[2], f[2]
-    );
-
-    const q = quat.create();
-    quat.fromMat3(q, m);
-    quat.normalize(q, q);
-    return q;
   }
 
   update(deltaTime: number) {
-    if (this.animPhase === 'rotating') {
-      this.animTime += deltaTime;
-      const t = Math.min(this.animTime / this.animDurationRotate, 1.0);
-      quat.slerp(this.rotationQuat, this.startQuat, this.targetQuat, t);
-      this.updateFrontFromQuat(this.rotationQuat);
+    this.updateVectorsFromQuat();
+    this.updateViewMatrix();
+  }
 
-      if (t === 1.0) {
-        this.animPhase = 'moving';
-        this.animTime = 0;
-      }
-    } else if (this.animPhase === 'moving') {
-      this.animTime += deltaTime;
-      const t = Math.min(this.animTime / this.animDurationMove, 1.0);
-      vec3.lerp(this.position, this.startPos, this.targetPos, t);
+  faceOriginInstant() {
+    const toOrigin = vec3.create();
+    vec3.subtract(toOrigin, [0, 0, 0], this.position);
+    vec3.normalize(toOrigin, toOrigin);
 
-      // Keep looking at sun (fixed front)
-      this.updateFrontFromQuat(this.targetQuat);
-
-      if (t === 1.0) {
-        this.animPhase = 'idle';
-        this.lockedOnSun = false; // free mouse look from now on
-      }
-    } else {
-      if (!this.lockedOnSun) {
-        // only allow mouse look if not locked on sun (no animation)
-        this.updateVectors();
-      }
-    }
-
+    this.orientation = this.lookRotation(toOrigin, this.worldUp);
+    this.updateVectorsFromQuat();
     this.updateViewMatrix();
   }
 
 
-  updateFrontFromQuat(q: quat) {
-    const front = vec3.fromValues(0, 0, -1);
-    vec3.transformQuat(front, front, q);
-    vec3.normalize(this.front, front);
-
-    const right = vec3.fromValues(1, 0, 0);
-    vec3.transformQuat(right, right, q);
-    vec3.normalize(this.right, right);
-
-    vec3.cross(this.up, this.right, this.front);
-    vec3.normalize(this.up, this.up);
-  }
-
-  private updateViewMatrix() {
-    if (this.overrideLookAt) {
-      mat4.lookAt(this.viewMatrix, this.position, this.lookTarget, this.up);
-    } else {
-      const center = vec3.create();
-      vec3.add(center, this.position, this.front);
-      mat4.lookAt(this.viewMatrix, this.position, center, this.up);
-    }
-  }
-
-  updateVectors() {
-    const front = vec3.create();
-    front[0] = Math.cos((this.yaw * Math.PI) / 180) * Math.cos((this.pitch * Math.PI) / 180);
-    front[1] = Math.sin((this.pitch * Math.PI) / 180);
-    front[2] = Math.sin((this.yaw * Math.PI) / 180) * Math.cos((this.pitch * Math.PI) / 180);
-    vec3.normalize(this.front, front);
-
-    vec3.cross(this.right, this.front, this.worldUp);
-    vec3.normalize(this.right, this.right);
-
-    vec3.cross(this.up, this.right, this.front);
-    vec3.normalize(this.up, this.up);
-  }
-
   cameraMouseHandler(e: MouseEvent) {
-     if (this.lockedOnSun) return; // disable mouse look during animation
-    const offsetX = e.movementX;
-    const offsetY = -e.movementY; // reverse Y for natural feel
+    const sensitivity = SETTINGS.MOUSE_SENSITIVITY;
 
-    this.yaw += offsetX * SETTINGS.MOUSE_SENSITIVITY;
-    this.pitch += offsetY * SETTINGS.MOUSE_SENSITIVITY;
+    const yawQuat = quat.setAxisAngle(quat.create(), this.worldUp, -e.movementX * sensitivity);
+    const right = vec3.transformQuat(vec3.create(), [1, 0, 0], this.orientation);
+    const pitchQuat = quat.setAxisAngle(quat.create(), right, -e.movementY * sensitivity);
 
-    this.pitch = Math.max(-89, Math.min(89, this.pitch));
-    this.updateVectors();
+    quat.mul(this.orientation, yawQuat, this.orientation);
+    quat.mul(this.orientation, pitchQuat, this.orientation);
+
+    this.updateVectorsFromQuat();
   }
 
   cameraKeyboardHandler(keys: Set<string>, processPipeline: (() => void) | null = null) {
-    if (this.lockedOnSun) return;
-
     if (keys.has("w")) vec3.scaleAndAdd(this.position, this.position, this.front, SETTINGS.CAMERA_SPEED);
     if (keys.has("s")) vec3.scaleAndAdd(this.position, this.position, this.front, -SETTINGS.CAMERA_SPEED);
     if (keys.has("a")) vec3.scaleAndAdd(this.position, this.position, this.right, -SETTINGS.CAMERA_SPEED);
     if (keys.has("d")) vec3.scaleAndAdd(this.position, this.position, this.right, SETTINGS.CAMERA_SPEED);
 
-    this.updateVectors();
+    this.updateVectorsFromQuat();
     if (processPipeline) processPipeline();
   }
 
@@ -204,7 +62,6 @@ export class Camera {
   }
 
   getViewMatrix(): mat4 {
-    this.updateViewMatrix();
     return this.viewMatrix;
   }
 
@@ -212,7 +69,82 @@ export class Camera {
     return this.position;
   }
 
-  getRadius() {
+  getRadius(): number {
     return this.radius;
   }
+
+  lookAtOrigin(): void {
+    const targetDir = vec3.create();
+    vec3.negate(targetDir, this.position); // origin - position = -position
+
+    vec3.normalize(targetDir, targetDir);
+
+    // Compute the quaternion that rotates the camera to look at the origin
+    const zAxis = vec3.create();
+    vec3.scale(zAxis, targetDir, -1); // Camera's "backward" z-axis
+
+    const xAxis = vec3.create();
+    vec3.cross(xAxis, this.up, zAxis);
+    vec3.normalize(xAxis, xAxis);
+
+    const yAxis = vec3.create();
+    vec3.cross(yAxis, zAxis, xAxis);
+    vec3.normalize(yAxis, yAxis);
+
+    // Create rotation matrix from axes
+    const rotMat = [
+      xAxis[0], yAxis[0], zAxis[0],
+      xAxis[1], yAxis[1], zAxis[1],
+      xAxis[2], yAxis[2], zAxis[2]
+    ];
+
+    // Convert to quaternion
+    quat.fromMat3(this.orientation, rotMat as unknown as mat3);
+    quat.normalize(this.orientation, this.orientation);
+  }
+
+  private updateVectorsFromQuat() {
+    vec3.transformQuat(this.front, [0, 0, -1], this.orientation);
+    vec3.normalize(this.front, this.front);
+
+    vec3.transformQuat(this.right, [1, 0, 0], this.orientation);
+    vec3.normalize(this.right, this.right);
+
+    vec3.cross(this.up, this.right, this.front);
+    vec3.normalize(this.up, this.up);
+  }
+
+  private updateViewMatrix() {
+    const center = vec3.add(vec3.create(), this.position, this.front);
+    mat4.lookAt(this.viewMatrix, this.position, center, this.up);
+  }
+
+  private lookRotation(forward: vec3, up: vec3): quat {
+    const f = vec3.normalize(vec3.create(), forward);
+
+    // Right vector: cross of up and forward
+    let r = vec3.cross(vec3.create(), up, f);
+    if (vec3.length(r) < 0.0001) {
+      // If forward and up are parallel, choose another up vector
+      const altUp = Math.abs(f[1]) < 0.999 ? vec3.fromValues(0, 1, 0) : vec3.fromValues(1, 0, 0);
+      r = vec3.cross(vec3.create(), altUp, f);
+    }
+    vec3.normalize(r, r);
+
+    // True up vector: cross of forward and right
+    const u = vec3.cross(vec3.create(), f, r);
+
+    // Create rotation matrix columns: right, up, forward
+    const m = mat3.fromValues(
+      r[0], u[0], f[0],
+      r[1], u[1], f[1],
+      r[2], u[2], f[2]
+    );
+
+    // Convert to quaternion and normalize
+    const q = quat.fromMat3(quat.create(), m);
+    quat.normalize(q, q);
+    return q;
+  }
+
 }
