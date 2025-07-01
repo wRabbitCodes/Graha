@@ -293,10 +293,10 @@ export class Scene {
           (dragging, e) => {
             if (!dragging) this.camera.cameraMouseHandler(e);
           },
-          (lagrangePoint: vec3) => {
-            // When user scrolls wheel to cycle lagrange points:
-            this.camera.setLookDirection(vec3.fromValues(0,0,0));
-          }
+          // (lagrangePoint: vec3) => {
+          //   // When user scrolls wheel to cycle lagrange points:
+          //   this.camera.cameraKeyboardHandler();
+          // }
         );
         this.input.enableKeyboardInputs();
       }
