@@ -1,98 +1,101 @@
 import { mat4, vec3 } from "gl-matrix";
 import { Camera } from "../../../core/Camera";
+import { IO } from "../../../core/IO";
 import { GLUtils } from "../../../utils/GLUtils";
 import { COMPONENT_STATE } from "../Component";
 import {
-  CameraLatchComponent,
-  LATCH_STATES,
+    CameraLatchComponent,
+    LATCH_STATES,
 } from "../components/CameraLatchComponent";
 import { EntitySelectionComponent } from "../components/EntitySelectionComponent";
 import { ModelComponent } from "../components/ModelComponent";
 import { Registry } from "../Registry";
 import { System } from "../System";
-import { IO } from "../../../core/IO";
 
 export class CameraLatchSystem extends System {
   constructor(
     private camera: Camera,
-    private input: IO,
     registry: Registry,
     utils: GLUtils
   ) {
     super(registry, utils);
   }
+
   update(deltaTime: number): void {
     for (const entity of this.registry.getEntitiesWith(
       ModelComponent,
       EntitySelectionComponent
     )) {
-      const selectionComp = this.registry.getComponent(
+      const selection = this.registry.getComponent(
         entity,
         EntitySelectionComponent
       );
-      if (selectionComp?.state !== COMPONENT_STATE.READY) continue;
-      const modelComp = this.registry.getComponent(entity, ModelComponent);
-      if (modelComp.state !== COMPONENT_STATE.READY) continue;
+      const model = this.registry.getComponent(entity, ModelComponent);
+      if (
+        !selection ||
+        !model ||
+        selection.state !== COMPONENT_STATE.READY ||
+        model.state !== COMPONENT_STATE.READY
+      )
+        continue;
 
-      const scale = vec3.create();
-      mat4.getScaling(scale, modelComp.modelMatrix);
-      const radius =
-        Math.max(scale[0], scale[1], scale[2]) * modelComp.boundingBoxScale;
+      const radius = this.computeRadius(model);
 
-      if (!selectionComp.isSelected) {
+      // If not selected, clean up and exit
+      if (!selection.isSelected) {
         this.registry.removeComponent(entity, CameraLatchComponent);
-        this.camera.disableEntityView();
+        this.camera.disableLatchMode();
         continue;
       }
-      let latchComp = this.registry.getComponent(entity, CameraLatchComponent);
-      if (!latchComp) {
-        latchComp = new CameraLatchComponent();
-        this.registry.addComponent(entity, latchComp);
-      }
-      if (latchComp.state === COMPONENT_STATE.UNINITIALIZED) {
-        vec3.copy(latchComp.startPosition, this.camera.getPosition()); // store current
-        latchComp.elapsed = 0;
-        latchComp.transitionTime;
-        latchComp.transitionTime = 4;
-        latchComp.state = COMPONENT_STATE.READY;
-      }
-      if (latchComp.state !== COMPONENT_STATE.READY) continue;
 
-      if (latchComp.transitionState === LATCH_STATES.TRANSITIONING) {
-        latchComp.elapsed += deltaTime / 1000;
-        const linearT = latchComp.elapsed / latchComp.transitionTime;
-        const t = this.smoothstep(0, 1, linearT);
+      // Ensure latch component exists
+      let latch = this.registry.getComponent(entity, CameraLatchComponent);
+      if (!latch) {
+        latch = new CameraLatchComponent();
+        this.registry.addComponent(entity, latch);
+      }
 
-        // Smooth LERP
+      // Initialize if needed
+      if (latch.state === COMPONENT_STATE.UNINITIALIZED) {
+        vec3.copy(latch.startPosition, this.camera.getPosition());
+        latch.elapsed = 0;
+        latch.transitionTime = 4;
+        latch.state = COMPONENT_STATE.READY;
+        latch.transitionState = LATCH_STATES.TRANSITIONING;
+      }
+
+      // Transition
+      if (latch.transitionState === LATCH_STATES.TRANSITIONING) {
+        latch.elapsed += deltaTime / 1000;
+        const t = this.smoothstep(0, 1, latch.elapsed / latch.transitionTime);
         const newPos = vec3.lerp(
           vec3.create(),
-          latchComp.startPosition,
-          modelComp.position!,
+          latch.startPosition,
+          model.position!,
           t
         );
         this.camera.setPosition(newPos);
-        const distance = vec3.distance(modelComp.position!, newPos);
-        if (
-          distance <=
-          Math.max(...modelComp.scale!) * modelComp.boundingBoxScale
-        ) {
-          latchComp.transitionState = LATCH_STATES.LATCHED;
-        }
+
+        const dist = vec3.distance(model.position!, newPos);
+        const boundRadius = Math.max(...model.scale!) * model.boundingBoxScale;
+        if (dist <= boundRadius) latch.transitionState = LATCH_STATES.LATCHED;
       }
 
-      if (latchComp.transitionState === LATCH_STATES.LATCHED) {
-        this.camera.enableEntityView(modelComp.position!, modelComp.boundingBoxScale!)
+      // Latch
+      if (latch.transitionState === LATCH_STATES.LATCHED) {
+        this.camera.enableLatchMode(model.position!, radius);
       }
     }
   }
 
-  private smoothstep(edge0: number, edge1: number, x: number): number {
-    // Scale, clamp and apply smoothstep formula
-    const t = Math.min(Math.max((x - edge0) / (edge1 - edge0), 0), 1);
-    return t * t * (3 - 2 * t);
+  private computeRadius(model: ModelComponent): number {
+    const scale = vec3.create();
+    mat4.getScaling(scale, model.modelMatrix);
+    return Math.max(...scale) * model.boundingBoxScale;
   }
 
-  private clamp(v: number, min: number, max: number): number {
-    return Math.max(min, Math.min(max, v));
+  private smoothstep(edge0: number, edge1: number, x: number): number {
+    const t = Math.min(Math.max((x - edge0) / (edge1 - edge0), 0), 1);
+    return t * t * (3 - 2 * t);
   }
 }

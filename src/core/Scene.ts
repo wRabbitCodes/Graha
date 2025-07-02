@@ -282,7 +282,7 @@ export class Scene {
       this.registry,
       this.utils
     );
-    this.cameraLatchSystem = new CameraLatchSystem(this.camera, this.input, this.registry, this.utils);
+    this.cameraLatchSystem = new CameraLatchSystem(this.camera, this.registry, this.utils);
     this.canvas.enablePointerLock((x, y) => {
       this.entitySelectionSystem.update(0);
     });

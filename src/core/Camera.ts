@@ -45,7 +45,7 @@ export class Camera {
   }
 
   // Enable latch mode to view around an entity
-  enableEntityView(target: vec3, radius: number) {
+  enableLatchMode(target: vec3, radius: number) {
     vec3.copy(this.latchedTarget, target);
     this.latchedRadius = radius;
     this.isLatched = true;
@@ -60,7 +60,7 @@ export class Camera {
   }
 
   // Exit latch mode
-  disableEntityView() {
+  disableLatchMode() {
     this.isLatched = false;
   }
 
@@ -126,30 +126,4 @@ export class Camera {
     mat4.lookAt(this.viewMatrix, this.position, center, this.up);
   }
   
-  lookAt(target: vec3) {
-    const forward = vec3.subtract(vec3.create(), target, this.position);
-    vec3.normalize(forward, forward);
-
-    // Use camera's world up to resolve ambiguity
-    const q = this.lookRotation(forward, this.worldUp);
-    quat.copy(this.orientation, q);
-  }
-
-
-  private lookRotation(forward: vec3, up: vec3): quat {
-    const zAxis = vec3.normalize(vec3.create(), forward);
-
-    let r = vec3.cross(vec3.create(), up, zAxis);
-    if (vec3.length(r) < 0.0001) {
-      const altUp = Math.abs(zAxis[1]) < 0.999 ? vec3.fromValues(0, 1, 0) : vec3.fromValues(1, 0, 0);
-      r = vec3.cross(vec3.create(), altUp, zAxis);
-    }
-    vec3.normalize(r, r);
-
-    const u = vec3.cross(vec3.create(), zAxis, r);
-    const m = mat3.fromValues(r[0], u[0], zAxis[0], r[1], u[1], zAxis[1], r[2], u[2], zAxis[2]);
-    const q = quat.fromMat3(quat.create(), m);
-    quat.normalize(q, q);
-    return q;
-  }
 }
