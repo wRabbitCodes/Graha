@@ -32,12 +32,8 @@ export class Camera {
       const offset = vec3.fromValues(x, y, z);
       vec3.add(this.position, this.latchedTarget, offset);
 
-      const tempView = mat4.create();
-      mat4.lookAt(tempView, this.position, this.latchedTarget, this.worldUp);
-
-      mat4.copy(this.viewMatrix, tempView);
+      mat4.lookAt(this.viewMatrix, this.position, this.latchedTarget, this.worldUp);
       return;
-
     } 
     this.updateVectorsFromQuat();
     this.updateViewMatrix();
