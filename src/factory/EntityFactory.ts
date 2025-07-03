@@ -1,6 +1,6 @@
 // src/factories/PlanetFactory.ts
 import { vec3 } from "gl-matrix";
-import { ModelComponent } from "../engine/ecs/components/ModelComponent";
+import { ENTITY_TYPE, ModelComponent } from "../engine/ecs/components/ModelComponent";
 import { OrbitComponent } from "../engine/ecs/components/OrbitComponent";
 import { PlanetRenderComponent } from "../engine/ecs/components/RenderComponent";
 import { TextureComponent } from "../engine/ecs/components/TextureComponent";
@@ -11,8 +11,9 @@ import { IFactory } from "./IFactory";
 import { EntitySelectionComponent } from "../engine/ecs/components/EntitySelectionComponent";
 import { SETTINGS } from "../config/settings";
 import { CCDComponent } from "../engine/ecs/components/CCDComponent";
+import { MoonComponent } from "../engine/ecs/components/MoonComponent";
 
-export type PlanetData = {
+export type EntityData = {
   name: string;
   radius: number;
   tiltAngle: number;
@@ -25,12 +26,13 @@ export type PlanetData = {
   axis?: vec3;
   orbitData?: Partial<OrbitComponent>;
   parent?: Entity;
+  type: ENTITY_TYPE;
 };
 
-export class PlanetFactory implements IFactory {
+export class EntityFactory implements IFactory {
   constructor(private utils: GLUtils, private registry: Registry) {}
 
-  create(params: PlanetData): Entity {
+  create(params: EntityData): Entity {
     const entity = this.registry.createEntity();
 
     const orbitRadius =(params.orbitData?.semiMajorAxis!)/ SETTINGS.DISTANCE_SCALE;
@@ -268,6 +270,13 @@ export class PlanetFactory implements IFactory {
       fragColor = vec4(atmosphereColor, alpha);
     }
     `);
+
+    if (params.type === ENTITY_TYPE.MOON){
+      if (!params.parent) throw Error("moon must have planet");
+      const moonComp = new MoonComponent();
+      moonComp.parentEntity = params.parent;
+      this.registry.addComponent(entity, moonComp);
+    }
 
     const renderComp = new PlanetRenderComponent();
     renderComp.program = program;

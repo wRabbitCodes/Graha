@@ -5,6 +5,7 @@ import { COMPONENT_STATE } from "../Component";
 import { System } from "../System";
 import { ModelComponent } from "../components/ModelComponent";
 import { OrbitComponent } from "../components/OrbitComponent";
+import { MoonComponent } from "../components/MoonComponent";
 
 // An ECS-based OrbitSystem that drives TransformComponent positions from Keplerian data
 export class OrbitSystem extends System {
@@ -26,7 +27,23 @@ export class OrbitSystem extends System {
         orbit.pathPoints = this.generateOrbitPathPoints(orbit, 180);
         orbit.state = COMPONENT_STATE.READY;
       }
+
+      //CHECK IF MOON....if so... translate it with Planet's position
+      const moonComp = this.registry.getComponent(entity, MoonComponent);
+      if (moonComp) {
+        const parentComp = this.registry.getComponent(moonComp.parentEntity!, ModelComponent);
+        const translate = vec3.create();
+        // mat4.multiply(model.modelMatrix, parentComp.modelMatrix, model.modelMatrix)
+        mat4.getTranslation(translate, parentComp.modelMatrix);
+        
+        vec3.add(model.position!, this.calculatePositionFromTime(orbit), translate);
+
+        // mat4.scale(translate,translate,parentComp.)
+        console.log(`${model.name} ::: POSITION: ${model.position}`)
+        continue;
+      } 
       model.position = this.calculatePositionFromTime(orbit);
+      console.log(`${model.name} ::: POSITION: ${model.position}`)
     }
   }
 

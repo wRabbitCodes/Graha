@@ -14,5 +14,4 @@ export class CameraLatchComponent implements IComponent, IState {
   elapsed = 0;
   transitionState = LATCH_STATES.TRANSITIONING;
   startPosition = vec3.create();
-  targetFieldRaidus = 0;
 }
