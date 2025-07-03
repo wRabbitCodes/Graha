@@ -41,7 +41,7 @@ export class CCDSystem extends System {
     const radius = Math.max(...modelComp.scale!) * modelComp.boundingBoxScale;
 
     const translator = vec3.create();
-    mat4.getTranslation(translator, modelComp.modelMatrix);
+    mat4.getTranslation(translator, modelComp.worldModelMatrix);
 
     const sphereCollider = {
       radius,

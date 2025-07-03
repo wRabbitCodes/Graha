@@ -11,6 +11,7 @@ import { IFactory } from "./IFactory";
 import { EntitySelectionComponent } from "../engine/ecs/components/EntitySelectionComponent";
 import { SETTINGS } from "../config/settings";
 import { CCDComponent } from "../engine/ecs/components/CCDComponent";
+import { HierarchyComponent } from "../engine/ecs/components/HierarchyComponent";
 
 export type PlanetData = {
   name: string;
@@ -62,7 +63,6 @@ export class PlanetFactory implements IFactory {
       orbit.aphelion = params.orbitData.aphelion ?? vec3.create();
       orbit.orbitalPeriod = params.orbitData.orbitalPeriod;
       orbit.elapsedDays = params.orbitData.elapsedDays;
-
       this.registry.addComponent(entity, orbit);
     }
     // Texture Component (to be loaded by TextureSystem)
@@ -81,6 +81,10 @@ export class PlanetFactory implements IFactory {
     // CCD
     const ccdComp = new CCDComponent();
     this.registry.addComponent(entity, ccdComp);
+
+
+    //Hierarchy
+    if (params.parent) this.attachParent(entity, params.parent)
 
     // RenderComponent (VAO and programs setup)
     // const program = ShaderStrategy.getDefaultProgram(this.gl, this.utils);
@@ -276,4 +280,14 @@ export class PlanetFactory implements IFactory {
 
     return entity;
   }
+
+  private attachParent(child: Entity, parent: Entity) {
+    let h = this.registry.getComponent(child, HierarchyComponent);
+    if (!h) {
+      h = new HierarchyComponent();
+      this.registry.addComponent(child, h);
+    }
+    h.parent = parent;
+  }
+
 }

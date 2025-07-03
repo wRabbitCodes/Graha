@@ -6,45 +6,42 @@ import { ModelComponent } from "../components/ModelComponent";
 export class ModelUpdateSystem extends System {
   update(deltaTime: number) {
     for (const entity of this.registry.getEntitiesWith(ModelComponent)) {
-      const coreComp = this.registry.getComponent(entity, ModelComponent);
-      if (coreComp.state === COMPONENT_STATE.UNINITIALIZED) {
-        let tiltQuat = quat.create();
+      const model = this.registry.getComponent(entity, ModelComponent);
+
+      if (model.state === COMPONENT_STATE.UNINITIALIZED) {
+        if (!model.tiltQuat || !model.tiltAngle) continue;
         quat.setAxisAngle(
-          tiltQuat,
+          model.tiltQuat,
           vec3.fromValues(1, 0, 0),
-          (coreComp.tiltAngle * Math.PI) / 180
+          (model.tiltAngle * Math.PI) / 180
         );
-        coreComp.tiltQuat = tiltQuat;
-        coreComp.state = COMPONENT_STATE.READY;
+        model.state = COMPONENT_STATE.READY;
       }
-      if (coreComp.state === COMPONENT_STATE.READY) {
-        const siderealDayMs = coreComp.siderealDay * 3600 * 1000 * 24;
 
-        // Rotation speed in radians/ms, scaled
-        const rotationSpeedRadPerMs = (2 * Math.PI) / siderealDayMs;
+      if (model.state === COMPONENT_STATE.READY) {
+        if (!model.siderealDay) continue;
+        // Compute spin rotation for this frame
+        const siderealDayMs = model.siderealDay * 24 * 3600 * 1000;
+        const spinSpeedRadPerMs = (2 * Math.PI) / siderealDayMs;
+        const angleRad = spinSpeedRadPerMs * deltaTime * 86400;
 
-        // Rotation angle this frame
-        const angleRad = rotationSpeedRadPerMs * deltaTime * 86400;
-        const qRotation = quat.setAxisAngle(
+        const frameSpin = quat.setAxisAngle(
           quat.create(),
-          coreComp.axis,
+          model.axis,
           angleRad
         );
+        quat.multiply(model.spinQuat, frameSpin, model.spinQuat);
 
-        quat.multiply(coreComp.spinQuat, qRotation, coreComp.spinQuat);
-        quat.multiply(
-          coreComp.rotationQuat,
-          coreComp.tiltQuat!,
-          coreComp.spinQuat
-        );
+        // Combined rotation: tilt * spin
+        quat.multiply(model.rotationQuat, model.tiltQuat, model.spinQuat);
+
+        // Build local model matrix
         mat4.fromRotationTranslationScale(
-          coreComp.modelMatrix,
-          coreComp.rotationQuat,
-          coreComp.position!,
-          coreComp.scale!
+          model.modelMatrix,
+          model.rotationQuat,
+          model.position,
+          model.scale
         );
-
-        
       }
     }
   }

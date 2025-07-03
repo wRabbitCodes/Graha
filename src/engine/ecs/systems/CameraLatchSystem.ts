@@ -90,7 +90,7 @@ export class CameraLatchSystem extends System {
 
   private computeRadius(model: ModelComponent): number {
     const scale = vec3.create();
-    mat4.getScaling(scale, model.modelMatrix);
+    mat4.getScaling(scale, model.worldModelMatrix);
     return Math.max(...scale) * model.boundingBoxScale;
   }
 

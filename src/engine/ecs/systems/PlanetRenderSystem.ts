@@ -46,7 +46,7 @@ export class PlanetRenderSystem extends System implements IRenderSystem {
           // Bind Uniforms
 
           const normalMatrix = mat3.create();
-          mat3.normalFromMat4(normalMatrix, modelComp.modelMatrix);
+          mat3.normalFromMat4(normalMatrix, modelComp.worldModelMatrix);
           gl.uniformMatrix3fv(
             renderComp.uniformLocations.normalMatrix,
             false,
@@ -55,7 +55,7 @@ export class PlanetRenderSystem extends System implements IRenderSystem {
           gl.uniformMatrix4fv(
             renderComp.uniformLocations.model,
             false,
-            modelComp.modelMatrix
+            modelComp.worldModelMatrix
           );
           gl.uniformMatrix4fv(
             renderComp.uniformLocations.view,
@@ -109,7 +109,7 @@ export class PlanetRenderSystem extends System implements IRenderSystem {
           gl.bindVertexArray(renderComp.VAO);
 
           // Apply slight scale for atmosphere shell
-          const atmosphereModel = mat4.clone(modelComp.modelMatrix);
+          const atmosphereModel = mat4.clone(modelComp.worldModelMatrix);
           mat4.scale(atmosphereModel, atmosphereModel, [1.02, 1.02, 1.02]);
 
           gl.uniformMatrix4fv(
@@ -160,7 +160,7 @@ export class PlanetRenderSystem extends System implements IRenderSystem {
 
           // Render with additive blending
           gl.enable(gl.CULL_FACE);
-          gl.cullFace(gl.FRONT_FACE);
+          gl.cullFace(gl.FRONT);
           gl.enable(gl.BLEND);
           gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
           gl.depthMask(false);

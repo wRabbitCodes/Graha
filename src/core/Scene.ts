@@ -172,11 +172,17 @@
 import { vec3 } from "gl-matrix";
 import { Renderer } from "../engine/command/Renderer";
 import { Registry } from "../engine/ecs/Registry";
+import { BBPlotRenderSystem } from "../engine/ecs/systems/BBPlotRenderSystem";
+import { CameraLatchSystem } from "../engine/ecs/systems/CameraLatchSystem";
+import { CCDSystem } from "../engine/ecs/systems/CCDSystem";
 import { EntitySelectionSystem } from "../engine/ecs/systems/EntitySelectionSystem";
+import { HierarchySystem } from "../engine/ecs/systems/HierarchySystem";
 import { ModelUpdateSystem } from "../engine/ecs/systems/ModelUpdateSystem";
+import { OrbitPathRenderSystem } from "../engine/ecs/systems/OrbitPathRenderSystem";
 import { OrbitSystem } from "../engine/ecs/systems/OrbitSystem";
 import { PlanetRenderSystem } from "../engine/ecs/systems/PlanetRenderSystem";
 import { SelectionGlowRenderSystem } from "../engine/ecs/systems/SelectionGlowRenderSystem";
+import { SelectionTagSystem } from "../engine/ecs/systems/SelectionTagSystem";
 import { SkyRenderSystem } from "../engine/ecs/systems/SkyRenderSystem";
 import { SunRenderSystem } from "../engine/ecs/systems/SunRenderSystem";
 import { TextureLoaderSystem } from "../engine/ecs/systems/TextureLoaderSystem";
@@ -188,12 +194,6 @@ import { Raycaster } from "../utils/Raycaster";
 import { Camera } from "./Camera";
 import { Canvas } from "./Canvas";
 import { IO } from "./IO";
-import { SelectionTagSystem } from "../engine/ecs/systems/SelectionTagSystem";
-import { CCDSystem } from "../engine/ecs/systems/CCDSystem";
-import { BBPlotRenderSystem } from "../engine/ecs/systems/BBPlotRenderSystem";
-import { OrbitPathRenderSystem } from "../engine/ecs/systems/OrbitPathRenderSystem";
-import { SETTINGS } from "../config/settings";
-import { CameraLatchSystem } from "../engine/ecs/systems/CameraLatchSystem";
 
 export class Scene {
   private readonly gl: WebGL2RenderingContext;
@@ -221,6 +221,7 @@ export class Scene {
   private ccdSystem: CCDSystem;
   private bbpRenderSystem: BBPlotRenderSystem;
   private orbitTracer: OrbitPathRenderSystem;
+  private hierarchySystem: HierarchySystem;
 
   constructor(canvasId: string) {
     this.canvas = new Canvas(canvasId);
@@ -282,6 +283,10 @@ export class Scene {
       this.registry,
       this.utils
     );
+    this.hierarchySystem = new HierarchySystem(
+      this.registry,
+      this.utils,
+    )
     this.cameraLatchSystem = new CameraLatchSystem(this.camera, this.registry, this.utils);
     this.canvas.enablePointerLock((x, y) => {
       this.entitySelectionSystem.update(0);
@@ -303,9 +308,28 @@ export class Scene {
 
   initialize() {
     this.skyFactory.create("textures/milkyway.png");
-    this.sunFactory.create("textures/lensFlare.png");
+    const sun = this.sunFactory.create("textures/lensFlare.png");
 
-    this.planetFactory.create({
+    const jupiter = this.planetFactory.create({
+      name: "Jupiter",
+      radius: 69911, // radius in km
+      tiltAngle: 3.13, // axial tilt in degrees
+      surfaceURL: "textures/4k_jupiter.jpg", // surface texture
+      siderealDay: 9.9,
+      orbitData: {
+        semiMajorAxis: 778_340_821, // in km (~5.2 AU)
+        eccentricity: 0.0489,
+        inclination: 1.305, // degrees
+        longitudeOfAscendingNode: 100.492,
+        argumentOfPeriapsis: 273.867,
+        meanAnomalyAtEpoch: 19.65, // degrees at J2000
+        orbitalPeriod: 4332.59, // in days (~11.86 Earth years)
+      },
+      parent: sun,
+    });
+
+
+    const earth = this.planetFactory.create({
       name: "Earth",
       radius: 6371,
       tiltAngle: 23.44,
@@ -324,41 +348,28 @@ export class Scene {
         meanAnomalyAtEpoch: 358.617, // degrees (at J2000)
         orbitalPeriod: 365.256, // days (sidereal year)
       },
+      parent: sun,
+
     });
 
-    // this.planetFactory.create({
-    //   name: "Jupiter",
-    //   radius: 69911, // radius in km
-    //   tiltAngle: 3.13, // axial tilt in degrees
-    //   surfaceURL: "textures/4k_jupiter.jpg", // surface texture
-    //   siderealDay: 9.9,
-    //   orbitData: {
-    //     semiMajorAxis: 778_340_821, // in km (~5.2 AU)
-    //     eccentricity: 0.0489,
-    //     inclination: 1.305, // degrees
-    //     longitudeOfAscendingNode: 100.492,
-    //     argumentOfPeriapsis: 273.867,
-    //     meanAnomalyAtEpoch: 19.65, // degrees at J2000
-    //     orbitalPeriod: 4332.59, // in days (~11.86 Earth years)
-    //   },
-    // });
+    this.planetFactory.create({
+      name: "Mercury",
+      radius: 2439.7,
+      tiltAngle: 0.034,
+      siderealDay: 1407.6,
+      surfaceURL: "textures/2k_mercury.jpg",
+      orbitData: {
+        semiMajorAxis: 57_909_227,
+        eccentricity: 0.2056,
+        inclination: 7.005,
+        longitudeOfAscendingNode: 48.331,
+        argumentOfPeriapsis: 29.124,
+        meanAnomalyAtEpoch: 174.796,
+        orbitalPeriod: 87.969,
+      },
+      parent: sun,
 
-    // this.planetFactory.create({
-    //   name: "Mercury",
-    //   radius: 2439.7,
-    //   tiltAngle: 0.034,
-    //   siderealDay: 1407.6,
-    //   surfaceURL: "textures/2k_mercury.jpg",
-    //   orbitData: {
-    //     semiMajorAxis: 57_909_227,
-    //     eccentricity: 0.2056,
-    //     inclination: 7.005,
-    //     longitudeOfAscendingNode: 48.331,
-    //     argumentOfPeriapsis: 29.124,
-    //     meanAnomalyAtEpoch: 174.796,
-    //     orbitalPeriod: 87.969,
-    //   },
-    // });
+    });
 
     // this.planetFactory.create({
     //   name: "Venus",
@@ -435,6 +446,7 @@ export class Scene {
   }
 
   update(deltaTime: number) {
+    this.canvas.resizeToDisplaySize();
     this.camera.cameraKeyboardHandler(this.input.getKeys());
     const viewMatrix = this.camera.getViewMatrix();
     const projectionMatrix = this.canvas.getProjectionMatrix();
@@ -443,18 +455,21 @@ export class Scene {
     this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
 
     this.skyRender.update(deltaTime);
-
-    this.planetRender.update(deltaTime);
     this.modelUpdate.update(deltaTime);
-    this.orbitSystem.update(deltaTime);
-    this.orbitTracer.update(deltaTime);
+    // this.orbitSystem.update(deltaTime);
+    this.hierarchySystem.update(deltaTime);
+    // this.ccdSystem.update(deltaTime);
+    // this.bbpRenderSystem.update(deltaTime);
 
-    this.ccdSystem.update(deltaTime);
-    this.bbpRenderSystem.update(deltaTime);
-    this.selectionGlowRender.update(deltaTime);
-    this.selectionTagRender.update(deltaTime);
+    
+    
+    // this.orbitTracer.update(deltaTime);
+    this.planetRender.update(deltaTime);
+
+    // this.selectionGlowRender.update(deltaTime);
+    // this.selectionTagRender.update(deltaTime);
     this.camera.update(deltaTime/1000);
-    this.cameraLatchSystem.update(deltaTime);
+    // this.cameraLatchSystem.update(deltaTime);
 
     this.sunRender.update(deltaTime);
 

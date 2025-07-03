@@ -90,7 +90,7 @@ export class SelectionTagSystem extends System implements IRenderSystem {
           );
 
           const scale = vec3.create();
-          mat4.getScaling(scale, modelComp.modelMatrix);
+          mat4.getScaling(scale, modelComp.worldModelMatrix);
           const radius = Math.max(...scale);
           const worldPos = vec3.clone(modelComp.position!);
           worldPos[1] += radius * 3;
@@ -197,7 +197,7 @@ export class SelectionTagSystem extends System implements IRenderSystem {
     renderComp.time += dt / 50000000;
 
     const scale = vec3.create();
-    mat4.getScaling(scale, modelComp.modelMatrix);
+    mat4.getScaling(scale, modelComp.worldModelMatrix);
     const radius = Math.max(...scale);
 
     // Calculate distance from camera to planet center

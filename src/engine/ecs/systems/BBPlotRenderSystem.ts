@@ -56,7 +56,7 @@ export class BBPlotRenderSystem extends System implements IRenderSystem {
           gl.useProgram(bbRenderComp.program);
           gl.bindVertexArray(renderComp.VAO);
 
-          const boxModelMatrix = mat4.clone(modelComp.modelMatrix);
+          const boxModelMatrix = mat4.clone(modelComp.worldModelMatrix);
           mat4.scale(boxModelMatrix, boxModelMatrix, vec3.fromValues(modelComp.boundingBoxScale!,modelComp.boundingBoxScale!, modelComp.boundingBoxScale!));
           gl.uniformMatrix4fv(
             gl.getUniformLocation(bbRenderComp.program!, "u_model"),

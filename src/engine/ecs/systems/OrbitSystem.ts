@@ -27,6 +27,7 @@ export class OrbitSystem extends System {
         orbit.state = COMPONENT_STATE.READY;
       }
       model.position = this.calculatePositionFromTime(orbit);
+      // mat4.fromTranslation(model.modelMatrix, this.calculatePositionFromTime(orbit));
     }
   }
 

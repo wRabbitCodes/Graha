@@ -29,11 +29,11 @@ export class EntitySelectionSystem extends System {
       if (modelComp.state !== COMPONENT_STATE.READY) continue;
       const ray = this.rayCaster.setFromViewMatrix(this.camera.getViewMatrix());
       const scaleFromModel = vec3.create();
-      mat4.getScaling(scaleFromModel, modelComp.modelMatrix);
+      mat4.getScaling(scaleFromModel, modelComp.worldModelMatrix);
       const distance = this.rayCaster.intersectSphere(
         ray.origin,
         ray.direction,
-        modelComp.modelMatrix,
+        modelComp.worldModelMatrix,
         Math.max(...scaleFromModel) // Highest Scale is the Radius
       );
 

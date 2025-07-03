@@ -1,9 +1,12 @@
+import { vec3 } from "gl-matrix";
+import { ModelComponent } from "../engine/ecs/components/ModelComponent";
 import { SunRenderComponent } from "../engine/ecs/components/RenderComponent";
 import { TextureComponent } from "../engine/ecs/components/TextureComponent";
 import { Entity } from "../engine/ecs/Entity";
 import { Registry } from "../engine/ecs/Registry";
 import { GLUtils } from "../utils/GLUtils";
 import { IFactory } from "./IFactory";
+import { SETTINGS } from "../config/settings";
 
 export class SunFactory implements IFactory {
   constructor(
@@ -67,6 +70,13 @@ export class SunFactory implements IFactory {
     renderComp.program = program;
     this.registry.addComponent(entity, renderComp);
     
+    const modelComp = new ModelComponent();
+    modelComp.name = "Sun";
+    modelComp.tiltAngle = 0;
+    modelComp.siderealDay = 0;
+    modelComp.scale = vec3.fromValues(SETTINGS.SUN_SIZE, SETTINGS.SUN_SIZE, SETTINGS.SUN_SIZE);
+    modelComp.position = vec3.fromValues(0,0,0);
+    this.registry.addComponent(entity, modelComp);
     return entity;
   }
 }

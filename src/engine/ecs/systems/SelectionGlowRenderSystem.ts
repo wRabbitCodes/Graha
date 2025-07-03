@@ -62,7 +62,7 @@ export class SelectionGlowRenderSystem extends System implements IRenderSystem {
           gl.useProgram(renderComp.program);
           gl.bindVertexArray(entityRenderComp.VAO);
 
-          const glowModel = mat4.clone(entityModelComp.modelMatrix);
+          const glowModel = mat4.clone(entityModelComp.worldModelMatrix);
           mat4.scale(glowModel, glowModel, [1.05, 1.05, 1.05]);
 
           gl.uniformMatrix4fv(
