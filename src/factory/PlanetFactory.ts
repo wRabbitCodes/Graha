@@ -25,7 +25,6 @@ export type PlanetData = {
   siderealDay?: number;
   axis?: vec3;
   orbitData?: Partial<OrbitComponent>;
-  parent?: Entity;
 };
 
 export class PlanetFactory implements IFactory {
@@ -34,7 +33,7 @@ export class PlanetFactory implements IFactory {
   create(params: PlanetData): Entity {
     const entity = this.registry.createEntity();
 
-    const orbitRadius =(params.orbitData?.semiMajorAxis!)/ SETTINGS.DISTANCE_SCALE;
+    // const orbitRadius =(params.orbitData?.semiMajorAxis!)/ SETTINGS.DISTANCE_SCALE;
     const planetScale = vec3.fromValues(
       params.radius / SETTINGS.SIZE_SCALE,
       params.radius / SETTINGS.SIZE_SCALE,
@@ -43,7 +42,7 @@ export class PlanetFactory implements IFactory {
     // Transform
     const transform = new ModelComponent();
     transform.name = params.name;
-    transform.position = vec3.fromValues(orbitRadius, 0, 0);
+    transform.position = vec3.fromValues(0, 0, 0);
     transform.scale = planetScale;
     transform.tiltAngle = params.tiltAngle;
     transform.siderealDay = params.siderealDay ?? 24;
@@ -81,10 +80,6 @@ export class PlanetFactory implements IFactory {
     // CCD
     const ccdComp = new CCDComponent();
     this.registry.addComponent(entity, ccdComp);
-
-
-    //Hierarchy
-    if (params.parent) this.attachParent(entity, params.parent)
 
     // RenderComponent (VAO and programs setup)
     // const program = ShaderStrategy.getDefaultProgram(this.gl, this.utils);
@@ -288,6 +283,15 @@ export class PlanetFactory implements IFactory {
       this.registry.addComponent(child, h);
     }
     h.parent = parent;
+  }
+
+  private addChild(entity: Entity, child: Entity) {
+    let h = this.registry.getComponent(entity, HierarchyComponent);
+    if (!h) {
+      h = new HierarchyComponent();
+      this.registry.addComponent(child, h);
+    }
+    h.children.push(child);
   }
 
 }

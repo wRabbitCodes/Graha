@@ -4,6 +4,7 @@ import { RenderContext } from "../../command/IRenderCommands";
 import { IRenderSystem } from "../../command/IRenderSystem";
 import { Renderer } from "../../command/Renderer";
 import { COMPONENT_STATE } from "../Component";
+import { ModelComponent } from "../components/ModelComponent";
 import { SunRenderComponent } from "../components/RenderComponent";
 import { TextureComponent } from "../components/TextureComponent";
 import { Registry } from "../Registry";

@@ -7,6 +7,7 @@ import { Registry } from "../engine/ecs/Registry";
 import { GLUtils } from "../utils/GLUtils";
 import { IFactory } from "./IFactory";
 import { SETTINGS } from "../config/settings";
+import { HierarchyComponent } from "../engine/ecs/components/HierarchyComponent";
 
 export class SunFactory implements IFactory {
   constructor(

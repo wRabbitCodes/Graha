@@ -194,6 +194,7 @@ import { Raycaster } from "../utils/Raycaster";
 import { Camera } from "./Camera";
 import { Canvas } from "./Canvas";
 import { IO } from "./IO";
+import { ModelComponent } from "../engine/ecs/components/ModelComponent";
 
 export class Scene {
   private readonly gl: WebGL2RenderingContext;
@@ -325,7 +326,6 @@ export class Scene {
         meanAnomalyAtEpoch: 19.65, // degrees at J2000
         orbitalPeriod: 4332.59, // in days (~11.86 Earth years)
       },
-      parent: sun,
     });
 
 
@@ -348,11 +348,9 @@ export class Scene {
         meanAnomalyAtEpoch: 358.617, // degrees (at J2000)
         orbitalPeriod: 365.256, // days (sidereal year)
       },
-      parent: sun,
-
     });
 
-    this.planetFactory.create({
+    const mercury = this.planetFactory.create({
       name: "Mercury",
       radius: 2439.7,
       tiltAngle: 0.034,
@@ -367,9 +365,11 @@ export class Scene {
         meanAnomalyAtEpoch: 174.796,
         orbitalPeriod: 87.969,
       },
-      parent: sun,
-
     });
+
+    HierarchySystem.addChild(sun, earth, this.registry);
+    HierarchySystem.addChild(sun, jupiter, this.registry);
+    HierarchySystem.addChild(sun, mercury, this.registry);
 
     // this.planetFactory.create({
     //   name: "Venus",
@@ -455,8 +455,8 @@ export class Scene {
     this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
 
     this.skyRender.update(deltaTime);
+    this.orbitSystem.update(deltaTime);
     this.modelUpdate.update(deltaTime);
-    // this.orbitSystem.update(deltaTime);
     this.hierarchySystem.update(deltaTime);
     // this.ccdSystem.update(deltaTime);
     // this.bbpRenderSystem.update(deltaTime);
@@ -467,12 +467,17 @@ export class Scene {
     this.planetRender.update(deltaTime);
 
     // this.selectionGlowRender.update(deltaTime);
-    // this.selectionTagRender.update(deltaTime);
+    // this.selectionTagRender.  update(deltaTime);
     this.camera.update(deltaTime/1000);
     // this.cameraLatchSystem.update(deltaTime);
 
     this.sunRender.update(deltaTime);
-
+    for (const entity of this.registry.getEntitiesWith(ModelComponent)) {
+      const model = this.registry.getComponent(entity, ModelComponent);
+      console.log(`${model.name} -- position:`, model.position);
+      console.log(`${model.name} -- modelMatrix:`, model.modelMatrix);
+      console.log(`${model.name} -- worldModelMatrix:`, model.worldModelMatrix);
+    }
     this.renderer.flush(this.gl, {
       viewMatrix,
       projectionMatrix,

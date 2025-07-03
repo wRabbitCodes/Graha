@@ -17,7 +17,6 @@ export class OrbitSystem extends System {
       const orbit = this.registry.getComponent(entity, OrbitComponent)!;
       const model = this.registry.getComponent(entity, ModelComponent)!;
       if (model.state !== COMPONENT_STATE.READY) continue;
-
       if (orbit.state === COMPONENT_STATE.UNINITIALIZED) {
         const simStart = "2025-06-30T00:00:00Z";
         orbit.epochTime = OrbitAnamolyCalculator.calculateEpochTime(simStart);
