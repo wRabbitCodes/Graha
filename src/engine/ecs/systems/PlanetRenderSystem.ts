@@ -32,8 +32,12 @@ export class PlanetRenderSystem extends System implements IRenderSystem {
       if (
         texComp.state !== COMPONENT_STATE.READY ||
         modelComp.state !== COMPONENT_STATE.READY
-      )
+        ||  !modelComp.isVisible
+      ) {
+        console.log(`${modelComp.name} CULLED, ISVISIBLE: ${modelComp.isVisible}`);
         continue;
+      }
+        
       if (renderComp.state === COMPONENT_STATE.UNINITIALIZED)
         this.initialize(renderComp);
 

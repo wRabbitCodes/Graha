@@ -26,6 +26,23 @@ export class OrbitSystem extends System {
         orbit.pathPoints = this.generateOrbitPathPoints(orbit, 180);
         orbit.state = COMPONENT_STATE.READY;
       }
+<<<<<<< Updated upstream
+=======
+
+      //CHECK IF MOON....if so... translate it with Planet's position
+      const moonComp = this.registry.getComponent(entity, MoonComponent);
+      if (moonComp) {
+        const parentComp = this.registry.getComponent(moonComp.parentEntity!, ModelComponent);
+        const translate = vec3.create();
+        // mat4.multiply(model.modelMatrix, parentComp.modelMatrix, model.modelMatrix)
+        mat4.getTranslation(translate, parentComp.modelMatrix);
+        
+        vec3.add(model.position!, this.calculatePositionFromTime(orbit), translate);
+
+        // mat4.scale(translate,translate,parentComp.)
+        continue;
+      } 
+>>>>>>> Stashed changes
       model.position = this.calculatePositionFromTime(orbit);
     }
   }

@@ -194,6 +194,11 @@ import { BBPlotRenderSystem } from "../engine/ecs/systems/BBPlotRenderSystem";
 import { OrbitPathRenderSystem } from "../engine/ecs/systems/OrbitPathRenderSystem";
 import { SETTINGS } from "../config/settings";
 import { CameraLatchSystem } from "../engine/ecs/systems/CameraLatchSystem";
+<<<<<<< Updated upstream
+=======
+import { ENTITY_TYPE } from "../engine/ecs/components/ModelComponent";
+import { FrustumCullingSystem } from "../engine/ecs/systems/FrustumCuller";
+>>>>>>> Stashed changes
 
 export class Scene {
   private readonly gl: WebGL2RenderingContext;
@@ -221,6 +226,7 @@ export class Scene {
   private ccdSystem: CCDSystem;
   private bbpRenderSystem: BBPlotRenderSystem;
   private orbitTracer: OrbitPathRenderSystem;
+  private frustumCuller: FrustumCullingSystem;
 
   constructor(canvasId: string) {
     this.canvas = new Canvas(canvasId);
@@ -282,6 +288,8 @@ export class Scene {
       this.registry,
       this.utils
     );
+
+    this.frustumCuller = new FrustumCullingSystem(this.camera, this.canvas, this.registry, this.utils);
     this.cameraLatchSystem = new CameraLatchSystem(this.camera, this.registry, this.utils);
     this.canvas.enablePointerLock((x, y) => {
       this.entitySelectionSystem.update(0);
@@ -326,6 +334,7 @@ export class Scene {
       },
     });
 
+<<<<<<< Updated upstream
     // this.planetFactory.create({
     //   name: "Jupiter",
     //   radius: 69911, // radius in km
@@ -342,6 +351,26 @@ export class Scene {
     //     orbitalPeriod: 4332.59, // in days (~11.86 Earth years)
     //   },
     // });
+=======
+    this.planetFactory.create({
+      type: ENTITY_TYPE.MOON,
+      parent: earth,
+      name: "Moon",
+      radius: 1737.4,
+      tiltAngle: 6.68,
+      siderealDay: 27.3,
+      surfaceURL: "textures/4k_moon_surface.jpg",
+      normalURL: "textures/4k_moon_normal.jpg",
+      orbitData: {
+        semiMajorAxis : 384_400 * SETTINGS.GLOBAL_SCENE_SCALE,
+        eccentricity : 0.0549,
+        inclination : 5.145,
+        argumentOfPeriapsis : 318.15,
+        longitudeOfAscendingNode : 125.08,
+        orbitalPeriod : 27.3217,
+      }
+    });
+>>>>>>> Stashed changes
 
     // this.planetFactory.create({
     //   name: "Mercury",
@@ -361,6 +390,7 @@ export class Scene {
     // });
 
     // this.planetFactory.create({
+<<<<<<< Updated upstream
     //   name: "Venus",
     //   radius: 6051.8,
     //   tiltAngle: 177.36, // retrograde rotation
@@ -375,6 +405,22 @@ export class Scene {
     //     argumentOfPeriapsis: 54.884,
     //     meanAnomalyAtEpoch: 50.115,
     //     orbitalPeriod: 224.701,
+=======
+    //   type: ENTITY_TYPE.PLANET,
+    //   name: "Mercury",
+    //   radius: 2439.7,
+    //   tiltAngle: 0.034,
+    //   siderealDay: 1407.6,
+    //   surfaceURL: "textures/2k_mercury.jpg",
+    //   orbitData: {
+    //     semiMajorAxis: 57_909_227,
+    //     eccentricity: 0.2056,
+    //     inclination: 7.005,
+    //     longitudeOfAscendingNode: 48.331,
+    //     argumentOfPeriapsis: 29.124,
+    //     meanAnomalyAtEpoch: 174.796,
+    //     orbitalPeriod: 87.969,
+>>>>>>> Stashed changes
     //   },
     // });
 
@@ -397,6 +443,44 @@ export class Scene {
     // });
 
     // this.planetFactory.create({
+<<<<<<< Updated upstream
+    //   name: "Saturn",
+    //   radius: 58232,
+    //   tiltAngle: 26.73,
+    //   siderealDay: 10.7,
+    //   surfaceURL: "textures/2k_saturn.jpg",
+    //   orbitData: {
+    //     semiMajorAxis: 1_433_449_370,
+    //     eccentricity: 0.0565,
+    //     inclination: 2.485,
+    //     longitudeOfAscendingNode: 113.665,
+    //     argumentOfPeriapsis: 339.392,
+    //     meanAnomalyAtEpoch: 317.021,
+    //     orbitalPeriod: 10_759.22,
+=======
+    //   type: ENTITY_TYPE.PLANET,
+    //   name: "Mars",
+    //   radius: 3389.5, // radius in km
+    //   tiltAngle: 25.19, // axial tilt in degrees
+    //   siderealDay: 24.6,
+    //   surfaceURL: "textures/2k_mars_surface.jpg",
+    //   normalURL: "textures/2k_mars_normal.png",
+    //   orbitData: {
+    //     semiMajorAxis: 227_939_200, // in km (~1.52 AU)
+    //     eccentricity: 0.0935,
+    //     inclination: 1.85,
+    //     longitudeOfAscendingNode: 49.558,
+    //     argumentOfPeriapsis: 286.502,
+    //     meanAnomalyAtEpoch: 19.412, // degrees at J2000
+    //     orbitalPeriod: 686.971, // in days (~1.88 Earth years)
+>>>>>>> Stashed changes
+    //   },
+    // });
+
+    // this.planetFactory.create({
+<<<<<<< Updated upstream
+=======
+    //   type: ENTITY_TYPE.PLANET,
     //   name: "Saturn",
     //   radius: 58232,
     //   tiltAngle: 26.73,
@@ -414,6 +498,8 @@ export class Scene {
     // });
 
     // this.planetFactory.create({
+    //   type: ENTITY_TYPE.PLANET,
+>>>>>>> Stashed changes
     //   name: "Uranus",
     //   radius: 25362,
     //   tiltAngle: 7.77, // Tilt ~98°, use low value + flipped axis
@@ -444,17 +530,20 @@ export class Scene {
 
     this.skyRender.update(deltaTime);
 
-    this.planetRender.update(deltaTime);
     this.modelUpdate.update(deltaTime);
     this.orbitSystem.update(deltaTime);
     this.orbitTracer.update(deltaTime);
 
     this.ccdSystem.update(deltaTime);
+    this.camera.update(deltaTime/1000);
+    this.cameraLatchSystem.update(deltaTime);
+    this.frustumCuller.update(deltaTime);
+
+    this.planetRender.update(deltaTime);
     this.bbpRenderSystem.update(deltaTime);
     this.selectionGlowRender.update(deltaTime);
     this.selectionTagRender.update(deltaTime);
-    this.camera.update(deltaTime/1000);
-    this.cameraLatchSystem.update(deltaTime);
+
 
     this.sunRender.update(deltaTime);
 

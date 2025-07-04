@@ -2,8 +2,13 @@ export const SETTINGS = {
   GLOBAL_SCENE_SCALE: 10,
   CAMERA_SPEED: 3,
   MOUSE_SENSITIVITY: 0.001,
+<<<<<<< Updated upstream
   BASE_DISTANCE_SCALE: 6e3,
   BASE_SIZE_SCALE: 1e1,
+=======
+  BASE_DISTANCE_SCALE: 1e4,
+  BASE_SIZE_SCALE: 1e2,
+>>>>>>> Stashed changes
   BASE_FAR_PLANE: 5e11,
   BASE_SUN_SIZE: 7e6, // 7e5 actual but texture only contains 10% sun
 

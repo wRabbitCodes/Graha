@@ -194,7 +194,7 @@ export class SelectionTagSystem extends System implements IRenderSystem {
     orbitComp: OrbitComponent,
     cameraPos: vec3
   ) {
-    renderComp.time += dt / 50000000;
+    renderComp.time += dt / 500;
 
     const scale = vec3.create();
     mat4.getScaling(scale, modelComp.modelMatrix);
