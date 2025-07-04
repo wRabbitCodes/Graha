@@ -35,7 +35,7 @@ export class Scene {
   private readonly canvas: Canvas;
   private readonly camera: Camera;
   private readonly input: IO;
-  private readonly assetsLoader: AssetsLoader;
+  readonly assetsLoader: AssetsLoader;
 
   private registry = new Registry();
   private renderer: Renderer;
@@ -140,13 +140,7 @@ export class Scene {
       }
     });
   }
-  async load(): Promise<void> {
-    await this.assetsLoader.loadAll({
-      textures: TEXTURES,
-      fonts: FONTS,
-      models: {}, // in future
-    });
-  }
+
   initialize() {
     
     this.skyFactory.create();

@@ -1,10 +1,33 @@
 import { Scene } from "./core/Scene";
+import { FONTS, TEXTURES } from "./data/assetsData";
 
-const scene = new Scene("glCanvas");
-scene.load().then(() => {
-  scene.initialize();
-  requestAnimationFrame(loop);
-});
+
+const loadingText = document.getElementById('loading-text')!;
+const loadingProgress = document.getElementById('loading-progress') as HTMLProgressElement;
+const loadingScreen = document.getElementById('loading-screen')!;
+
+const scene = new Scene('glCanvas');
+const loader = scene.assetsLoader;
+
+  // Kick off loadAll and update UI every frame
+const loadingInterval = setInterval(() => {
+  const progress = loader.getProgress();
+  loadingText.textContent = `Loading... ${(progress * 100).toFixed(0)}%`;
+  loadingProgress.value = progress;
+}, 100);
+
+  loader.loadAll({
+    textures: TEXTURES,
+    fonts: FONTS,
+  }).then(()=> {
+    scene.initialize();
+    clearInterval(loadingInterval);
+    loadingScreen.style.display = 'none';
+    requestAnimationFrame(loop);
+  });
+
+
+
 
 let lastTime = performance.now();
 function loop(time: number) {
