@@ -8,12 +8,12 @@ export class Camera {
   private right: vec3 = vec3.create();
   private worldUp: vec3 = vec3.fromValues(0, 1, 0);
   private viewMatrix: mat4 = mat4.create();
-  private radius = 5;
+  private minLatchRadius = 1;
   private orientation: quat = quat.create();
 
   private isLatched = false;
   private latchedTarget: vec3 = vec3.create(); // where camera looks at
-  private latchedEntityRadius = 50;
+  private latchedEntityRadius = 5;
   private azimuth = 0; // θ
   private elevation = 0.4; // φ
 
@@ -41,7 +41,7 @@ export class Camera {
   // Enable latch mode to view around an entity
   enableLatchMode(target: vec3, radius: number) {
     this.isLatched = true;
-    this.latchedEntityRadius = radius;
+    this.minLatchRadius = radius;
     vec3.copy(this.latchedTarget, target);
 
     // Calculate orbit angles ONCE
@@ -68,12 +68,11 @@ export class Camera {
   latchedWheelMouseHandler(e: WheelEvent) {
     if (!this.isLatched) return;
       const zoomSpeed = 1.2;
-      const minRadius = 1;
-      const maxRadius = this.latchedEntityRadius * 2;
+      const maxRadius = SETTINGS.MAX_LATCHED_RADIUS;
       // e.deltaY > 0 means zoom out, < 0 means zoom in
       const zoomFactor = e.deltaY > 0 ? zoomSpeed : 1 / zoomSpeed;
       this.latchedEntityRadius *= zoomFactor;
-      this.latchedEntityRadius = Math.max(minRadius, Math.min(this.latchedEntityRadius, maxRadius));
+      this.latchedEntityRadius = Math.max(this.minLatchRadius, Math.min(this.latchedEntityRadius, maxRadius));
 
   }
 
@@ -107,10 +106,6 @@ export class Camera {
 
   getPosition(): vec3 {
     return this.position;
-  }
-
-  getRadius(): number {
-    return this.radius;
   }
 
   updateLatchedTarget(newTarget: vec3) {

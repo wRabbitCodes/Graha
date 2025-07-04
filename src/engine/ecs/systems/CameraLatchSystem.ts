@@ -13,11 +13,7 @@ import { System } from "../System";
 import { Entity } from "../Entity";
 
 export class CameraLatchSystem extends System {
-  constructor(
-    private camera: Camera,
-    registry: Registry,
-    utils: GLUtils
-  ) {
+  constructor(private camera: Camera, registry: Registry, utils: GLUtils) {
     super(registry, utils);
   }
 
@@ -29,7 +25,10 @@ export class CameraLatchSystem extends System {
 
     let selectedEntity: Entity | null = null;
     for (const entity of selectedEntities) {
-      const selection = this.registry.getComponent(entity, EntitySelectionComponent);
+      const selection = this.registry.getComponent(
+        entity,
+        EntitySelectionComponent
+      );
       if (selection?.isSelected) {
         selectedEntity = entity;
         break;
@@ -39,7 +38,9 @@ export class CameraLatchSystem extends System {
     // No selection: disable latch mode, cleanup all
     if (selectedEntity === null) {
       this.camera.disableLatchMode();
-      for (const entity of this.registry.getEntitiesWith(CameraLatchComponent)) {
+      for (const entity of this.registry.getEntitiesWith(
+        CameraLatchComponent
+      )) {
         this.registry.removeComponent(entity, CameraLatchComponent);
       }
       return;
@@ -54,7 +55,10 @@ export class CameraLatchSystem extends System {
       }
     }
 
-    let latch = this.registry.getComponent(selectedEntity, CameraLatchComponent);
+    let latch = this.registry.getComponent(
+      selectedEntity,
+      CameraLatchComponent
+    );
     if (!latch) {
       latch = new CameraLatchComponent();
       this.registry.addComponent(selectedEntity, latch);
@@ -76,28 +80,33 @@ export class CameraLatchSystem extends System {
     model: ModelComponent,
     deltaTime: number
   ) {
-  if (latch.state === COMPONENT_STATE.UNINITIALIZED) {
-  vec3.copy(latch.startPosition, this.camera.getPosition());
-  latch.elapsed = 0;
-  latch.transitionTime = 2;
-  latch.state = COMPONENT_STATE.READY;
-}
+    if (latch.state === COMPONENT_STATE.UNINITIALIZED) {
+      vec3.copy(latch.startPosition, this.camera.getPosition());
+      latch.elapsed = 0;
+      latch.transitionTime = 2;
+      latch.state = COMPONENT_STATE.READY;
+    }
 
-  // This is now dynamic every frame — orbit around moving target
-  latch.elapsed += deltaTime / 1000;
-  const t = this.smoothstep(0, 1, latch.elapsed / latch.transitionTime);
-
-  const interpolated = vec3.lerp(vec3.create(), latch.startPosition, model.position!, t);
-  this.camera.setPosition(interpolated);
-
-  const dist = vec3.distance(interpolated, model.position!);
-  if (dist <= 0.1) {
-    this.camera.enableLatchMode(model.position!, this.computeRadius(model) * model.boundingBoxScale);
-    latch.transitionState = LATCH_STATES.LATCHED;
+    // This is now dynamic every frame — orbit around moving target
+    latch.elapsed += deltaTime / 1000;
+    const t = this.smoothstep(0, 1, latch.elapsed / latch.transitionTime);
+    const r = this.computeRadius(model);
+    const target = vec3.create();
+    vec3.add(target, model.position!, vec3.fromValues(r, r, r));
+    const interpolated = vec3.lerp(
+      vec3.create(),
+      latch.startPosition,
+      target,
+      t
+    );
+    this.camera.setPosition(interpolated);
+    console.log(`CAMERA POSTITION ${interpolated}`);
+    const dist = vec3.distance(interpolated, target);
+    if (dist <= r * model.boundingBoxScale) {
+      this.camera.enableLatchMode(model.position!, r * model.boundingBoxScale);
+      latch.transitionState = LATCH_STATES.LATCHED;
+    }
   }
-
-}
-
 
   private computeRadius(model: ModelComponent): number {
     const scale = vec3.create();

@@ -35,7 +35,6 @@ export class CCDSystem extends System {
 
   private handleCameraCollisions(modelComp: ModelComponent) {
     const pos = this.camera.getPosition();
-    const r = this.camera.getRadius();
     const alpha = 0.2;
 
     const radius = Math.max(...modelComp.scale!) * modelComp.boundingBoxScale;
@@ -49,22 +48,22 @@ export class CCDSystem extends System {
     };
     const correctedPos = vec3.clone(pos);
 
-    if (this.pointInSphere(pos, sphereCollider, r)) {
-      const target = this.resolvePushSphere(pos, sphereCollider, r);
+    if (this.pointInSphere(pos, sphereCollider)) {
+      const target = this.resolvePushSphere(pos, sphereCollider);
       vec3.lerp(correctedPos, pos, target, alpha); // smooth interpolation
     }
     return correctedPos;
   }
 
-  private pointInSphere(p: vec3, s: SphereCollider, r: number) {
+  private pointInSphere(p: vec3, s: SphereCollider) {
     const d2 = vec3.squaredDistance(p, s.center!);
-    return d2 < (s.radius! + r) * (s.radius! + r);
+    return d2 < (s.radius!) * (s.radius!);
   }
 
-  private resolvePushSphere(p: vec3, s: SphereCollider, r: number) {
+  private resolvePushSphere(p: vec3, s: SphereCollider) {
     const dir = vec3.subtract(vec3.create(), p, s.center!);
     vec3.normalize(dir, dir);
-    vec3.scale(dir, dir, s.radius! + r);
+    vec3.scale(dir, dir, s.radius!);
     return vec3.add(vec3.create(), s.center!, dir); // returns new vec3, no mutation
   }
 }

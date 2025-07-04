@@ -42,7 +42,6 @@ export class OrbitPathRenderSystem extends System implements IRenderSystem {
       if (renderComp.state !== COMPONENT_STATE.READY) continue;
 
       if (modelComp?.type === ENTITY_TYPE.MOON) {
-        debugger;
         const moonComp = this.registry.getComponent(entity, MoonComponent);
         const parentModel = this.registry.getComponent(
           moonComp.parentEntity!,

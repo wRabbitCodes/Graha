@@ -57,18 +57,22 @@ export class Raycaster {
   }
 
   intersectRayOBB(
-  rayOrigin: vec3,
-  rayDir: vec3,
-  modelMatrix: mat4,
-  aabbMin: vec3,
-  aabbMax: vec3
+    rayOrigin: vec3,
+    rayDir: vec3,
+    modelMatrix: mat4,
+    aabbMin: vec3,
+    aabbMax: vec3
   ): number | null {
     const invModel = mat4.invert(mat4.create(), modelMatrix);
     if (!invModel) return null;
 
     const localOrigin = vec3.transformMat4(vec3.create(), rayOrigin, invModel);
-    const localDir = vec3.transformMat3(vec3.create(), rayDir, mat3.fromMat4(mat3.create(), invModel));
-    vec3.normalize(localDir, localDir);  // 🔥 must do this!
+    const localDir = vec3.transformMat3(
+      vec3.create(),
+      rayDir,
+      mat3.fromMat4(mat3.create(), invModel)
+    );
+    vec3.normalize(localDir, localDir); // 🔥 must do this!
 
     let tmin = (aabbMin[0] - localOrigin[0]) / localDir[0];
     let tmax = (aabbMax[0] - localOrigin[0]) / localDir[0];
@@ -78,7 +82,7 @@ export class Raycaster {
     let tymax = (aabbMax[1] - localOrigin[1]) / localDir[1];
     if (tymin > tymax) [tymin, tymax] = [tymax, tymin];
 
-    if ((tmin > tymax) || (tymin > tmax)) return null;
+    if (tmin > tymax || tymin > tmax) return null;
     if (tymin > tmin) tmin = tymin;
     if (tymax < tmax) tmax = tymax;
 
@@ -86,7 +90,7 @@ export class Raycaster {
     let tzmax = (aabbMax[2] - localOrigin[2]) / localDir[2];
     if (tzmin > tzmax) [tzmin, tzmax] = [tzmax, tzmin];
 
-    if ((tmin > tzmax) || (tzmin > tmax)) return null;
+    if (tmin > tzmax || tzmin > tmax) return null;
     if (tzmin > tmin) tmin = tzmin;
     if (tzmax < tmax) tmax = tzmax;
 
@@ -94,25 +98,24 @@ export class Raycaster {
   }
 
   extractCameraPosition(viewMatrix: mat4): vec3 {
-  const viewInv = mat4.invert(mat4.create(), viewMatrix);
-  return vec3.fromValues(viewInv[12], viewInv[13], viewInv[14]);
-}
-
- rayOrigin = vec3.create();
-  rayDir = vec3.create();
-
-extractForwardVector(viewMatrix: mat4): vec3 {
-  const invView = mat4.invert(mat4.create(), viewMatrix);
-  const forward = vec3.transformMat4(vec3.create(), [0, 0, -1], invView);
-  const position = vec3.fromValues(invView[12], invView[13], invView[14]);
-  vec3.subtract(forward, forward, position); // direction = forward - cameraPos
-  vec3.normalize(forward, forward);
-  return forward;
-}
- setFromViewMatrix(viewMatrix: mat4) {
-    vec3.copy(this.rayOrigin, this.extractCameraPosition(viewMatrix));
-    vec3.copy(this.rayDir, this.extractForwardVector(viewMatrix));
-    return {origin: this.rayOrigin, direction: this.rayDir};
+    const viewInv = mat4.invert(mat4.create(), viewMatrix);
+    return vec3.fromValues(viewInv[12], viewInv[13], viewInv[14]);
   }
 
+  rayOrigin = vec3.create();
+  rayDir = vec3.create();
+
+  extractForwardVector(viewMatrix: mat4): vec3 {
+    const invView = mat4.invert(mat4.create(), viewMatrix);
+    const forward = vec3.transformMat4(vec3.create(), [0, 0, -1], invView);
+    const position = vec3.fromValues(invView[12], invView[13], invView[14]);
+    vec3.subtract(forward, forward, position); // direction = forward - cameraPos
+    vec3.normalize(forward, forward);
+    return forward;
+  }
+  setFromViewMatrix(viewMatrix: mat4) {
+    vec3.copy(this.rayOrigin, this.extractCameraPosition(viewMatrix));
+    vec3.copy(this.rayDir, this.extractForwardVector(viewMatrix));
+    return { origin: this.rayOrigin, direction: this.rayDir };
+  }
 }

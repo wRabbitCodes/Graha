@@ -1,6 +1,8 @@
 export const SETTINGS = {
+  MAX_LATCHED_RADIUS: 5e7,
+  CAMERA_RADIUS: 10,
   GLOBAL_SCENE_SCALE: 10,
-  CAMERA_SPEED: 4,
+  CAMERA_SPEED: 1,
   MOUSE_SENSITIVITY: 0.001,
   BASE_DISTANCE_SCALE: 1e4,
   BASE_SIZE_SCALE: 4e2,
@@ -22,5 +24,5 @@ export const SETTINGS = {
   get SUN_SIZE() {
     // return this.BASE_SUN_SIZE / this.SIZE_SCALE * 1.5;
     return 2e3;
-  }
+  },
 };
