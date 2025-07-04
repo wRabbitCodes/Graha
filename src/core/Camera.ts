@@ -13,7 +13,7 @@ export class Camera {
 
   private isLatched = false;
   private latchedTarget: vec3 = vec3.create(); // where camera looks at
-  private latchedRadius = 50;
+  private latchedEntityRadius = 50;
   private azimuth = 0; // θ
   private elevation = 0.4; // φ
 
@@ -25,16 +25,14 @@ export class Camera {
 
   update(deltaTime: number) {
     if (this.isLatched) {
-      const x = this.latchedRadius * Math.cos(this.elevation) * Math.sin(this.azimuth);
-      const y = this.latchedRadius * Math.sin(this.elevation);
-      const z = this.latchedRadius * Math.cos(this.elevation) * Math.cos(this.azimuth);
-
+      const x = this.latchedEntityRadius * Math.cos(this.elevation) * Math.sin(this.azimuth);
+      const y = this.latchedEntityRadius * Math.sin(this.elevation);
+      const z = this.latchedEntityRadius * Math.cos(this.elevation) * Math.cos(this.azimuth);
       const offset = vec3.fromValues(x, y, z);
       vec3.add(this.position, this.latchedTarget, offset);
-
       mat4.lookAt(this.viewMatrix, this.position, this.latchedTarget, this.worldUp);
       return;
-    } 
+    }
     this.updateVectorsFromQuat();
     this.updateViewMatrix();
     
@@ -42,17 +40,14 @@ export class Camera {
 
   // Enable latch mode to view around an entity
   enableLatchMode(target: vec3, radius: number) {
-    vec3.copy(this.latchedTarget, target);
-    this.latchedRadius = radius;
     this.isLatched = true;
+    this.latchedEntityRadius = radius;
+    vec3.copy(this.latchedTarget, target);
 
-    // Initialize angles from current camera position
+    // Calculate orbit angles ONCE
     const offset = vec3.subtract(vec3.create(), this.position, target);
-    this.latchedRadius = vec3.length(offset);
-
-    // Compute spherical angles from position
     this.azimuth = Math.atan2(offset[0], offset[2]);
-    this.elevation = Math.asin(offset[1] / this.latchedRadius);
+    this.elevation = Math.asin(offset[1] / vec3.length(offset));
   }
 
   // Exit latch mode
@@ -68,6 +63,18 @@ export class Camera {
       this.elevation = Math.max(Math.min(this.elevation, Math.PI/2 - 0.01), -Math.PI/2 + 0.01);
       return; // bypass FPS orientation
     }
+  }
+
+  latchedWheelMouseHandler(e: WheelEvent) {
+    if (!this.isLatched) return;
+      const zoomSpeed = 1.2;
+      const minRadius = 1;
+      const maxRadius = this.latchedEntityRadius * 2;
+      // e.deltaY > 0 means zoom out, < 0 means zoom in
+      const zoomFactor = e.deltaY > 0 ? zoomSpeed : 1 / zoomSpeed;
+      this.latchedEntityRadius *= zoomFactor;
+      this.latchedEntityRadius = Math.max(minRadius, Math.min(this.latchedEntityRadius, maxRadius));
+
   }
 
   freeLookMouseHandler(e: MouseEvent) {
@@ -105,6 +112,10 @@ export class Camera {
   getRadius(): number {
     return this.radius;
   }
+
+  updateLatchedTarget(newTarget: vec3) {
+  vec3.copy(this.latchedTarget, newTarget);
+}
 
   private updateVectorsFromQuat() {
     vec3.transformQuat(this.front, [0, 0, -1], this.orientation);

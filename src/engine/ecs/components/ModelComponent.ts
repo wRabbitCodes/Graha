@@ -1,8 +1,13 @@
 import { mat3, mat4, quat, vec3 } from "gl-matrix";
 import { COMPONENT_STATE, IComponent, IState } from "../Component";
 
+export enum ENTITY_TYPE {
+  PLANET = "PLANET",
+  MOON = "MOON",
+}
 export class ModelComponent implements IComponent, IState {
   state = COMPONENT_STATE.UNINITIALIZED;
+  type = ENTITY_TYPE;
   name?: string;
   scale?: vec3;
   position?: vec3;

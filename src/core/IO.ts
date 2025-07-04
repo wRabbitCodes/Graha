@@ -32,9 +32,9 @@ export class IO {
     this.canvasElement.addEventListener("wheel", (e)=> {
       e.preventDefault();
       if (!wheelCallback) return;
-      const lastP = this.lagrangePoints.pop();
-      this.lagrangePoints.unshift(lastP!)
-      wheelCallback(lastP);
+      // const lastP = this.lagrangePoints.pop();
+      // this.lagrangePoints.unshift(lastP!)
+      wheelCallback(e);
     }, {signal: this.controller.signal});
   }
 

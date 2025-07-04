@@ -16,8 +16,7 @@ export class PlanetRenderSystem extends System implements IRenderSystem {
     super(registry, utils);
   }
   update(deltaTime: number): void {
-    this.atmosphereRotation =
-      (this.atmosphereRotation + (deltaTime * 1) / 5.5e9) % 1.0;
+    this.atmosphereRotation += ((deltaTime / 45000)) % 1.0;
     for (const entity of this.registry.getEntitiesWith(
       PlanetRenderComponent,
       ModelComponent,
@@ -164,7 +163,7 @@ export class PlanetRenderSystem extends System implements IRenderSystem {
 
           // Render with additive blending
           gl.enable(gl.CULL_FACE);
-          gl.cullFace(gl.FRONT_FACE);
+          gl.cullFace(gl.FRONT);
           gl.enable(gl.BLEND);
           gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
           gl.depthMask(false);
@@ -191,7 +190,7 @@ export class PlanetRenderSystem extends System implements IRenderSystem {
   private initialize(renderComp: PlanetRenderComponent) {
     renderComp.state = COMPONENT_STATE.LOADING;
     this.getUniformLocations(renderComp);
-    renderComp.sphereMesh = this.utils.createUVSphere(1, 30, 30);
+    renderComp.sphereMesh = this.utils.createUVSphere(1, 40, 40);
     this.setupVAO(renderComp);
     renderComp.state = COMPONENT_STATE.READY;
   }
