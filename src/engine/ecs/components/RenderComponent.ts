@@ -6,6 +6,7 @@ export abstract class RenderComponent implements IComponent, IState {
   state = COMPONENT_STATE.UNINITIALIZED;
   program: WebGLProgram | null = null;
   VAO: WebGLVertexArrayObject | null = null;
+  VBO: WebGLBuffer | null = null;
 }
 
 export class PlanetRenderComponent extends RenderComponent {

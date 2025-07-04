@@ -48,6 +48,7 @@ export class EntityFactory implements IFactory {
     transform.tiltAngle = params.tiltAngle;
     transform.siderealDay = params.siderealDay ?? 24;
     transform.axis = params.axis ?? vec3.fromValues(0, 1, 0);
+    transform.type = params.type;
     this.registry.addComponent(entity, transform);
 
     // Orbit (optional)

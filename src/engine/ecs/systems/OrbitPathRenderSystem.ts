@@ -5,7 +5,8 @@ import { RenderContext } from "../../command/IRenderCommands";
 import { IRenderSystem } from "../../command/IRenderSystem";
 import { Renderer } from "../../command/Renderer";
 import { COMPONENT_STATE } from "../Component";
-import { ModelComponent } from "../components/ModelComponent";
+import { ENTITY_TYPE, ModelComponent } from "../components/ModelComponent";
+import { MoonComponent } from "../components/MoonComponent";
 import { OrbitComponent } from "../components/OrbitComponent";
 import { OrbitPathRenderComponent } from "../components/RenderComponent";
 import { Entity } from "../Entity";
@@ -24,7 +25,13 @@ export class OrbitPathRenderSystem extends System implements IRenderSystem {
     )) {
       const orbitComp = this.registry.getComponent(entity, OrbitComponent);
       if (orbitComp?.state !== COMPONENT_STATE.READY) continue;
-
+      
+      const modelComp = this.registry.getComponent(entity, ModelComponent);
+      if (modelComp.state !== COMPONENT_STATE.READY) continue;
+      
+      if (orbitComp.scaledPathPoints.length === 0) {
+        orbitComp.scaledPathPoints = [...orbitComp.pathPoints];
+      }
       let renderComp = this.registry.getComponent(
         entity,
         OrbitPathRenderComponent
@@ -34,8 +41,25 @@ export class OrbitPathRenderSystem extends System implements IRenderSystem {
         this.initialize(entity, renderComp, orbitComp);
       if (renderComp.state !== COMPONENT_STATE.READY) continue;
 
+      if (modelComp?.type === ENTITY_TYPE.MOON) {
+        debugger;
+        const moonComp = this.registry.getComponent(entity, MoonComponent);
+        const parentModel = this.registry.getComponent(
+          moonComp.parentEntity!,
+          ModelComponent
+        );
+        if (parentModel.state !== COMPONENT_STATE.READY) continue;
+
+        orbitComp.scaledPathPoints = this.translateOrbitPathPoints(
+          orbitComp.pathPoints,
+          parentModel.position!,
+        );
+        this.updateVAOForMoon(renderComp, orbitComp);
+      } 
+      
+      
       const now = performance.now() / 1000;
-      const totalVerts = orbitComp.pathPoints.length / 3;
+      const totalVerts = orbitComp.scaledPathPoints.length / 3;
       const speed = 50.0; // <-- 🟢 EDIT THIS TO CONTROL GLOW SPEED (vertices per second)
       const pulseLength = totalVerts * 0.3; // Length of pulse (50% of orbit)
       const pulseStart = (now * speed) % totalVerts;
@@ -166,7 +190,7 @@ export class OrbitPathRenderSystem extends System implements IRenderSystem {
     renderComp: OrbitPathRenderComponent,
     orbitComp: OrbitComponent
   ) {
-    const vertices = new Float32Array(orbitComp.pathPoints);
+    const vertices = new Float32Array(orbitComp.scaledPathPoints);
     const gl = this.utils.gl;
     const vao = gl.createVertexArray();
     const vbo = gl.createBuffer();
@@ -188,5 +212,25 @@ export class OrbitPathRenderSystem extends System implements IRenderSystem {
 
     gl.bindVertexArray(null);
     renderComp.VAO = vao;
+    renderComp.VBO = vbo;
+  }
+
+  private updateVAOForMoon(renderComp:OrbitPathRenderComponent, orbitComp: OrbitComponent) {
+    const gl = this.utils.gl;
+    gl.bindBuffer(gl.ARRAY_BUFFER, renderComp.VBO);
+    // gl.bufferSubData(gl.ARRAY_BUFFER, 0, new Float32Array(orbitComp.scaledPathPoints));
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(orbitComp.scaledPathPoints), gl.DYNAMIC_DRAW);
+  }
+
+  private translateOrbitPathPoints(pathPoints: number[], parentPos: vec3) {
+    const translated: number[] = [];
+    for (let i = 0; i < pathPoints.length; i += 3) {
+      translated.push(
+        pathPoints[i] + parentPos[0],
+        pathPoints[i + 1] + parentPos[1],
+        pathPoints[i + 2] + parentPos[2]
+      );
+    }
+    return translated;
   }
 }

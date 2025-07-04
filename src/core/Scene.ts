@@ -385,7 +385,6 @@ export class Scene {
 
     this.modelUpdate.update(deltaTime);
     this.orbitSystem.update(deltaTime);
-    this.orbitTracer.update(deltaTime);
 
     this.ccdSystem.update(deltaTime);
     this.camera.update(deltaTime/1000);
@@ -393,6 +392,7 @@ export class Scene {
     this.frustumCuller.update(deltaTime);
 
     this.planetRender.update(deltaTime);
+    this.orbitTracer.update(deltaTime);
     this.bbpRenderSystem.update(deltaTime);
     this.selectionGlowRender.update(deltaTime);
     this.selectionTagRender.update(deltaTime);
