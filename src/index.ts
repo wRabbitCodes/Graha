@@ -1,7 +1,18 @@
 import { Scene } from "./core/Scene";
 
 const scene = new Scene("glCanvas");
-scene.initialize();
+scene.load().then(() => {
+  scene.initialize();
+  requestAnimationFrame(loop);
+});
+
+let lastTime = performance.now();
+function loop(time: number) {
+  const deltaTime = time - lastTime; // in milliseconds
+  lastTime = time;
+  scene.update(deltaTime);
+  requestAnimationFrame(loop);
+}
 // scene.skybox.loadCubeMap([
 //   { src: 'cubemap/posx.png', target: scene.gl.TEXTURE_CUBE_MAP_POSITIVE_X },
 //   { src: 'cubemap/negx.png', target: scene.gl.TEXTURE_CUBE_MAP_NEGATIVE_X },
@@ -75,12 +86,3 @@ scene.initialize();
 //   orbitalPeriod: 365.256, // days (sidereal year)
 // });
 // scene.camera.follow(scene.entityManager.getEntity("Earth")!, vec3.fromValues(30,30,30));
-let lastTime = performance.now();
-function loop(time: number) {
-  const deltaTime = time - lastTime; // in milliseconds
-  lastTime = time;
-  scene.update(deltaTime);
-  requestAnimationFrame(loop);
-}
-
-requestAnimationFrame(loop);

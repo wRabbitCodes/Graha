@@ -1,23 +1,23 @@
 import { SETTINGS } from "../../../config/settings";
+import { AssetsLoader } from "../../../core/AssetsLoader";
 import { GLUtils } from "../../../utils/GLUtils";
 import { RenderContext } from "../../command/IRenderCommands";
 import { IRenderSystem } from "../../command/IRenderSystem";
 import { Renderer } from "../../command/Renderer";
 import { COMPONENT_STATE } from "../Component";
 import { SunRenderComponent } from "../components/RenderComponent";
-import { TextureComponent } from "../components/TextureComponent";
 import { Registry } from "../Registry";
 import { System } from "../System";
 
 export class SunRenderSystem extends System implements IRenderSystem {
-  constructor(public renderer: Renderer, registry: Registry, utils: GLUtils) {
+  constructor(public renderer: Renderer,private assetsLoader: AssetsLoader, registry: Registry, utils: GLUtils) {
     super(registry, utils);
   }
   update(deltaTime: number): void {
     for (const entity of this.registry.getEntitiesWith(SunRenderComponent)) {
       const renderComp = this.registry.getComponent(entity, SunRenderComponent);
-      const textureComp = this.registry.getComponent(entity, TextureComponent);
-      if (textureComp.state !== COMPONENT_STATE.READY) continue;
+      const texture = this.assetsLoader.getTexture("sun");
+      if (!texture) return;
       if (renderComp.state === COMPONENT_STATE.UNINITIALIZED)
         this.initialize(renderComp);
       if (renderComp.state !== COMPONENT_STATE.READY) continue;
@@ -45,11 +45,11 @@ export class SunRenderSystem extends System implements IRenderSystem {
             SETTINGS.SUN_SIZE 
           ); // Scale of flare in world units
 
-          gl.activeTexture(gl.TEXTURE0);
-          gl.bindTexture(gl.TEXTURE_2D, textureComp.sun!);
+          gl.activeTexture(gl.TEXTURE0 + 15);
+          gl.bindTexture(gl.TEXTURE_2D, texture);
           gl.uniform1i(
             gl.getUniformLocation(renderComp.program!, "u_lensflare"),
-            0
+            15
           );
 
           // gl.disable(gl.DEPTH_TEST);

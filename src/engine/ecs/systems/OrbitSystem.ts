@@ -41,7 +41,7 @@ export class OrbitSystem extends System {
         continue;
       } 
       model.position = this.calculatePositionFromTime(orbit);
-      console.log(`${model.name} ::: POSITION: ${model.position}`)
+      // console.log(`${model.name} ::: POSITION: ${model.position}`)
     }
   }
 

@@ -9,7 +9,6 @@ export abstract class RenderComponent implements IComponent, IState {
 }
 
 export class PlanetRenderComponent extends RenderComponent {
-  textures?: { [key: string]: WebGLTexture | null };
   uniformLocations: { [key: string]: WebGLUniformLocation | null } = {};
   sphereMesh?: SphereMesh;
   atmosphereProgram?: WebGLProgram;

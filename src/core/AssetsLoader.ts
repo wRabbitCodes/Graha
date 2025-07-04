@@ -1,82 +1,94 @@
-import * as twgl from "twgl.js";
+import { GLUtils } from "../utils/GLUtils";
 
-export type TextureMap = Record<string, string>;
-export type FontMap = { name: string; url: string };
-export type ModelMap = Record<string, string>; // key: model name, value: .glTF URL
+type FontConfig = {
+  name: string;
+  url: string;
+};
+
+type LoadConfig = {
+  textures?: Record<string, string>;
+  fonts?: FontConfig[];
+  models?: Record<string, string>;
+};
 
 export class AssetsLoader {
   private gl: WebGL2RenderingContext;
+  private utils: GLUtils;
 
-  private total = 0;
-  private loaded = 0;
+  private textures: Map<string, WebGLTexture> = new Map();
+  private fonts: Map<string, FontFace> = new Map();
+  private models: Map<string, ArrayBuffer> = new Map();
 
-  private textureCache: Map<string, WebGLTexture> = new Map();
-  private modelCache: Map<string, twgl.BufferInfo | any> = new Map(); // BufferInfo or glTF Scene
+  private totalAssets = 0;
+  private loadedAssets = 0;
 
-  constructor(gl: WebGL2RenderingContext) {
-    this.gl = gl;
+  constructor(utils: GLUtils) {
+    this.gl = utils.gl;
+    this.utils = utils;
   }
 
-  /** Load all assets at once */
-  async loadAll({
-    textures = {},
-    fonts = [],
-    models = {},
-  }: {
-    textures?: TextureMap;
-    fonts?: FontMap[];
-    models?: ModelMap;
-  }): Promise<void> {
-    const textureCount = Object.keys(textures).length;
-    const fontCount = fonts.length;
-    const modelCount = Object.keys(models).length;
-    this.total = textureCount + fontCount + modelCount;
-    this.loaded = 0;
+  async loadAll(config: LoadConfig): Promise<void> {
+    const loadTasks: Promise<void>[] = [];
 
-    await Promise.all([
-      ...fonts.map((font) => this.loadFont(font.name, font.url)),
-      ...Object.entries(textures).map(([key, url]) => this.loadTexture(key, url)),
-      ...Object.entries(models).map(([key, url]) => this.loadGLTFModel(key, url)),
-    ]);
-  }
+    const textureEntries = Object.entries(config.textures ?? {});
+    const fontEntries = config.fonts ?? [];
+    const modelEntries = Object.entries(config.models ?? {});
 
-  /** Load and cache a texture */
-  async loadTexture(name: string, url: string): Promise<void> {
-    if (this.textureCache.has(url)) {
-      this.loaded++;
-      return;
+    this.totalAssets = textureEntries.length + fontEntries.length + modelEntries.length;
+    this.loadedAssets = 0;
+
+    for (const [name, url] of textureEntries) {
+      loadTasks.push(
+        this.utils.loadTexture(url).then((tex) => {
+          this.textures.set(name, tex);
+          this.loadedAssets++;
+        })
+      );
     }
-    const tex = await twgl.createTexture(this.gl, { src: url });
-    this.textureCache.set(name, tex);
-    this.loaded++;
-  }
 
-  /** Load a glTF model and store bufferInfo/scene */
-  async loadGLTFModel(name: string, url: string): Promise<void> {
-    const response = await fetch(url);
-    const json = await response.json();
-    // You can plug in a glTF loader here — simplified placeholder for now
-    this.modelCache.set(name, json); // Replace with parsed glTF scene
-    this.loaded++;
-  }
+    for (const font of fontEntries) {
+      loadTasks.push(
+        this._loadFont(font.name, font.url).then((fontFace) => {
+          this.fonts.set(font.name, fontFace);
+          this.loadedAssets++;
+        })
+      );
+    }
 
-  /** Load a web font */
-  async loadFont(name: string, url: string): Promise<void> {
-    const font = new FontFace(name, `url(${url})`);
-    await font.load();
-    (document as any).fonts.add(font);
-    this.loaded++;
-  }
+    for (const [name, url] of modelEntries) {
+      loadTasks.push(
+        fetch(url)
+          .then((res) => res.arrayBuffer())
+          .then((buffer) => {
+            this.models.set(name, buffer);
+            this.loadedAssets++;
+          })
+      );
+    }
 
-  getTexture(name: string): WebGLTexture | undefined {
-    return this.textureCache.get(name);
-  }
-
-  getModel(name: string): any {
-    return this.modelCache.get(name);
+    await Promise.all(loadTasks);
   }
 
   getProgress(): number {
-    return this.total === 0 ? 1 : this.loaded / this.total;
+    return this.totalAssets === 0 ? 1 : this.loadedAssets / this.totalAssets;
+  }
+
+  getTexture(name: string): WebGLTexture | undefined {
+    return this.textures.get(name);
+  }
+
+  getFont(name: string): FontFace | undefined {
+    return this.fonts.get(name);
+  }
+
+  getModel(name: string): ArrayBuffer | undefined {
+    return this.models.get(name);
+  }
+
+  private async _loadFont(name: string, url: string): Promise<FontFace> {
+    const font = new FontFace(name, `url(${url})`);
+    await font.load();
+    document.fonts.add(font);
+    return font;
   }
 }

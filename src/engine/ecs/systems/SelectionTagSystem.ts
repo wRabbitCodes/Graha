@@ -6,7 +6,6 @@ import { COMPONENT_STATE } from "../Component";
 import { EntitySelectionComponent } from "../components/EntitySelectionComponent";
 import { ModelComponent } from "../components/ModelComponent";
 import { TagRenderComponent } from "../components/RenderComponent";
-import { TextureComponent } from "../components/TextureComponent";
 import { Registry } from "../Registry";
 import { System } from "../System";
 import { RenderContext } from "../../command/IRenderCommands";
@@ -22,7 +21,6 @@ export class SelectionTagSystem extends System implements IRenderSystem {
     for (const entity of this.registry.getEntitiesWith(
       EntitySelectionComponent,
       ModelComponent,
-      TextureComponent
     )) {
       const selectionComp = this.registry.getComponent(
         entity,
@@ -33,9 +31,6 @@ export class SelectionTagSystem extends System implements IRenderSystem {
         this.registry.removeComponent(entity, TagRenderComponent);
         continue;
       }
-
-      const textureComp = this.registry.getComponent(entity, TextureComponent);
-      if (textureComp.state !== COMPONENT_STATE.READY) continue;
 
       const modelComp = this.registry.getComponent(entity, ModelComponent);
       if (modelComp.state !== COMPONENT_STATE.READY) continue;

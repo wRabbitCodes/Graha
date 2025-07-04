@@ -1,5 +1,4 @@
 import { SunRenderComponent } from "../engine/ecs/components/RenderComponent";
-import { TextureComponent } from "../engine/ecs/components/TextureComponent";
 import { Entity } from "../engine/ecs/Entity";
 import { Registry } from "../engine/ecs/Registry";
 import { GLUtils } from "../utils/GLUtils";
@@ -12,7 +11,6 @@ export class SunFactory implements IFactory {
   ) {}
 
   create(
-    sunURL: string,
   ): Entity {
     const entity = this.registry.createEntity();
 
@@ -59,10 +57,6 @@ export class SunFactory implements IFactory {
 `
     );
 
-    const texture = new TextureComponent();
-    texture.sunURL = sunURL;
-    this.registry.addComponent(entity, texture);
-    
     const renderComp = new SunRenderComponent();
     renderComp.program = program;
     this.registry.addComponent(entity, renderComp);

@@ -3,7 +3,7 @@ export const SETTINGS = {
   CAMERA_SPEED: 4,
   MOUSE_SENSITIVITY: 0.001,
   BASE_DISTANCE_SCALE: 1e4,
-  BASE_SIZE_SCALE: 1e3,
+  BASE_SIZE_SCALE: 4e2,
   BASE_FAR_PLANE: 5e11,
   BASE_SUN_SIZE: 7e6, // 7e5 actual but texture only contains 10% sun
 

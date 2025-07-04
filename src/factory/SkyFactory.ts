@@ -1,6 +1,5 @@
 // src/factories/PlanetFactory.ts
 import { SkyRenderComponent } from "../engine/ecs/components/RenderComponent";
-import { TextureComponent } from "../engine/ecs/components/TextureComponent";
 import { Entity } from "../engine/ecs/Entity";
 import { Registry } from "../engine/ecs/Registry";
 import { GLUtils } from "../utils/GLUtils";
@@ -13,7 +12,6 @@ export class SkyFactory implements IFactory{
   ) {}
 
   create(
-    skysphereURL: string,
   ): Entity {
     const entity = this.registry.createEntity();
 
@@ -44,10 +42,6 @@ export class SkyFactory implements IFactory{
     }
   `
     );
-
-    const texture = new TextureComponent();
-    texture.skysphereURL = skysphereURL;
-    this.registry.addComponent(entity, texture);
     
     const renderComp = new SkyRenderComponent();
     renderComp.program = program;

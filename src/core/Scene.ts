@@ -1,174 +1,3 @@
-// import { IO } from "./IO";
-// import { Canvas } from "./Canvas";
-// import { GLUtils } from "../engine/utils/GLUtils";
-// import { Camera } from "./Camera";
-// import { EntityManager } from "./EntityManager";
-// import { vec3 } from "gl-matrix";
-// import { SkySphere } from "../models/SkySphere";
-// import { Sun } from "../models/Sun";
-// import { AxisHelper } from "../systems/AxisPlotter";
-// import { OrbitSystem } from "../systems/OrbitManager";
-// import { Raycaster } from "../engine/utils/Raycaster";
-// import { Planet } from "../models/Planet";
-// import { BoundingBoxHelper } from "../systems/BoundingBoxPlotter";
-// import { Popup } from "../models/PopupPanel";
-// import { CollisionDetector } from "../engine/utils/CollisionDetector";
-
-// export class Scene {
-//   readonly gl: WebGL2RenderingContext;
-//   readonly utils: GLUtils;
-//   readonly canvas: Canvas;
-//   readonly camera: Camera;
-//   readonly sun: Sun;
-//   readonly skySphere: SkySphere;
-//   readonly input: IO;
-//   readonly entityManager: EntityManager;
-//   readonly orbitSystem: OrbitSystem;
-//   readonly raycaster: Raycaster;
-//   readonly axisHelper: AxisHelper;
-//   readonly boundingBoxHelper: BoundingBoxHelper;
-//   readonly popup: Popup;
-//   readonly collisionDetector: CollisionDetector;
-
-//   private selected: Planet | null = null;
-
-//   constructor(canvasId: string) {
-//     this.canvas = new Canvas(canvasId);
-//     this.gl = this.canvas.gl;
-
-//     this.utils = new GLUtils(this.gl);
-//     this.input = new IO(this.canvas.canvas);
-//     this.camera = new Camera();
-//     this.axisHelper = new AxisHelper(this.gl, this.utils);
-//     this.entityManager = new EntityManager();
-//     this.sun = new Sun(
-//       this.gl,
-//       this.utils,
-//       this.axisHelper,
-//       "textures/lensFlare.png"
-//     );
-//     this.skySphere = new SkySphere(
-//       this.gl,
-//       this.utils,
-//       "textures/milkyway.png"
-//     );
-//     this.orbitSystem = new OrbitSystem(this.gl, this.utils);
-//     this.raycaster = new Raycaster();
-//     this.boundingBoxHelper = new BoundingBoxHelper(this.gl);
-//     this.popup = new Popup(this.gl, this.utils);
-//     this.collisionDetector = new CollisionDetector();
-//     this.canvas.enablePointerLock((ndcX, ndcY) => {
-//       // const ray = this.raycaster.getRayFromNDC(ndcX, ndcY, proj, view, this.camera.getPosition());
-//       const ray = this.raycaster.setFromViewMatrix(this.camera.getViewMatrix());
-//       console.log("Camera Pos:", ray.origin);
-//       console.log("Ray Dir:", ray.direction);
-//       let closest = Infinity;
-//       let selected: Planet | null = null;
-
-//       for (const planet of this.entityManager.getEntities()) {
-//         if (!(planet instanceof Planet)) continue;
-//         const t = this.raycaster.intersectSphere(
-//           ray.origin,
-//           ray.direction,
-//           planet.getModelMatrix(),
-//           planet.getRadius()
-//         );
-
-//         if (t !== null && t < closest) {
-//           closest = t;
-//           selected = planet;
-//           this.selected = selected;
-//           this.popup.setSizeRelativeToPlanet(selected.getRadius());
-//         }
-//       }
-//       if (selected) {
-//         selected.setSelected(!selected.isSelected());
-//         console.log("SELECTED ", selected);
-//       }
-//     });
-
-//     this.canvas.onPointerLockChange((locked) => {
-//       if (!locked) {
-//         this.input.disableInputs();
-//         this.input.clear();
-//       } else {
-//         this.input.enableMouseInputs((dragging, e) => {
-//           if (!dragging) this.camera.cameraMouseHandler(e);
-//         });
-//         this.input.enableKeyboardInputs();
-//       }
-//     });
-//   }
-
-//   private update(time: number) {
-//     this.camera.cameraKeyboardHandler(this.input.getKeys(), () => {
-//       this.collisionDetector.updateEntities(
-//         this.entityManager.getEntities().map((entity) => ({
-//           name: (entity as Planet).getName(),
-//           obb: {
-//             max: (entity as Planet).getBoundingInfo().obbMax,
-//             min: (entity as Planet).getBoundingInfo().obbMin,
-//             modelMatrix: (entity as Planet).getModelMatrix(),
-//           },
-//         }))
-//       );
-//       this.camera.setPosition(
-//         this.collisionDetector.handleCameraCollisions({
-//           position: this.camera.getPosition(),
-//           radius: 1,
-//         })
-//       );
-//     });
-//     this.entityManager.update(time);
-//   }
-
-//   render(time: number) {
-//     this.update(time);
-//     this.canvas.resizeToDisplaySize();
-//     this.orbitSystem.update(time * 100000);
-//     this.gl.enable(this.gl.DEPTH_TEST);
-//     this.gl.clearColor(0.0, 0.0, 0.0, 1.0);
-//     this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
-
-//     const view = this.camera.getViewMatrix();
-//     const proj = this.canvas.getProjectionMatrix();
-
-//     this.orbitSystem.render(view, proj);
-
-//     if (this.skySphere.isReady()) {
-//       this.skySphere.render(view, proj);
-//     }
-
-//     this.entityManager.getEntities().forEach((entity) => {
-//       if (!(entity instanceof Planet)) return;
-//       entity.updateRotation(time);
-//       const { modelMatrix } = entity.getBoundingInfo();
-//       this.boundingBoxHelper.render(modelMatrix, view, proj);
-//     });
-
-//     this.entityManager.render(
-//       view,
-//       proj,
-//       this.sun.getPosition(),
-//       this.camera.getPosition()
-//     );
-
-//     if (this.sun.isReady()) {
-//       this.sun.render(view, proj);
-//     }
-
-//     if (this.selected) {
-//       console.log("POPUP UPDATED AND RENDERED");
-//       this.popup.update(time);
-//       this.popup.updatePopupPosition(
-//         this.selected.getPosition(),
-//         this.selected.getRadius()
-//       );
-//       this.popup.draw(proj, view, this.camera.getPosition());
-//     }
-//   }
-// }
-
 import { vec3 } from "gl-matrix";
 import { Renderer } from "../engine/command/Renderer";
 import { Registry } from "../engine/ecs/Registry";
@@ -178,8 +7,7 @@ import { OrbitSystem } from "../engine/ecs/systems/OrbitSystem";
 import { PlanetRenderSystem } from "../engine/ecs/systems/PlanetRenderSystem";
 import { SelectionGlowRenderSystem } from "../engine/ecs/systems/SelectionGlowRenderSystem";
 import { SkyRenderSystem } from "../engine/ecs/systems/SkyRenderSystem";
-import { SunRenderSystem } from "../engine/ecs/systems/SunRenderSystem";
-import { TextureLoaderSystem } from "../engine/ecs/systems/TextureLoaderSystem";
+// import { TextureLoaderSystem } from "../engine/ecs/systems/TextureLoaderSystem";
 import { EntityFactory } from "../factory/EntityFactory";
 import { SkyFactory } from "../factory/SkyFactory";
 import { SunFactory } from "../factory/SunFactory";
@@ -196,6 +24,9 @@ import { SETTINGS } from "../config/settings";
 import { CameraLatchSystem } from "../engine/ecs/systems/CameraLatchSystem";
 import { ENTITY_TYPE } from "../engine/ecs/components/ModelComponent";
 import { FrustumCullingSystem } from "../engine/ecs/systems/FrustumCuller";
+import { FONTS, TEXTURES } from "../data/assetsData";
+import { SunRenderSystem } from "../engine/ecs/systems/SunRenderSystem";
+import { AssetsLoader } from "./AssetsLoader";
 
 
 export class Scene {
@@ -204,9 +35,9 @@ export class Scene {
   private readonly canvas: Canvas;
   private readonly camera: Camera;
   private readonly input: IO;
+  private readonly assetsLoader: AssetsLoader;
 
   private registry = new Registry();
-  private textureSystem: TextureLoaderSystem;
   private renderer: Renderer;
   private skyRender: SkyRenderSystem;
   private skyFactory: SkyFactory;
@@ -234,9 +65,11 @@ export class Scene {
     this.gl = this.canvas.gl;
     this.utils = new GLUtils(this.gl);
 
+    this.assetsLoader = new AssetsLoader(this.utils);
     this.renderer = new Renderer();
     this.skyRender = new SkyRenderSystem(
       this.renderer,
+      this.assetsLoader,
       this.registry,
       this.utils
     );
@@ -253,7 +86,6 @@ export class Scene {
       this.registry,
       this.utils
     );
-    this.textureSystem = new TextureLoaderSystem(this.registry, this.utils);
     this.selectionTagRender = new SelectionTagSystem(
       this.renderer,
       this.registry,
@@ -264,6 +96,7 @@ export class Scene {
     this.skyFactory = new SkyFactory(this.utils, this.registry);
     this.sunRender = new SunRenderSystem(
       this.renderer,
+      this.assetsLoader,
       this.registry,
       this.utils
     );
@@ -271,6 +104,7 @@ export class Scene {
     this.planetFactory = new EntityFactory(this.utils, this.registry);
     this.planetRender = new PlanetRenderSystem(
       this.renderer,
+      this.assetsLoader,
       this.registry,
       this.utils
     );
@@ -306,10 +140,17 @@ export class Scene {
       }
     });
   }
-
+  async load(): Promise<void> {
+    await this.assetsLoader.loadAll({
+      textures: TEXTURES,
+      fonts: FONTS,
+      models: {}, // in future
+    });
+  }
   initialize() {
-    this.skyFactory.create("textures/milkyway.png");
-    this.sunFactory.create("textures/lensFlare.png");
+    
+    this.skyFactory.create();
+    this.sunFactory.create();
 
     const earth = this.planetFactory.create({
       type: ENTITY_TYPE.PLANET,
@@ -358,7 +199,7 @@ export class Scene {
       surfaceURL: "textures/4k_moon_surface.jpg",
       normalURL: "textures/4k_moon_normal.jpg",
       orbitData: {
-        semiMajorAxis : 384_400 * SETTINGS.GLOBAL_SCENE_SCALE,
+        semiMajorAxis : 384_400 * SETTINGS.GLOBAL_SCENE_SCALE/8,
         eccentricity : 0.0549,
         inclination : 5.145,
         argumentOfPeriapsis : 318.15,
@@ -529,10 +370,10 @@ export class Scene {
       },
     });
     // Load other planets similarly...
-    this.textureSystem.update(0);
   }
 
   update(deltaTime: number) {
+    if (this.assetsLoader.getProgress() < 1) return;
     this.camera.cameraKeyboardHandler(this.input.getKeys());
     const viewMatrix = this.camera.getViewMatrix();
     const projectionMatrix = this.canvas.getProjectionMatrix();

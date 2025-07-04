@@ -3,7 +3,6 @@ import { vec3 } from "gl-matrix";
 import { ENTITY_TYPE, ModelComponent } from "../engine/ecs/components/ModelComponent";
 import { OrbitComponent } from "../engine/ecs/components/OrbitComponent";
 import { PlanetRenderComponent } from "../engine/ecs/components/RenderComponent";
-import { TextureComponent } from "../engine/ecs/components/TextureComponent";
 import { Entity } from "../engine/ecs/Entity";
 import { Registry } from "../engine/ecs/Registry";
 import { GLUtils } from "../utils/GLUtils";
@@ -67,14 +66,6 @@ export class EntityFactory implements IFactory {
 
       this.registry.addComponent(entity, orbit);
     }
-    // Texture Component (to be loaded by TextureSystem)
-    const textureComponent = new TextureComponent();
-    textureComponent.surfaceURL = params.surfaceURL;
-    textureComponent.normalURL = params.normalURL;
-    textureComponent.specularURL = params.specularURL;
-    textureComponent.atmosphereURL = params.atmosphereURL;
-    textureComponent.nightURL = params.nightURL;
-    this.registry.addComponent(entity, textureComponent);
 
     //Selectable
     const selectionComp = new EntitySelectionComponent();

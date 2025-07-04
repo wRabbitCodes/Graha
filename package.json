@@ -20,7 +20,6 @@
     "webpack-dev-server": "^5.2.2"
   },
   "dependencies": {
-    "gl-matrix": "^3.4.3",
-    "twgl.js": "^6.1.1"
+    "gl-matrix": "^3.4.3"
   }
 }

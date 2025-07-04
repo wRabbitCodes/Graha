@@ -6,47 +6,56 @@ import { Renderer } from "../../command/Renderer";
 import { System } from "../System";
 import { ModelComponent } from "../components/ModelComponent";
 import { PlanetRenderComponent } from "../components/RenderComponent";
-import { TextureComponent } from "../components/TextureComponent";
 import { COMPONENT_STATE } from "../Component";
 import { mat3, mat4, vec2, vec3 } from "gl-matrix";
+import { AssetsLoader } from "../../../core/AssetsLoader";
 
 export class PlanetRenderSystem extends System implements IRenderSystem {
   private atmosphereRotation = 0;
-  constructor(public renderer: Renderer, registry: Registry, utils: GLUtils) {
+  constructor(
+    public renderer: Renderer,
+    private assetsLoader: AssetsLoader,
+    registry: Registry,
+    utils: GLUtils,
+  ) {
     super(registry, utils);
   }
+
   update(deltaTime: number): void {
-    this.atmosphereRotation += ((deltaTime / 45000)) % 1.0;
+    this.atmosphereRotation += (deltaTime / 45000) % 1.0;
     for (const entity of this.registry.getEntitiesWith(
       PlanetRenderComponent,
-      ModelComponent,
-      TextureComponent
+      ModelComponent
     )) {
       const modelComp = this.registry.getComponent(entity, ModelComponent);
-      const texComp = this.registry.getComponent(entity, TextureComponent);
       const renderComp = this.registry.getComponent(
         entity,
         PlanetRenderComponent
       );
       if (
-        texComp.state !== COMPONENT_STATE.READY ||
-        modelComp.state !== COMPONENT_STATE.READY
-        ||  !modelComp.isVisible
+        modelComp.state !== COMPONENT_STATE.READY ||
+        !modelComp.isVisible
       ) {
-        console.log(`${modelComp.name} CULLED, ISVISIBLE: ${modelComp.isVisible}`);
+        // console.log(`${modelComp.name} CULLED, ISVISIBLE: ${modelComp.isVisible}`);
         continue;
       }
-        
+
       if (renderComp.state === COMPONENT_STATE.UNINITIALIZED)
         this.initialize(renderComp);
 
-      //Render Planets
+      // debugger;
+      const texComp = {
+        surface: this.assetsLoader.getTexture(`${modelComp.name?.toLowerCase()}Surface`),
+        normal: this.assetsLoader.getTexture(`${modelComp.name?.toLowerCase()}Normal`),
+        specular: this.assetsLoader.getTexture(`${modelComp.name?.toLowerCase()}Specular`),
+        atmosphere: this.assetsLoader.getTexture(`${modelComp.name?.toLowerCase()}Atmosphere`),
+        night: this.assetsLoader.getTexture(`${modelComp.name?.toLowerCase()}Night`)
+      };
+
       this.renderer.enqueue({
         execute: (gl: WebGL2RenderingContext, ctx: RenderContext) => {
           gl.useProgram(renderComp.program);
           gl.bindVertexArray(renderComp.VAO);
-
-          // Bind Uniforms
 
           const normalMatrix = mat3.create();
           mat3.normalFromMat4(normalMatrix, modelComp.modelMatrix);
@@ -89,10 +98,11 @@ export class PlanetRenderSystem extends System implements IRenderSystem {
             renderComp.uniformLocations.useNight,
             texComp.night ? 1 : 0
           );
+
           this.bindTextures(renderComp, texComp);
 
           gl.enable(gl.CULL_FACE);
-          gl.cullFace(gl.FRONT); 
+          gl.cullFace(gl.FRONT);
           gl.drawElements(
             gl.TRIANGLES,
             renderComp.sphereMesh!.indices.length,
@@ -101,17 +111,15 @@ export class PlanetRenderSystem extends System implements IRenderSystem {
           );
           gl.disable(gl.CULL_FACE);
           gl.bindVertexArray(null);
-        },
+        }
       });
 
       if (!renderComp.atmosphereProgram || !texComp.atmosphere) continue;
-      //Render Atmosphere
       this.renderer.enqueue({
         execute: (gl: WebGL2RenderingContext, ctx: RenderContext) => {
           gl.useProgram(renderComp.atmosphereProgram!);
           gl.bindVertexArray(renderComp.VAO);
 
-          // Apply slight scale for atmosphere shell
           const atmosphereModel = mat4.clone(modelComp.modelMatrix);
           mat4.scale(atmosphereModel, atmosphereModel, [1.02, 1.02, 1.02]);
 
@@ -143,14 +151,10 @@ export class PlanetRenderSystem extends System implements IRenderSystem {
             Date.now() / 1000
           );
           gl.uniform1f(
-            gl.getUniformLocation(
-              renderComp.atmosphereProgram!,
-              "u_fogDensity"
-            ),
+            gl.getUniformLocation(renderComp.atmosphereProgram!, "u_fogDensity"),
             0.03
           );
 
-          // Bind atmosphere texture
           gl.activeTexture(gl.TEXTURE4);
           gl.bindTexture(gl.TEXTURE_2D, texComp.atmosphere!);
           gl.uniform1i(
@@ -161,28 +165,25 @@ export class PlanetRenderSystem extends System implements IRenderSystem {
             4
           );
 
-          // Render with additive blending
           gl.enable(gl.CULL_FACE);
           gl.cullFace(gl.FRONT);
           gl.enable(gl.BLEND);
           gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
           gl.depthMask(false);
 
-
           gl.drawElements(
             gl.TRIANGLES,
             renderComp.sphereMesh!.indices.length,
             gl.UNSIGNED_SHORT,
             0
-
           );
-          
+
           gl.depthMask(true);
           gl.disable(gl.BLEND);
           gl.disable(gl.CULL_FACE);
 
           gl.bindVertexArray(null);
-        },
+        }
       });
     }
   }
@@ -306,7 +307,7 @@ export class PlanetRenderSystem extends System implements IRenderSystem {
 
   private bindTextures(
     renderComp: PlanetRenderComponent,
-    texComp: TextureComponent
+    texComp: { [key: string]: WebGLTexture | undefined }
   ) {
     const gl = this.utils.gl;
     let idx = 0;
