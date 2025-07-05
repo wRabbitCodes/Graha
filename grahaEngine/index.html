@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html>
+<title>Graha Proto</title>
+<style>
+    body {
+        margin: 0;
+        background: black;
+        overflow: hidden;
+    }
+
+    canvas {
+        display: block;
+        width: 100vw;
+        height: 100vh;
+        z-index: 0; /* lower than crosshair */
+    }
+    #crosshair {
+        position: fixed;
+        left: 50%;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        font-size: 24px;
+        color: red;
+        z-index: 999;
+        pointer-events: none;
+        display: none;
+    }
+
+</style>
+
+<body>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@600&display=swap" rel="stylesheet">
+
+    <div id="crosshair" style="color: aqua;">⌖</div>
+        <div id="loading-screen" style="position:fixed;top:0;left:0;width:100vw;height:100vh;
+        background:#000;color:#fff;display:flex;align-items:center;justify-content:center;flex-direction:column;z-index:9999;">
+        <div id="loading-text">Loading... 0%</div>
+        <progress id="loading-progress" max="1" value="0" style="width: 80%;"></progress>
+    </div>
+
+    <div style="position: relative;">
+        <div style="position: absolute; top: 10px; left: 10px; color: white;">Hello, WebGL!</div>
+            <canvas id="glCanvas" width="800" height="600" style="background: black; display: block;"></canvas>
+        </div>
+
+    
+</body>
+
+</html>

@@ -2,3 +2,18 @@ public
 public/*.*
 node_modules
 package-lock.json
+
+# next.js
+/.next/
+/out/
+next-env.d.ts
+
+# production
+/build
+
+# local env files
+.env*.local
+.env
+
+# typescript
+*.tsbuildinfo

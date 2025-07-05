@@ -1,21 +1,65 @@
-"use client";
-import * as Dialog from "@radix-ui/react-dialog";
+import { useState } from 'react';
+import { useSettings } from '@/store/useSettings';
+import { Settings2 } from 'lucide-react'; // optional: install `lucide-react` for icons
 
 export default function Controls() {
+  const [open, setOpen] = useState(false);
+  const {
+    globalSceneScale,
+    cameraSpeed,
+    mouseSensitivity,
+    set,
+  } = useSettings();
+
   return (
-    <Dialog.Root>
-      <Dialog.Trigger asChild>
-        <button className="p-2 bg-blue-600 text-white rounded">Open Dialog</button>
-      </Dialog.Trigger>
-      <Dialog.Portal>
-        <Dialog.Overlay className="fixed inset-0 bg-black/50" />
-        <Dialog.Content className="fixed top-20 left-20 bg-black p-6 rounded shadow-lg">
-          <Dialog.Title className="mb-4 font-bold">Hello!</Dialog.Title>
-          <Dialog.Close asChild>
-            <button className="px-4 py-2 bg-red-500 text-white rounded">Close</button>
-          </Dialog.Close>
-        </Dialog.Content>
-      </Dialog.Portal>
-    </Dialog.Root>
+    <div className="absolute bottom-4 left-4 z-50">
+      <button
+        className="p-2 bg-black/60 text-white rounded-full hover:bg-black/80 transition"
+        onClick={() => setOpen(!open)}
+        aria-label="Settings"
+      >
+        <Settings2 className="w-6 h-6" />
+      </button>
+
+      {open && (
+        <div className="mt-2 w-72 p-4 bg-black/80 text-white rounded-xl shadow-xl backdrop-blur-md space-y-4">
+          <div>
+            <label className="block text-sm mb-1">Global Scene Scale</label>
+            <input
+              type="range"
+              min={1}
+              max={100}
+              step={1}
+              value={globalSceneScale}
+              onChange={(e) => set("globalSceneScale", Number(e.target.value))}
+              className="w-full"
+            />
+            <span className="text-xs">{globalSceneScale}</span>
+          </div>
+
+          <div>
+            <label className="block text-sm mb-1">Camera Speed</label>
+            <input
+              type="number"
+              value={cameraSpeed}
+              step={0.1}
+              onChange={(e) => set("cameraSpeed", Number(e.target.value))}
+              className="w-full bg-gray-800 p-1 rounded"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm mb-1">Mouse Sensitivity</label>
+            <input
+              type="number"
+              step={0.0001}
+              value={mouseSensitivity}
+              onChange={(e) => set("mouseSensitivity", Number(e.target.value))}
+              className="w-full bg-gray-800 p-1 rounded"
+            />
+          </div>
+        </div>
+      )}
+    </div>
   );
 }

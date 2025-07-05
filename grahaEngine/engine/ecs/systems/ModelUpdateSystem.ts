@@ -1,0 +1,51 @@
+import { mat4, quat, vec3 } from "gl-matrix";
+import { COMPONENT_STATE } from "../Component";
+import { System } from "../System";
+import { ModelComponent } from "../components/ModelComponent";
+
+export class ModelUpdateSystem extends System {
+  update(deltaTime: number) {
+    for (const entity of this.registry.getEntitiesWith(ModelComponent)) {
+      const coreComp = this.registry.getComponent(entity, ModelComponent);
+      if (coreComp.state === COMPONENT_STATE.UNINITIALIZED) {
+        let tiltQuat = quat.create();
+        quat.setAxisAngle(
+          tiltQuat,
+          vec3.fromValues(1, 0, 0),
+          (coreComp.tiltAngle * Math.PI) / 180
+        );
+        coreComp.tiltQuat = tiltQuat;
+        coreComp.state = COMPONENT_STATE.READY;
+      }
+      if (coreComp.state === COMPONENT_STATE.READY) {
+        const siderealDayMs = coreComp.siderealDay * 3600 * 1000 * 24;
+
+        // Rotation speed in radians/ms, scaled
+        const rotationSpeedRadPerMs = (2 * Math.PI) / siderealDayMs;
+
+        // Rotation angle this frame
+        const angleRad = rotationSpeedRadPerMs * deltaTime * 86400;
+        const qRotation = quat.setAxisAngle(
+          quat.create(),
+          coreComp.axis,
+          angleRad
+        );
+
+        quat.multiply(coreComp.spinQuat, qRotation, coreComp.spinQuat);
+        quat.multiply(
+          coreComp.rotationQuat,
+          coreComp.tiltQuat!,
+          coreComp.spinQuat
+        );
+        mat4.fromRotationTranslationScale(
+          coreComp.modelMatrix,
+          coreComp.rotationQuat,
+          coreComp.position!,
+          coreComp.scale!
+        );
+
+        
+      }
+    }
+  }
+}
