@@ -43,7 +43,6 @@ export class PlanetRenderSystem extends System implements IRenderSystem {
       if (renderComp.state === COMPONENT_STATE.UNINITIALIZED)
         this.initialize(renderComp);
 
-      // debugger;
       const texComp = {
         surface: this.assetsLoader.getTexture(`${modelComp.name?.toLowerCase()}Surface`),
         normal: this.assetsLoader.getTexture(`${modelComp.name?.toLowerCase()}Normal`),

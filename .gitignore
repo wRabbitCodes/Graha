@@ -7,8 +7,7 @@ package-lock.json
 .vscode
 
 # next.js
-/.next/
-/out/
+.next/
 next-env.d.ts
 
 # production
