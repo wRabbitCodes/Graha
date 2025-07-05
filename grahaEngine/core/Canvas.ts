@@ -145,10 +145,8 @@ export class Canvas {
   private projectionMatrix = mat4.identity(mat4.create());
   private crosshair: HTMLElement | null;
 
-  constructor(id: string) {
-    const el = document.getElementById(id);
-    if (!(el instanceof HTMLCanvasElement)) throw new Error("Canvas not found");
-
+  constructor(canvas: HTMLCanvasElement) {
+    const el = canvas;
     const gl = el.getContext('webgl2');
     if (!gl) throw new Error("WebGL2 not supported");
     this.gl = gl;

@@ -7,7 +7,6 @@ import { OrbitSystem } from "../engine/ecs/systems/OrbitSystem";
 import { PlanetRenderSystem } from "../engine/ecs/systems/PlanetRenderSystem";
 import { SelectionGlowRenderSystem } from "../engine/ecs/systems/SelectionGlowRenderSystem";
 import { SkyRenderSystem } from "../engine/ecs/systems/SkyRenderSystem";
-// import { TextureLoaderSystem } from "../engine/ecs/systems/TextureLoaderSystem";
 import { EntityFactory } from "../factory/EntityFactory";
 import { SkyFactory } from "../factory/SkyFactory";
 import { SunFactory } from "../factory/SunFactory";
@@ -24,18 +23,22 @@ import { SETTINGS } from "../config/settings";
 import { CameraLatchSystem } from "../engine/ecs/systems/CameraLatchSystem";
 import { ENTITY_TYPE } from "../engine/ecs/components/ModelComponent";
 import { FrustumCullingSystem } from "../engine/ecs/systems/FrustumCuller";
-import { FONTS, TEXTURES } from "../data/assetsData";
 import { SunRenderSystem } from "../engine/ecs/systems/SunRenderSystem";
 import { AssetsLoader } from "./AssetsLoader";
 
-
 export class Scene {
+  setSimulationParams(params: { speed: number; paused: boolean }) {
+    this.simSpeed = params.speed;
+    this.paused = params.paused;
+  }
   private readonly gl: WebGL2RenderingContext;
   private readonly utils: GLUtils;
   private readonly canvas: Canvas;
   private readonly camera: Camera;
   private readonly input: IO;
   readonly assetsLoader: AssetsLoader;
+  private simSpeed!: number;
+  private paused!: boolean;
 
   private registry = new Registry();
   private renderer: Renderer;
@@ -57,75 +60,44 @@ export class Scene {
   private orbitTracer: OrbitPathRenderSystem;
   private frustumCuller: FrustumCullingSystem;
 
-  constructor(canvasId: string) {
-    this.canvas = new Canvas(canvasId);
+  constructor(canvas: HTMLCanvasElement) {
+    this.canvas = new Canvas(canvas);
     this.camera = new Camera();
     this.input = new IO(this.canvas.canvas);
-
     this.gl = this.canvas.gl;
     this.utils = new GLUtils(this.gl);
-
     this.assetsLoader = new AssetsLoader(this.utils);
     this.renderer = new Renderer();
-    this.skyRender = new SkyRenderSystem(
-      this.renderer,
-      this.assetsLoader,
-      this.registry,
-      this.utils
-    );
 
-    this.rayCaster = new Raycaster();
-    this.entitySelectionSystem = new EntitySelectionSystem(
-      this.rayCaster,
-      this.camera,
-      this.registry,
-      this.utils
-    );
-    this.selectionGlowRender = new SelectionGlowRenderSystem(
-      this.renderer,
-      this.registry,
-      this.utils
-    );
-    this.selectionTagRender = new SelectionTagSystem(
-      this.renderer,
-      this.registry,
-      this.utils
-    );
-    this.ccdSystem = new CCDSystem(this.camera, this.registry, this.utils);
+    this.skyRender = new SkyRenderSystem(this.renderer, this.assetsLoader, this.registry, this.utils);
+    this.sunRender = new SunRenderSystem(this.renderer, this.assetsLoader, this.registry, this.utils);
+    this.planetRender = new PlanetRenderSystem(this.renderer, this.assetsLoader, this.registry, this.utils);
 
-    this.skyFactory = new SkyFactory(this.utils, this.registry);
-    this.sunRender = new SunRenderSystem(
-      this.renderer,
-      this.assetsLoader,
-      this.registry,
-      this.utils
-    );
-    this.sunFactory = new SunFactory(this.utils, this.registry);
-    this.planetFactory = new EntityFactory(this.utils, this.registry);
-    this.planetRender = new PlanetRenderSystem(
-      this.renderer,
-      this.assetsLoader,
-      this.registry,
-      this.utils
-    );
     this.modelUpdate = new ModelUpdateSystem(this.registry, this.utils);
     this.orbitSystem = new OrbitSystem(this.registry, this.utils);
-    this.bbpRenderSystem = new BBPlotRenderSystem(
-      this.renderer,
-      this.registry,
-      this.utils
-    );
-    this.orbitTracer = new OrbitPathRenderSystem(
-      this.renderer,
-      this.registry,
-      this.utils
-    );
-
+    this.bbpRenderSystem = new BBPlotRenderSystem(this.renderer, this.registry, this.utils);
+    this.orbitTracer = new OrbitPathRenderSystem(this.renderer, this.registry, this.utils);
     this.frustumCuller = new FrustumCullingSystem(this.camera, this.canvas, this.registry, this.utils);
     this.cameraLatchSystem = new CameraLatchSystem(this.camera, this.registry, this.utils);
-    this.canvas.enablePointerLock((x, y) => {
-      this.entitySelectionSystem.update(0);
-    });
+
+    this.skyFactory = new SkyFactory(this.utils, this.registry);
+    this.sunFactory = new SunFactory(this.utils, this.registry);
+    this.planetFactory = new EntityFactory(this.utils, this.registry);
+
+    this.rayCaster = new Raycaster();
+    this.entitySelectionSystem = new EntitySelectionSystem(this.rayCaster, this.camera, this.registry, this.utils);
+    this.selectionGlowRender = new SelectionGlowRenderSystem(this.renderer, this.registry, this.utils);
+    this.selectionTagRender = new SelectionTagSystem(this.renderer, this.registry, this.utils);
+    this.ccdSystem = new CCDSystem(this.camera, this.registry, this.utils);
+  }
+
+  initialize() {
+    if (this.registry.getAllEntities().length > 0) return; // Prevent re-init
+    this.skyFactory.create();
+    this.sunFactory.create();
+    this.createPlanets();
+
+    this.canvas.enablePointerLock(() => this.entitySelectionSystem.update(0));
     this.canvas.onPointerLockChange((locked) => {
       if (!locked) {
         this.input.disableInputs();
@@ -133,19 +105,16 @@ export class Scene {
       } else {
         this.input.enableMouseInputs(
           (e) => this.camera.freeLookMouseHandler(e),
-          (e)=>this.camera.latchedWheelMouseHandler(e),
-          (e) => this.camera.latchedLookMouseHandler(e),
+          (e) => this.camera.latchedWheelMouseHandler(e),
+          (e) => this.camera.latchedLookMouseHandler(e)
         );
         this.input.enableKeyboardInputs();
       }
     });
   }
 
-  initialize() {
-    
-    this.skyFactory.create();
-    this.sunFactory.create();
-
+  private createPlanets() {
+    const scale = SETTINGS.DISTANCE_SCALE;
     const earth = this.planetFactory.create({
       type: ENTITY_TYPE.PLANET,
       name: "Earth",
@@ -158,31 +127,16 @@ export class Scene {
       atmosphereURL: "textures/8k_earth_clouds.jpg",
       nightURL: "textures/8k_earth_nightmap.jpg",
       orbitData: {
-        semiMajorAxis: 149_600_000, // in km (1 AU)
-        eccentricity: 0.01671022, // nearly circular
-        inclination: 0.00005, // degrees, very close to 0
-        longitudeOfAscendingNode: -11.26064, // Ω in degrees
-        argumentOfPeriapsis: 114.20783, // ω in degrees
-        meanAnomalyAtEpoch: 358.617, // degrees (at J2000)
-        orbitalPeriod: 365.256, // days (sidereal year)
+        semiMajorAxis: 149_600_000 * scale,
+        eccentricity: 0.0167,
+        inclination: 0.00005,
+        longitudeOfAscendingNode: -11.26,
+        argumentOfPeriapsis: 114.2,
+        meanAnomalyAtEpoch: 358.6,
+        orbitalPeriod: 365.25,
       },
     });
-    // this.planetFactory.create({
-    //   name: "Jupiter",
-    //   radius: 69911, // radius in km
-    //   tiltAngle: 3.13, // axial tilt in degrees
-    //   surfaceURL: "textures/4k_jupiter.jpg", // surface texture
-    //   siderealDay: 9.9,
-    //   orbitData: {
-    //     semiMajorAxis: 778_340_821, // in km (~5.2 AU)
-    //     eccentricity: 0.0489,
-    //     inclination: 1.305, // degrees
-    //     longitudeOfAscendingNode: 100.492,
-    //     argumentOfPeriapsis: 273.867,
-    //     meanAnomalyAtEpoch: 19.65, // degrees at J2000
-    //     orbitalPeriod: 4332.59, // in days (~11.86 Earth years)
-    //   },
-    // });
+
     this.planetFactory.create({
       type: ENTITY_TYPE.MOON,
       parent: earth,
@@ -193,205 +147,62 @@ export class Scene {
       surfaceURL: "textures/4k_moon_surface.jpg",
       normalURL: "textures/4k_moon_normal.jpg",
       orbitData: {
-        semiMajorAxis : 384_400 * SETTINGS.GLOBAL_SCENE_SCALE/8,
-        eccentricity : 0.0549,
-        inclination : 5.145,
-        argumentOfPeriapsis : 318.15,
-        longitudeOfAscendingNode : 125.08,
-        orbitalPeriod : 27.3217,
-      }
-    });
-
-    this.planetFactory.create({
-      type: ENTITY_TYPE.PLANET,
-      name: "Jupiter",
-      radius: 69911, // radius in km
-      tiltAngle: 3.13, // axial tilt in degrees
-      surfaceURL: "textures/4k_jupiter.jpg", // surface texture
-      siderealDay: 9.9,
-      orbitData: {
-        semiMajorAxis: 778_340_821, // in km (~5.2 AU)
-        eccentricity: 0.0489,
-        inclination: 1.305, // degrees
-        longitudeOfAscendingNode: 100.492,
-        argumentOfPeriapsis: 273.867,
-        meanAnomalyAtEpoch: 19.65, // degrees at J2000
-        orbitalPeriod: 4332.59, // in days (~11.86 Earth years)
+        semiMajorAxis: 384_400 * scale / 8,
+        eccentricity: 0.0549,
+        inclination: 5.145,
+        argumentOfPeriapsis: 318.15,
+        longitudeOfAscendingNode: 125.08,
+        orbitalPeriod: 27.3217,
       },
     });
 
-    // this.planetFactory.create({
-    //   name: "Venus",
-    //   radius: 6051.8,
-    //   tiltAngle: 177.36, // retrograde rotation
-    //   siderealDay: 5832.5,
-    //   surfaceURL: "textures/2k_venus.jpg",
-    //   // atmosphereURL: "textures/4k_venus_atmosphere.jpg",
-    //   orbitData: {
-    //     semiMajorAxis: 108_209_475,
-    //     eccentricity: 0.0067,
-    //     inclination: 3.394,
-    //     longitudeOfAscendingNode: 76.68,
-    //     argumentOfPeriapsis: 54.884,
-    //     meanAnomalyAtEpoch: 50.115,
-    //     orbitalPeriod: 224.701,
-    //   },
-    // });
-    this.planetFactory.create({
-      type: ENTITY_TYPE.PLANET,
-      name: "Mercury",
-      radius: 2439.7,
-      tiltAngle: 0.034,
-      siderealDay: 1407.6,
-      surfaceURL: "textures/2k_mercury.jpg",
-      orbitData: {
-        semiMajorAxis: 57_909_227,
-        eccentricity: 0.2056,
-        inclination: 7.005,
-        longitudeOfAscendingNode: 48.331,
-        argumentOfPeriapsis: 29.124,
-        meanAnomalyAtEpoch: 174.796,
-        orbitalPeriod: 87.969,
-      },
-    });
-
-    this.planetFactory.create({
-      type: ENTITY_TYPE.PLANET,
-      name: "Venus",
-      radius: 6051.8,
-      tiltAngle: 177.36, // retrograde rotation
-      siderealDay: 5832.5,
-      surfaceURL: "textures/2k_venus.jpg",
-      // atmosphereURL: "textures/4k_venus_atmosphere.jpg",
-      orbitData: {
-        semiMajorAxis: 108_209_475,
-        eccentricity: 0.0067,
-        inclination: 3.394,
-        longitudeOfAscendingNode: 76.68,
-        argumentOfPeriapsis: 54.884,
-        meanAnomalyAtEpoch: 50.115,
-        orbitalPeriod: 224.701,
-      },
-    });
-
-    // this.planetFactory.create({
-    //   name: "Saturn",
-    //   radius: 58232,
-    //   tiltAngle: 26.73,
-    //   siderealDay: 10.7,
-    //   surfaceURL: "textures/2k_saturn.jpg",
-    //   orbitData: {
-    //     semiMajorAxis: 1_433_449_370,
-    //     eccentricity: 0.0565,
-    //     inclination: 2.485,
-    //     longitudeOfAscendingNode: 113.665,
-    //     argumentOfPeriapsis: 339.392,
-    //     meanAnomalyAtEpoch: 317.021,
-    //     orbitalPeriod: 10_759.22,
-    //   },
-    // });
-
-    // this.planetFactory.create({
-    //   name: "Uranus",
-    //   radius: 25362,
-    //   tiltAngle: 7.77, // Tilt ~98°, use low value + flipped axis
-    //   axis: [0, -1, 0], // Retrograde
-    //   siderealDay: 17.24,
-    //   surfaceURL: "textures/2k_uranus.jpg",
-    //   orbitData: {
-    //     semiMajorAxis: 2_872_466_000,
-    //     eccentricity: 0.0457,
-    //     inclination: 0.769,
-    //     longitudeOfAscendingNode: 74.006,
-    //     argumentOfPeriapsis: 96.998,
-    //     meanAnomalyAtEpoch: 142.239,
-    //     orbitalPeriod: 30_688.5,
-    //   },
-    // });
     this.planetFactory.create({
       type: ENTITY_TYPE.PLANET,
       name: "Mars",
-      radius: 3389.5, // radius in km
-      tiltAngle: 25.19, // axial tilt in degrees
+      radius: 3389.5,
+      tiltAngle: 25.19,
       siderealDay: 24.6,
       surfaceURL: "textures/2k_mars_surface.jpg",
       normalURL: "textures/2k_mars_normal.png",
       orbitData: {
-        semiMajorAxis: 227_939_200, // in km (~1.52 AU)
+        semiMajorAxis: 227_939_200 * scale,
         eccentricity: 0.0935,
         inclination: 1.85,
         longitudeOfAscendingNode: 49.558,
         argumentOfPeriapsis: 286.502,
-        meanAnomalyAtEpoch: 19.412, // degrees at J2000
-        orbitalPeriod: 686.971, // in days (~1.88 Earth years)
+        meanAnomalyAtEpoch: 19.412,
+        orbitalPeriod: 686.971,
       },
     });
-
-    this.planetFactory.create({
-      type: ENTITY_TYPE.PLANET,
-      name: "Saturn",
-      radius: 58232,
-      tiltAngle: 26.73,
-      siderealDay: 10.7,
-      surfaceURL: "textures/2k_saturn.jpg",
-      orbitData: {
-        semiMajorAxis: 1_433_449_370,
-        eccentricity: 0.0565,
-        inclination: 2.485,
-        longitudeOfAscendingNode: 113.665,
-        argumentOfPeriapsis: 339.392,
-        meanAnomalyAtEpoch: 317.021,
-        orbitalPeriod: 10_759.22,
-      },
-    });
-
-    this.planetFactory.create({
-      type: ENTITY_TYPE.PLANET,
-      name: "Uranus",
-      radius: 25362,
-      tiltAngle: 7.77, // Tilt ~98°, use low value + flipped axis
-      axis: [0, -1, 0], // Retrograde
-      siderealDay: 17.24,
-      surfaceURL: "textures/2k_uranus.jpg",
-      orbitData: {
-        semiMajorAxis: 2_872_466_000,
-        eccentricity: 0.0457,
-        inclination: 0.769,
-        longitudeOfAscendingNode: 74.006,
-        argumentOfPeriapsis: 96.998,
-        meanAnomalyAtEpoch: 142.239,
-        orbitalPeriod: 30_688.5,
-      },
-    });
-    // Load other planets similarly...
   }
 
   update(deltaTime: number) {
-    if (this.assetsLoader.getProgress() < 1) return;
+    const progress = this.assetsLoader.getProgress();
+    if (progress < 1) {
+      console.log("Loading assets...", progress);
+      return;
+    }
+
     this.camera.cameraKeyboardHandler(this.input.getKeys());
     const viewMatrix = this.camera.getViewMatrix();
     const projectionMatrix = this.canvas.getProjectionMatrix();
+
     this.gl.enable(this.gl.DEPTH_TEST);
-    this.gl.clearColor(0.0, 0.0, 0.0, 1.0);
+    this.gl.clearColor(0, 0, 0, 1);
     this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
 
     this.skyRender.update(deltaTime);
-
     this.modelUpdate.update(deltaTime);
     this.orbitSystem.update(deltaTime);
-
     this.ccdSystem.update(deltaTime);
-    this.camera.update(deltaTime/1000);
+    this.camera.update(deltaTime / 1000);
     this.cameraLatchSystem.update(deltaTime);
     this.frustumCuller.update(deltaTime);
-
     this.planetRender.update(deltaTime);
     this.orbitTracer.update(deltaTime);
     this.bbpRenderSystem.update(deltaTime);
     this.selectionGlowRender.update(deltaTime);
     this.selectionTagRender.update(deltaTime);
-
-
     this.sunRender.update(deltaTime);
 
     this.renderer.flush(this.gl, {
@@ -401,6 +212,6 @@ export class Scene {
       cameraPos: this.camera.getPosition(),
       canvasHeight: this.canvas.canvas.height,
       canvasWidth: this.canvas.canvas.width,
-    }); // flush all queued RenderCommands
+    });
   }
 }

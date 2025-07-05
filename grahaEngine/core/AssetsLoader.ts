@@ -28,8 +28,6 @@ export class AssetsLoader {
   }
 
   async loadAll(config: LoadConfig): Promise<void> {
-    const loadTasks: Promise<void>[] = [];
-
     const textureEntries = Object.entries(config.textures ?? {});
     const fontEntries = config.fonts ?? [];
     const modelEntries = Object.entries(config.models ?? {});
@@ -37,36 +35,62 @@ export class AssetsLoader {
     this.totalAssets = textureEntries.length + fontEntries.length + modelEntries.length;
     this.loadedAssets = 0;
 
+    const loadTasks: Promise<void>[] = [];
+
     for (const [name, url] of textureEntries) {
       loadTasks.push(
-        this.utils.loadTexture(url).then((tex) => {
-          this.textures.set(name, tex);
-          this.loadedAssets++;
-        })
+        this.utils.loadTexture(url)
+          .then((texture) => {
+            this.textures.set(name, texture);
+            console.log(`Loaded texture: ${name}`);
+
+          })
+          .catch((err) => {
+            console.error(`❌ Failed to load texture: ${name} (${url})`, err);
+          })
+          .finally(() => {
+            this.loadedAssets++;
+          })
       );
     }
 
-    for (const font of fontEntries) {
+    for (const { name, url } of fontEntries) {
       loadTasks.push(
-        this._loadFont(font.name, font.url).then((fontFace) => {
-          this.fonts.set(font.name, fontFace);
-          this.loadedAssets++;
-        })
+        this._loadFont(name, url)
+          .then((font) => {
+            console.log(`Loaded font: ${name}`);
+
+            this.fonts.set(name, font);
+          })
+          .catch((err) => {
+            console.error(`❌ Failed to load font: ${name} (${url})`, err);
+          })
+          .finally(() => {
+            this.loadedAssets++;
+          })
       );
     }
 
     for (const [name, url] of modelEntries) {
       loadTasks.push(
         fetch(url)
-          .then((res) => res.arrayBuffer())
+          .then((res) => {
+            if (!res.ok) throw new Error(`HTTP ${res.status}`);
+            return res.arrayBuffer();
+          })
           .then((buffer) => {
             this.models.set(name, buffer);
+          })
+          .catch((err) => {
+            console.error(`❌ Failed to load model: ${name} (${url})`, err);
+          })
+          .finally(() => {
             this.loadedAssets++;
           })
       );
     }
 
-    await Promise.all(loadTasks);
+    await Promise.allSettled(loadTasks);
   }
 
   getProgress(): number {
