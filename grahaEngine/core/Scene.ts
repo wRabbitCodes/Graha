@@ -114,7 +114,6 @@ export class Scene {
   }
 
   private createPlanets() {
-    const scale = SETTINGS.DISTANCE_SCALE;
     const earth = this.planetFactory.create({
       type: ENTITY_TYPE.PLANET,
       name: "Earth",
@@ -127,7 +126,7 @@ export class Scene {
       atmosphereURL: "textures/8k_earth_clouds.jpg",
       nightURL: "textures/8k_earth_nightmap.jpg",
       orbitData: {
-        semiMajorAxis: 149_600_000 * scale,
+        semiMajorAxis: 149_600_000,
         eccentricity: 0.0167,
         inclination: 0.00005,
         longitudeOfAscendingNode: -11.26,
@@ -147,7 +146,7 @@ export class Scene {
       surfaceURL: "textures/4k_moon_surface.jpg",
       normalURL: "textures/4k_moon_normal.jpg",
       orbitData: {
-        semiMajorAxis: 384_400 * scale / 8,
+        semiMajorAxis: 384_400 / 8,
         eccentricity: 0.0549,
         inclination: 5.145,
         argumentOfPeriapsis: 318.15,
@@ -165,7 +164,7 @@ export class Scene {
       surfaceURL: "textures/2k_mars_surface.jpg",
       normalURL: "textures/2k_mars_normal.png",
       orbitData: {
-        semiMajorAxis: 227_939_200 * scale,
+        semiMajorAxis: 227_939_200,
         eccentricity: 0.0935,
         inclination: 1.85,
         longitudeOfAscendingNode: 49.558,
