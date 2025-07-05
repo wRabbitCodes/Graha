@@ -1,12 +1,21 @@
+"use client";
+import * as Dialog from "@radix-ui/react-dialog";
+
 export default function Controls() {
   return (
-    <div className="absolute bottom-4 left-4 p-4 bg-black/70 text-white rounded-lg">
-      <button className="mr-2 px-4 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded">
-        Select Planet
-      </button>
-      <button className="px-4 py-1 bg-green-500 hover:bg-green-600 text-white rounded">
-        Lock Camera
-      </button>
-    </div>
+    <Dialog.Root>
+      <Dialog.Trigger asChild>
+        <button className="p-2 bg-blue-600 text-white rounded">Open Dialog</button>
+      </Dialog.Trigger>
+      <Dialog.Portal>
+        <Dialog.Overlay className="fixed inset-0 bg-black/50" />
+        <Dialog.Content className="fixed top-20 left-20 bg-black p-6 rounded shadow-lg">
+          <Dialog.Title className="mb-4 font-bold">Hello!</Dialog.Title>
+          <Dialog.Close asChild>
+            <button className="px-4 py-2 bg-red-500 text-white rounded">Close</button>
+          </Dialog.Close>
+        </Dialog.Content>
+      </Dialog.Portal>
+    </Dialog.Root>
   );
 }
