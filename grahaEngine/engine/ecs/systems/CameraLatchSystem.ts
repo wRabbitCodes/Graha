@@ -19,7 +19,26 @@ export class CameraLatchSystem extends System {
   }
 
   setLatchEntity(e: Entity) {
+    if (this.latchedEntity === e) return; // already latched, no change
+
+    // Clear old latch component if exists
+    if (this.latchedEntity) {
+      this.registry.removeComponent(this.latchedEntity, CameraLatchComponent);
+    }
+
     this.latchedEntity = e;
+
+    // Add fresh latch component to new entity with reset state
+    let latch = this.registry.getComponent(e, CameraLatchComponent);
+    if (!latch) {
+      latch = new CameraLatchComponent();
+      this.registry.addComponent(e, latch);
+    } else {
+      // Reset internal latch state so transition will run again
+      latch.transitionState = LATCH_STATES.REORIENTING;
+      latch.state = COMPONENT_STATE.UNINITIALIZED;
+      latch.elapsed = 0;
+    }
   }
 
   clearLatch() {
@@ -31,10 +50,16 @@ export class CameraLatchSystem extends System {
 
   update(deltaTime: number): void {
     if (!this.latchedEntity) return;
-    const modelComp = this.registry.getComponent(this.latchedEntity, ModelComponent);
+    const modelComp = this.registry.getComponent(
+      this.latchedEntity,
+      ModelComponent
+    );
     if (modelComp?.state !== COMPONENT_STATE.READY) return;
 
-    let latch = this.registry.getComponent(this.latchedEntity, CameraLatchComponent);
+    let latch = this.registry.getComponent(
+      this.latchedEntity,
+      CameraLatchComponent
+    );
 
     if (!latch) {
       latch = new CameraLatchComponent();
@@ -58,44 +83,43 @@ export class CameraLatchSystem extends System {
   }
 
   private updateReorientation(
-  latch: CameraLatchComponent,
-  model: ModelComponent,
-  deltaTime: number
-) {
-  if (latch.state === COMPONENT_STATE.UNINITIALIZED) {
-    latch.state = COMPONENT_STATE.READY;
-    latch.elapsed = 0;
-    // Cache initial camera front vector (direction)
-    latch.startDirection = this.camera.getFront();
+    latch: CameraLatchComponent,
+    model: ModelComponent,
+    deltaTime: number
+  ) {
+    if (latch.state === COMPONENT_STATE.UNINITIALIZED) {
+      latch.state = COMPONENT_STATE.READY;
+      latch.elapsed = 0;
+      // Cache initial camera front vector (direction)
+      latch.startDirection = this.camera.getFront();
+    }
+
+    latch.elapsed += deltaTime / 1000;
+    const t = this.smoothstep(0, 1, latch.elapsed / latch.transitionTime);
+
+    // Desired direction = vector from camera position to target (normalized)
+    const desiredDir = vec3.create();
+    vec3.sub(desiredDir, model.position!, this.camera.getPosition());
+    vec3.normalize(desiredDir, desiredDir);
+
+    // Interpolate direction vector between start and desired direction
+    const interpolatedDir = vec3.create();
+
+    // Use spherical linear interpolation (slerp) for directions (quaternions)
+    // We'll convert vectors to quats for slerp, or fallback to linear lerp with normalize:
+
+    // For simplicity: linear lerp + normalize (not perfect but good enough)
+    vec3.lerp(interpolatedDir, latch.startDirection!, desiredDir, t);
+    vec3.normalize(interpolatedDir, interpolatedDir);
+
+    // Apply interpolated direction to camera
+    this.camera.lookInDirection(interpolatedDir);
+
+    if (t >= 1) {
+      latch.transitionState = LATCH_STATES.TRANSITIONING;
+      latch.state = COMPONENT_STATE.UNINITIALIZED; // reset for position phase
+    }
   }
-
-  latch.elapsed += deltaTime / 1000;
-  const t = this.smoothstep(0, 1, latch.elapsed / latch.transitionTime);
-
-  // Desired direction = vector from camera position to target (normalized)
-  const desiredDir = vec3.create();
-  vec3.sub(desiredDir, model.position!, this.camera.getPosition());
-  vec3.normalize(desiredDir, desiredDir);
-
-  // Interpolate direction vector between start and desired direction
-  const interpolatedDir = vec3.create();
-
-  // Use spherical linear interpolation (slerp) for directions (quaternions)
-  // We'll convert vectors to quats for slerp, or fallback to linear lerp with normalize:
-  
-  // For simplicity: linear lerp + normalize (not perfect but good enough)
-  vec3.lerp(interpolatedDir, latch.startDirection!, desiredDir, t);
-  vec3.normalize(interpolatedDir, interpolatedDir);
-
-  // Apply interpolated direction to camera
-  this.camera.lookInDirection(interpolatedDir);
-
-  if (t >= 1) {
-    latch.transitionState = LATCH_STATES.TRANSITIONING;
-    latch.state = COMPONENT_STATE.UNINITIALIZED; // reset for position phase
-  }
-}
-
 
   private updateTransition(
     latch: CameraLatchComponent,
@@ -119,7 +143,12 @@ export class CameraLatchSystem extends System {
     const targetPosition = vec3.create();
     vec3.scaleAndAdd(targetPosition, model.position!, offsetDir, r);
 
-    const interpolated = vec3.lerp(vec3.create(), latch.startPosition, targetPosition, t);
+    const interpolated = vec3.lerp(
+      vec3.create(),
+      latch.startPosition,
+      targetPosition,
+      t
+    );
     this.camera.setPosition(interpolated);
     this.camera.lookAtTarget(model.position!);
 
