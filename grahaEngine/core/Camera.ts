@@ -1,4 +1,4 @@
-import { mat3, mat4, quat, vec3 } from "gl-matrix";
+import { mat4, quat, vec3 } from "gl-matrix";
 import { SETTINGS } from "../config/settings";
 
 export class Camera {
@@ -52,6 +52,7 @@ export class Camera {
   enableLatchMode(target: vec3, radius: number) {
     this.isLatched = true;
     this.minLatchRadius = radius;
+    this.latchedEntityRadius = radius * 1.728; //DONT ASK HOW I GOT THIS NUMBER (A LOT OF TRIAL AND ERROR)
     vec3.copy(this.latchedTarget, target);
 
     // Calculate orbit angles ONCE
@@ -63,6 +64,38 @@ export class Camera {
   // Exit latch mode
   disableLatchMode() {
     this.isLatched = false;
+
+    // Recompute front vector from current position and target
+    const direction = vec3.sub(
+      vec3.create(),
+      this.latchedTarget,
+      this.position
+    );
+    vec3.normalize(direction, direction);
+
+    // Build a rotation quaternion from the look direction
+    const worldForward = vec3.fromValues(0, 0, -1);
+    const rotationAxis = vec3.cross(vec3.create(), worldForward, direction);
+    const dot = vec3.dot(worldForward, direction);
+
+    if (vec3.length(rotationAxis) < 0.0001) {
+      // looking in same or opposite direction
+      if (dot > 0.9999) {
+        quat.identity(this.orientation); // same direction
+      } else {
+        quat.setAxisAngle(this.orientation, [0, 1, 0], Math.PI); // opposite
+      }
+    } else {
+      vec3.normalize(rotationAxis, rotationAxis);
+      const angle = Math.acos(Math.min(Math.max(dot, -1), 1)); // Clamp for safety
+      quat.setAxisAngle(this.orientation, rotationAxis, angle);
+    }
+
+    // Sync camera vectors with new orientation
+    this.updateVectorsFromQuat();
+
+    // Optional: recenter viewMatrix
+    this.updateViewMatrix();
   }
 
   lookInDirection(direction: vec3) {

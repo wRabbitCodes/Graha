@@ -153,7 +153,7 @@ export class CameraLatchSystem extends System {
     this.camera.lookAtTarget(model.position!);
 
     const distance = vec3.distance(interpolated, model.position!);
-    const threshold = r * model.boundingBoxScale * 1.05;
+    const threshold = r * model.boundingBoxScale * 1.728;
 
     if (distance <= threshold) {
       this.camera.enableLatchMode(model.position!, r * model.boundingBoxScale);
@@ -164,7 +164,7 @@ export class CameraLatchSystem extends System {
   private computeRadius(model: ModelComponent): number {
     const scale = vec3.create();
     mat4.getScaling(scale, model.modelMatrix);
-    return Math.max(...scale) * model.boundingBoxScale * 3.5;
+    return Math.max(...scale);
   }
 
   private smoothstep(edge0: number, edge1: number, x: number): number {
