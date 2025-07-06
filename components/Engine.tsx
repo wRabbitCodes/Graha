@@ -31,6 +31,7 @@ export default function Engine() {
         sceneInstance.initialize();
         setLoadingDone(true);
         requestAnimationFrame(animate);
+        settings.set("entityMap", sceneRef.current!.getNamedEntities());
       });
 
     const animate = () => {
@@ -71,10 +72,11 @@ export default function Engine() {
       mouseSensitivity: settings.mouseSensitivity,
       boundingBox: settings.boundingBox,
       highlightOrbit: settings.highlightOrbit,
+      latchedEntityID: settings.latchedEntityID,
       set: settings.set,
       // Add more settings if needed
     });
-  }, [settings.boundingBox, settings.cameraSpeed, settings.mouseSensitivity, settings.boundingBox, settings.highlightOrbit]);
+  }, [settings.boundingBox, settings.cameraSpeed, settings.mouseSensitivity, settings.boundingBox, settings.highlightOrbit, settings.latchedEntityID]);
 
   return (
     <div className="relative w-full h-full">

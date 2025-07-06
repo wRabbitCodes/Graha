@@ -42,14 +42,16 @@ export class SelectionTagSystem extends System implements IRenderSystem {
         renderComp = new TagRenderComponent();
         this.registry.addComponent(entity, renderComp);
       }
+      const entityName = this.registry.getNameFromEntityID(entity.id) || "";
       if (renderComp.state === COMPONENT_STATE.UNINITIALIZED)
-        this.initialize(modelComp, renderComp);
+        this.initialize(entityName, modelComp, renderComp);
 
       if (renderComp.state !== COMPONENT_STATE.READY) continue;
 
       this.renderer.enqueue({
         execute: (gl: WebGL2RenderingContext, ctx: RenderContext) => {
           this.updateTag(
+            entityName,
             deltaTime,
             renderComp,
             modelComp,
@@ -122,6 +124,7 @@ export class SelectionTagSystem extends System implements IRenderSystem {
   }
 
   private initialize(
+    name: string,
     modelComp: ModelComponent,
     renderComp: TagRenderComponent
   ) {
@@ -130,7 +133,7 @@ export class SelectionTagSystem extends System implements IRenderSystem {
       renderComp.fragShader
     );
     this.setupVAO(renderComp);
-    this.bindTextTexture(modelComp, renderComp);
+    this.bindTextTexture(name, modelComp, renderComp);
     renderComp.state = COMPONENT_STATE.READY;
   }
 
@@ -150,6 +153,7 @@ export class SelectionTagSystem extends System implements IRenderSystem {
   }
 
   private bindTextTexture(
+    name: string,
     modelComp: ModelComponent,
     component: TagRenderComponent
   ) {
@@ -158,7 +162,7 @@ export class SelectionTagSystem extends System implements IRenderSystem {
     component.textCanvas = canvas;
     canvas.width = 1024;
     canvas.height = 256;
-    component.currentText = modelComp.name!;
+    component.currentText = name;
     // Load the local font
     const ctx = canvas.getContext("2d")!;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -168,7 +172,7 @@ export class SelectionTagSystem extends System implements IRenderSystem {
     ctx.lineWidth = 4; // strokeText outline width
     ctx.shadowBlur = 0; // Disable blur
     ctx.fillStyle = "#00ffff"; // Neon cyan color
-    ctx.fillText(modelComp.name!, canvas.width / 2, canvas.height / 2);
+    ctx.fillText(name, canvas.width / 2, canvas.height / 2);
 
     // === Upload to GPU ===
     const tex = gl.createTexture()!;
@@ -183,6 +187,7 @@ export class SelectionTagSystem extends System implements IRenderSystem {
   }
 
   private updateTag(
+    name: string,
     dt: number,
     renderComp: TagRenderComponent,
     modelComp: ModelComponent,
@@ -206,8 +211,8 @@ export class SelectionTagSystem extends System implements IRenderSystem {
     const showFullText = distToCamera <= threshold;
 
     const textToDraw = showFullText
-      ? modelComp.name!
-      : modelComp.name!.charAt(0);
+      ? name
+      : name.charAt(0);
 
     // Only update texture if text content changed (optional optimization)
     if (renderComp.currentText !== textToDraw) {

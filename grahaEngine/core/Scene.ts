@@ -33,13 +33,16 @@ export interface SettingsState {
   mouseSensitivity: number;
   boundingBox: boolean;
   highlightOrbit: boolean;
-  latchedPlanet?: Entity;
+  latchedEntityID?: number;
+  entityMap?: Map<number, string>,
 
   set: <K extends keyof SettingsState>(key: K, value: SettingsState[K]) => void;
 }
 
 export class Scene {
-
+  getNamedEntities() {
+    return this.registry.getEntityIDToNameMap();
+  }
 
   setSimulationParams(params: { speed: number; paused: boolean }) {
     this.simSpeed = params.speed;
@@ -306,7 +309,14 @@ export class Scene {
     this.orbitSystem.update(deltaTime);
     this.ccdSystem.update(deltaTime);
     this.camera.update(deltaTime / 1000);
-    this.cameraLatchSystem.update(deltaTime);
+
+    if (this.settings.latchedEntityID) {
+      this.cameraLatchSystem.setLatchEntity(this.registry.getEntityByID(this.settings.latchedEntityID)!);
+      this.cameraLatchSystem.update(deltaTime);
+    } else {
+      this.cameraLatchSystem.clearLatch();
+    }
+    
     this.frustumCuller.update(deltaTime);
     this.planetRender.update(deltaTime);
     if(this.settings.highlightOrbit) {

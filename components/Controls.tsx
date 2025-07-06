@@ -10,7 +10,8 @@ export default function Controls() {
     mouseSensitivity,
     boundingBox,
     highlightOrbit,
-    latchedPlanet,
+    latchedEntityID: latchedPlanet,
+    entityMap,
     set,
   } = useSettings();
 
@@ -87,6 +88,29 @@ export default function Controls() {
               Highlight Orbit
             </label>
           </div>
+
+          {entityMap && (
+            <div>
+              <label className="block text-sm mb-1">Camera LockOn</label>
+              <select
+                value={latchedPlanet ?? ""}
+                onChange={(e) =>
+                  set(
+                    "latchedEntityID",
+                    e.target.value === "" ? undefined : Number(e.target.value)
+                  )
+                }
+                className="w-full bg-gray-800 p-1 rounded text-white"
+              >
+                {entityMap.entries().map(([id, name]) => (
+                  <option key={id} value={id}>
+                    {name}
+                  </option>
+                ))}
+                <option value="">No Camera Lock</option>
+              </select>
+            </div>
+          )}
         </div>
       )}
     </div>

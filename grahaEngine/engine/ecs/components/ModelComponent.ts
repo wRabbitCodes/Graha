@@ -8,7 +8,6 @@ export enum ENTITY_TYPE {
 export class ModelComponent implements IComponent, IState {
   state = COMPONENT_STATE.UNINITIALIZED;
   type = ENTITY_TYPE.PLANET;
-  name?: string;
   scale?: vec3;
   position?: vec3;
   tiltAngle = 23.44;

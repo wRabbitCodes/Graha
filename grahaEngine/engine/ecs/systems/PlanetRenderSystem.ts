@@ -36,19 +36,19 @@ export class PlanetRenderSystem extends System implements IRenderSystem {
         modelComp.state !== COMPONENT_STATE.READY ||
         !modelComp.isVisible
       ) {
-        // console.log(`${modelComp.name} CULLED, ISVISIBLE: ${modelComp.isVisible}`);
         continue;
       }
 
       if (renderComp.state === COMPONENT_STATE.UNINITIALIZED)
         this.initialize(renderComp);
-
+      
+      const entityName = this.registry.getNameFromEntityID(entity.id)!;
       const texComp = {
-        surface: this.assetsLoader.getTexture(`${modelComp.name?.toLowerCase()}Surface`),
-        normal: this.assetsLoader.getTexture(`${modelComp.name?.toLowerCase()}Normal`),
-        specular: this.assetsLoader.getTexture(`${modelComp.name?.toLowerCase()}Specular`),
-        atmosphere: this.assetsLoader.getTexture(`${modelComp.name?.toLowerCase()}Atmosphere`),
-        night: this.assetsLoader.getTexture(`${modelComp.name?.toLowerCase()}Night`)
+        surface: this.assetsLoader.getTexture(`${entityName.toLowerCase()}Surface`),
+        normal: this.assetsLoader.getTexture(`${entityName.toLowerCase()}Normal`),
+        specular: this.assetsLoader.getTexture(`${entityName.toLowerCase()}Specular`),
+        atmosphere: this.assetsLoader.getTexture(`${entityName.toLowerCase()}Atmosphere`),
+        night: this.assetsLoader.getTexture(`${entityName.toLowerCase()}Night`)
       };
 
       this.renderer.enqueue({

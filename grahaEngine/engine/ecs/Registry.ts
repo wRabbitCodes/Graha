@@ -8,6 +8,7 @@ export class Registry {
   private nextId = 0;
   private entities = new Map<number, Entity>();
   private components = new Map<number, ComponentMap>();
+  private entityToName = new Map<number, string>();
 
   createEntity(): Entity {
     const id = this.nextId++;
@@ -55,4 +56,22 @@ export class Registry {
   getAllEntities(): Entity[] {
     return [...this.entities.values()];
   }
+
+
+  setNameForEntityID(entityID: number, name: string) {
+    this.entityToName.set(entityID, name);
+  }
+
+  getNameFromEntityID(entityID: number): string {
+    return this.entityToName.get(entityID)!;
+  }
+
+  getEntityIDToNameMap() {
+    return this.entityToName as Readonly<Map<number, string>>;
+  }
+
+  getEntityByID(entityID: number) {
+    return this.entities.get(entityID);
+  }
+
 }

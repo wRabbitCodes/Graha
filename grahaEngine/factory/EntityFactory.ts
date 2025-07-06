@@ -33,6 +33,7 @@ export class EntityFactory implements IFactory {
 
   create(params: EntityData): Entity {
     const entity = this.registry.createEntity();
+    this.registry.setNameForEntityID(entity.id, params.name)
 
     const orbitRadius =(params.orbitData?.semiMajorAxis!)/ SETTINGS.DISTANCE_SCALE;
     const planetScale = vec3.fromValues(
@@ -42,7 +43,6 @@ export class EntityFactory implements IFactory {
     );
     // Transform
     const transform = new ModelComponent();
-    transform.name = params.name;
     transform.position = vec3.fromValues(orbitRadius, 0, 0);
     transform.scale = planetScale;
     transform.tiltAngle = params.tiltAngle;
@@ -50,6 +50,7 @@ export class EntityFactory implements IFactory {
     transform.axis = params.axis ?? vec3.fromValues(0, 1, 0);
     transform.type = params.type;
     this.registry.addComponent(entity, transform);
+    
 
     // Orbit (optional)
     if (params.orbitData) {

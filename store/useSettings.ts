@@ -7,6 +7,7 @@ export const useSettings = create<SettingsState>((set) => ({
   mouseSensitivity: 0.001,
   boundingBox: false,
   highlightOrbit: false,
-  latchedPlanet: undefined,
+  latchedEntityID: undefined,
+  entityMap: undefined,
   set: (key, value) => set((state) => ({ ...state, [key]: value })),
 }));

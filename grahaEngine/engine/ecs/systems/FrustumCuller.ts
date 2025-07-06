@@ -97,7 +97,6 @@ getFrustumPlanesFromMatrix(vp: mat4): vec4[] {
     
       model.isVisible = this.isSphereInFrustum(center, radius, planes);
 
-    //   console.log(`PLANET ${model.name} :: IS VISIBLE ? ${model.isVisible}`);
     }
   }
 }
