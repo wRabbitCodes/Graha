@@ -1,6 +1,5 @@
-import Controls from "@/components/Controls";
 import dynamic from "next/dynamic";
-const WebGLCanvas = dynamic(() => import("@/components/WebGLCanvas"), {
+const WebGLCanvas = dynamic(() => import("@/components/Engine"), {
   ssr: false,
 });
 
@@ -16,7 +15,6 @@ export default function Home() {
       <Controls /> */}
       <div className="relative w-screen h-screen overflow-hidden bg-black">
         <WebGLCanvas />
-        <Controls />
       </div>
     </>
   );

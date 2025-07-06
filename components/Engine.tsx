@@ -1,53 +1,80 @@
 "use client";
+
 import { useEffect, useRef, useState } from "react";
 import { Scene } from "@/grahaEngine/core/Scene";
 import { TEXTURES, FONTS } from "@/grahaEngine/data/assetsData";
+import Controls from "./Controls";
+import { useSettings } from "@/store/useSettings";
 
-export default function WebGLCanvas() {
+export default function Engine() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const sceneRef = useRef<Scene | null>(null);
   const [loadingProgress, setLoadingProgress] = useState(0);
   const [loadingDone, setLoadingDone] = useState(false);
   const [showCrosshair, setShowCrosshair] = useState(false);
 
+  const settings = useSettings();
+
+  // Initialize scene and load assets
   useEffect(() => {
     if (!canvasRef.current) return;
-    const scene = new Scene(canvasRef.current);
-    const loader = scene.assetsLoader;
+    const sceneInstance = new Scene(canvasRef.current);
+    sceneRef.current = sceneInstance;
+    const loader = sceneInstance.assetsLoader;
 
-    loader.loadAll({
-      textures: TEXTURES,
-      fonts: FONTS,
-    }).then(() => {
-      scene.initialize();
-      setLoadingDone(true);
-      animate();
-    });
+    loader
+      .loadAll({
+        textures: TEXTURES,
+        fonts: FONTS,
+      })
+      .then(() => {
+        sceneInstance.initialize();
+        setLoadingDone(true);
+        requestAnimationFrame(animate);
+      });
 
-    // Progress polling
+    const animate = () => {
+      requestAnimationFrame(animate);
+      sceneInstance.update(16); // replace with actual deltaTime if needed
+    };
+
+    // Poll for loading progress
     const interval = setInterval(() => {
       const progress = loader.getProgress();
       setLoadingProgress(progress);
       if (progress >= 1) clearInterval(interval);
     }, 100);
 
-    const animate = () => {
-      requestAnimationFrame(animate);
-      const delta = 16; // You can use real deltaTime
-      scene.update(delta);
-    };
-
-    // Crosshair visibility based on pointer lock
     const handlePointerLockChange = () => {
       const locked = document.pointerLockElement === canvasRef.current;
       setShowCrosshair(locked);
     };
 
     document.addEventListener("pointerlockchange", handlePointerLockChange);
+
     return () => {
       clearInterval(interval);
-      document.removeEventListener("pointerlockchange", handlePointerLockChange);
+      document.removeEventListener(
+        "pointerlockchange",
+        handlePointerLockChange
+      );
     };
   }, []);
+
+  // Update scene settings reactively
+  useEffect(() => {
+    const scene = sceneRef.current;
+    if (!scene) return;
+    scene.updateSettings({
+      globalSceneScale: settings.globalSceneScale,
+      cameraSpeed: settings.cameraSpeed,
+      mouseSensitivity: settings.mouseSensitivity,
+      boundingBox: settings.boundingBox,
+      highlightOrbit: settings.highlightOrbit,
+      set: settings.set,
+      // Add more settings if needed
+    });
+  }, [settings.boundingBox, settings.cameraSpeed, settings.mouseSensitivity, settings.boundingBox, settings.highlightOrbit]);
 
   return (
     <div className="relative w-full h-full">
@@ -86,10 +113,7 @@ export default function WebGLCanvas() {
         </div>
       )}
 
-      {/* Optional debug HUD */}
-      <div className="absolute top-2 left-2 text-white text-sm z-20 pointer-events-none">
-        Hello, WebGL!
-      </div>
+      <Controls />
     </div>
   );
 }

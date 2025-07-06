@@ -1,6 +1,6 @@
-import { useState } from 'react';
-import { useSettings } from '@/store/useSettings';
-import { Settings2 } from 'lucide-react'; // optional: install `lucide-react` for icons
+import { useState } from "react";
+import { useSettings } from "@/store/useSettings";
+import { Settings2 } from "lucide-react"; // optional: install `lucide-react` for icons
 
 export default function Controls() {
   const [open, setOpen] = useState(false);
@@ -8,6 +8,9 @@ export default function Controls() {
     globalSceneScale,
     cameraSpeed,
     mouseSensitivity,
+    boundingBox,
+    highlightOrbit,
+    latchedPlanet,
     set,
   } = useSettings();
 
@@ -57,6 +60,32 @@ export default function Controls() {
               onChange={(e) => set("mouseSensitivity", Number(e.target.value))}
               className="w-full bg-gray-800 p-1 rounded"
             />
+          </div>
+
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="boundingBox"
+              checked={boundingBox}
+              onChange={(e) => set("boundingBox", e.target.checked)}
+              className="w-4 h-4 accent-cyan-400"
+            />
+            <label htmlFor="boundingBox" className="text-sm select-none">
+              Show Bounding Boxes
+            </label>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="highlightOrbit"
+              checked={highlightOrbit}
+              onChange={(e) => set("highlightOrbit", e.target.checked)}
+              className="w-4 h-4 accent-cyan-400"
+            />
+            <label htmlFor="highlightOrbit" className="text-sm select-none">
+              Highlight Orbit
+            </label>
           </div>
         </div>
       )}

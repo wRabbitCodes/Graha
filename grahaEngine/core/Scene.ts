@@ -25,8 +25,22 @@ import { ENTITY_TYPE } from "../engine/ecs/components/ModelComponent";
 import { FrustumCullingSystem } from "../engine/ecs/systems/FrustumCuller";
 import { SunRenderSystem } from "../engine/ecs/systems/SunRenderSystem";
 import { AssetsLoader } from "./AssetsLoader";
+import { Entity } from "../engine/ecs/Entity";
+
+export interface SettingsState {
+  globalSceneScale: number;
+  cameraSpeed: number;
+  mouseSensitivity: number;
+  boundingBox: boolean;
+  highlightOrbit: boolean;
+  latchedPlanet?: Entity;
+
+  set: <K extends keyof SettingsState>(key: K, value: SettingsState[K]) => void;
+}
 
 export class Scene {
+
+
   setSimulationParams(params: { speed: number; paused: boolean }) {
     this.simSpeed = params.speed;
     this.paused = params.paused;
@@ -40,6 +54,7 @@ export class Scene {
   private simSpeed!: number;
   private paused!: boolean;
 
+  private settings!: SettingsState;
   private registry = new Registry();
   private renderer: Renderer;
   private skyRender: SkyRenderSystem;
@@ -135,22 +150,6 @@ export class Scene {
         orbitalPeriod: 365.256, // days (sidereal year)
       },
     });
-    // this.planetFactory.create({
-    //   name: "Jupiter",
-    //   radius: 69911, // radius in km
-    //   tiltAngle: 3.13, // axial tilt in degrees
-    //   surfaceURL: "textures/4k_jupiter.jpg", // surface texture
-    //   siderealDay: 9.9,
-    //   orbitData: {
-    //     semiMajorAxis: 778_340_821, // in km (~5.2 AU)
-    //     eccentricity: 0.0489,
-    //     inclination: 1.305, // degrees
-    //     longitudeOfAscendingNode: 100.492,
-    //     argumentOfPeriapsis: 273.867,
-    //     meanAnomalyAtEpoch: 19.65, // degrees at J2000
-    //     orbitalPeriod: 4332.59, // in days (~11.86 Earth years)
-    //   },
-    // });
     this.planetFactory.create({
       type: ENTITY_TYPE.MOON,
       parent: earth,
@@ -225,41 +224,7 @@ export class Scene {
         orbitalPeriod: 224.701,
       },
     });
-
-    // this.planetFactory.create({
-    //   name: "Saturn",
-    //   radius: 58232,
-    //   tiltAngle: 26.73,
-    //   siderealDay: 10.7,
-    //   surfaceURL: "textures/2k_saturn.jpg",
-    //   orbitData: {
-    //     semiMajorAxis: 1_433_449_370,
-    //     eccentricity: 0.0565,
-    //     inclination: 2.485,
-    //     longitudeOfAscendingNode: 113.665,
-    //     argumentOfPeriapsis: 339.392,
-    //     meanAnomalyAtEpoch: 317.021,
-    //     orbitalPeriod: 10_759.22,
-    //   },
-    // });
-
-    // this.planetFactory.create({
-    //   name: "Uranus",
-    //   radius: 25362,
-    //   tiltAngle: 7.77, // Tilt ~98°, use low value + flipped axis
-    //   axis: [0, -1, 0], // Retrograde
-    //   siderealDay: 17.24,
-    //   surfaceURL: "textures/2k_uranus.jpg",
-    //   orbitData: {
-    //     semiMajorAxis: 2_872_466_000,
-    //     eccentricity: 0.0457,
-    //     inclination: 0.769,
-    //     longitudeOfAscendingNode: 74.006,
-    //     argumentOfPeriapsis: 96.998,
-    //     meanAnomalyAtEpoch: 142.239,
-    //     orbitalPeriod: 30_688.5,
-    //   },
-    // });
+    
     this.planetFactory.create({
       type: ENTITY_TYPE.PLANET,
       name: "Mars",
@@ -317,6 +282,10 @@ export class Scene {
     });
   }
 
+  updateSettings(settings: SettingsState) {
+    this.settings = { ...settings};
+  }
+
   update(deltaTime: number) {
     const progress = this.assetsLoader.getProgress();
     if (progress < 1) {
@@ -340,8 +309,12 @@ export class Scene {
     this.cameraLatchSystem.update(deltaTime);
     this.frustumCuller.update(deltaTime);
     this.planetRender.update(deltaTime);
-    this.orbitTracer.update(deltaTime);
-    this.bbpRenderSystem.update(deltaTime);
+    if(this.settings.highlightOrbit) {
+      this.orbitTracer.update(deltaTime);
+    }
+    if (this.settings.boundingBox) {
+      this.bbpRenderSystem.update(deltaTime);
+    }
     this.selectionGlowRender.update(deltaTime);
     this.selectionTagRender.update(deltaTime);
     this.sunRender.update(deltaTime);
