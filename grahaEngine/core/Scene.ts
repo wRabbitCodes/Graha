@@ -29,6 +29,8 @@ import { Canvas } from "./Canvas";
 import { IO } from "./IO";
 import { AsteroidPointCloudSystem } from "../engine/ecs/systems/AsteroidPointCloudSystem";
 import { AsteroidPointCloudRenderSystem } from "../engine/ecs/systems/AsteroidPointCloudRenderSystem";
+import { AsteroidModelSystem } from "../engine/ecs/systems/AsteroidModelSystem";
+import { AsteroidModelRenderSystem } from "../engine/ecs/systems/AsteroidModelRenderSystem";
 
 export interface SettingsState {
   globalSceneScale: number;
@@ -81,8 +83,10 @@ export class Scene {
   private bbpRenderSystem: BBPlotRenderSystem;
   private orbitTracer: OrbitPathRenderSystem;
   private frustumCuller: FrustumCullingSystem;
-  private asteroidSystem: AsteroidPointCloudSystem;
-  private asteroidRenderSystem: AsteroidPointCloudRenderSystem;
+  private asteroidPCSystem: AsteroidPointCloudSystem;
+  private asteroidPCRenderSystem: AsteroidPointCloudRenderSystem;
+  private asteroidMSystem: AsteroidModelSystem;
+  private asteroidMRSystem: AsteroidModelRenderSystem;
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = new Canvas(canvas);
@@ -114,8 +118,10 @@ export class Scene {
     this.selectionGlowRender = new SelectionGlowRenderSystem(this.renderer, this.registry, this.utils);
     this.selectionTagRender = new SelectionTagSystem(this.renderer, this.registry, this.utils);
     this.ccdSystem = new CCDSystem(this.camera, this.registry, this.utils);
-    this.asteroidSystem = new AsteroidPointCloudSystem(this.registry, this.utils);
-    this.asteroidRenderSystem = new AsteroidPointCloudRenderSystem(this.renderer, this.registry, this.utils);
+    this.asteroidPCSystem = new AsteroidPointCloudSystem(this.registry, this.utils);
+    this.asteroidPCRenderSystem = new AsteroidPointCloudRenderSystem(this.renderer, this.registry, this.utils);
+    this.asteroidMSystem = new AsteroidModelSystem(this.registry, this.utils);
+    this.asteroidMRSystem = new AsteroidModelRenderSystem(this.renderer, this.registry, this.utils);
   }
 
   initialize() {
@@ -319,8 +325,10 @@ export class Scene {
     this.orbitSystem.update(deltaTime);
     this.ccdSystem.update(deltaTime);
     this.camera.update(deltaTime / 1000);
-    this.asteroidSystem.update(deltaTime);
-    this.asteroidRenderSystem.update(deltaTime);
+    this.asteroidPCSystem.update(deltaTime);
+    this.asteroidPCRenderSystem.update(deltaTime);
+    this.asteroidMSystem.update(deltaTime);
+    this.asteroidMRSystem.update(deltaTime);
 
     if (this.settings.latchedEntityID) {
       this.cameraLatchSystem.setLatchEntity(this.registry.getEntityByID(this.settings.latchedEntityID)!);

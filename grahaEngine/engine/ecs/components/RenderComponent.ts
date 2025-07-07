@@ -308,7 +308,7 @@ export class AsteroidPointCloudRenderComponent extends RenderComponent {
     uniform mat4 u_proj;
     void main() {
       gl_Position = u_proj * u_view * vec4(a_position, 1.0);
-      gl_PointSize = 2.5; // screen-space size
+      gl_PointSize = 0.01; // screen-space size
     }
   `;
 
@@ -316,8 +316,64 @@ export class AsteroidPointCloudRenderComponent extends RenderComponent {
     precision mediump float;
     out vec4 fragColor;
     void main() {
-      fragColor = vec4(0.8, 0.7, 0.5, 1.0); // dusty rock color
+      fragColor = vec4(0.8, 0.7, 0.5, 0.7); // dusty rock color
     }
   `;
+}
 
+export class AsteroidModelRenderComponent extends RenderComponent {
+  vertShader = `#version 300 es
+    precision highp float;
+
+    layout(location = 0) in vec3 a_position;
+    layout(location = 1) in vec3 a_normal;
+    layout(location = 2) in vec3 a_instancePos;
+
+    // Rotation quaternion as 4 floats
+    layout(location = 3) in float qx;
+    layout(location = 4) in float qy;
+    layout(location = 5) in float qz;
+    layout(location = 6) in float qw;
+
+    uniform mat4 u_view;
+    uniform mat4 u_proj;
+
+    out vec3 v_normal;
+
+    // Quaternion rotation helper
+    vec3 rotateVecByQuat(vec3 v, vec4 q) {
+        return v + 2.0 * cross(q.xyz, cross(q.xyz, v) + q.w * v);
+    }
+
+    void main() {
+        vec4 q = vec4(qx, qy, qz, qw);
+        vec3 rotated = rotateVecByQuat(a_position, q);
+        vec3 worldPos = rotated * 10.0 + a_instancePos;
+
+        gl_Position = u_proj * u_view * vec4(worldPos, 1.0);
+        v_normal = rotateVecByQuat(a_normal, q);
+    }`;
+
+  fragShader = `#version 300 es
+    precision highp float;
+
+    in vec3 v_normal;
+
+    out vec4 fragColor;
+
+    void main() {
+        // Simple diffuse lighting with a fixed light direction
+        vec3 lightDir = normalize(vec3(1.0, 1.0, 0.5));
+        float diff = max(dot(normalize(v_normal), lightDir), 0.0);
+
+        vec3 baseColor = vec3(0.5, 0.5, 0.5); // grayish asteroid color
+        vec3 color = baseColor * diff + 0.1; // ambient + diffuse
+
+        fragColor = vec4(color, 1.0);
+    }`;
+  mesh: {
+    positions: Float32Array;
+    normals: Float32Array;
+    count: number;
+  } | null = null;
 }

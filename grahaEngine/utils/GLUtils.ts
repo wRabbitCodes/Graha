@@ -11,6 +11,49 @@ export type SphereMesh = {
 export class GLUtils {
   constructor(public gl: WebGL2RenderingContext) {}
 
+  createLowPolyRock(): {
+    positions: Float32Array;
+    normals: Float32Array;
+    count: number;
+  } {
+    const positions = new Float32Array([
+      -1, 0, -1, 1, 0, -1, 0, 1, 0,
+
+      -1, 0, -1, 0, 1, 0, 0, 0, 1,
+
+      1, 0, -1, 0, 0, 1, 0, 1, 0,
+
+      -1, 0, -1, 0, 0, 1, 1, 0, -1,
+    ]);
+
+    const normals = new Float32Array(positions.length);
+    for (let i = 0; i < positions.length; i += 9) {
+      const p0 = [positions[i], positions[i + 1], positions[i + 2]];
+      const p1 = [positions[i + 3], positions[i + 4], positions[i + 5]];
+      const p2 = [positions[i + 6], positions[i + 7], positions[i + 8]];
+
+      const u = [p1[0] - p0[0], p1[1] - p0[1], p1[2] - p0[2]];
+      const v = [p2[0] - p0[0], p2[1] - p0[1], p2[2] - p0[2]];
+      const n = [
+        u[1] * v[2] - u[2] * v[1],
+        u[2] * v[0] - u[0] * v[2],
+        u[0] * v[1] - u[1] * v[0],
+      ];
+      const len = Math.hypot(n[0], n[1], n[2]) || 1;
+      const normal = [n[0] / len, n[1] / len, n[2] / len];
+
+      for (let j = 0; j < 3; j++) {
+        normals.set(normal, i + j * 3);
+      }
+    }
+
+    return {
+      positions,
+      normals,
+      count: positions.length / 3,
+    };
+  }
+
   createUVSphere(
     radius: number,
     latBands: number,
