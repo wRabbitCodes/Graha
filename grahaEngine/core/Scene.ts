@@ -357,8 +357,7 @@ export class Scene {
     }
 
     this.camera.cameraKeyboardHandler(this.input.getKeys());
-    const viewMatrix = this.camera.getViewMatrix();
-    const projectionMatrix = this.canvas.getProjectionMatrix();
+
 
     this.gl.enable(this.gl.DEPTH_TEST);
     this.gl.clearColor(0, 0, 0, 1);
@@ -379,16 +378,6 @@ export class Scene {
       this.asteroidMSystem.update(deltaTime);
       this.asteroidMRSystem.update(deltaTime);
     }
-
-    if (this.settings.latchedEntityID) {
-      this.cameraLatchSystem.setLatchEntity(
-        this.registry.getEntityByID(this.settings.latchedEntityID)!
-      );
-      this.cameraLatchSystem.update(deltaTime);
-    } else {
-      this.cameraLatchSystem.clearLatch();
-    }
-
     this.frustumCuller.update(deltaTime);
 
     this.planetRender.update(deltaTime);
@@ -402,6 +391,18 @@ export class Scene {
     this.selectionTagRender.update(deltaTime);
 
     this.sunRender.update(deltaTime);
+
+    if (this.settings.latchedEntityID) {
+      this.cameraLatchSystem.setLatchEntity(
+        this.registry.getEntityByID(this.settings.latchedEntityID)!
+      );
+      this.cameraLatchSystem.update(deltaTime);
+    } else {
+      this.cameraLatchSystem.clearLatch();
+    }
+
+    const viewMatrix = this.camera.getViewMatrix();
+    const projectionMatrix = this.canvas.getProjectionMatrix();
 
     this.renderer.flush(this.gl, {
       viewMatrix,
