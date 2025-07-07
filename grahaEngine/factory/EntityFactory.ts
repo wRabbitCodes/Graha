@@ -16,11 +16,6 @@ export type EntityData = {
   name: string;
   radius: number;
   tiltAngle: number;
-  surfaceURL: string;
-  normalURL?: string;
-  specularURL?: string;
-  atmosphereURL?: string;
-  nightURL?: string;
   siderealDay?: number;
   axis?: vec3;
   orbitData?: Partial<OrbitComponent>;

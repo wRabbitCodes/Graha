@@ -212,11 +212,6 @@ export class Scene {
       radius: 6371,
       tiltAngle: 23.44,
       siderealDay: 23.9,
-      surfaceURL: "textures/8k_earth_daymap.jpg",
-      normalURL: "textures/8k_earth_normal_map.png",
-      specularURL: "textures/8k_earth_specular_map.png",
-      atmosphereURL: "textures/8k_earth_clouds.jpg",
-      nightURL: "textures/8k_earth_nightmap.jpg",
       orbitData: {
         semiMajorAxis: 149_600_000, // in km (1 AU)
         eccentricity: 0.01671022, // nearly circular
@@ -234,8 +229,6 @@ export class Scene {
       radius: 1737.4,
       tiltAngle: 6.68,
       siderealDay: 27.3,
-      surfaceURL: "textures/4k_moon_surface.jpg",
-      normalURL: "textures/4k_moon_normal.jpg",
       orbitData: {
         semiMajorAxis: (384_400 * SETTINGS.GLOBAL_SCENE_SCALE) / 8,
         eccentricity: 0.0549,
@@ -251,7 +244,6 @@ export class Scene {
       name: "Jupiter",
       radius: 69911, // radius in km
       tiltAngle: 3.13, // axial tilt in degrees
-      surfaceURL: "textures/4k_jupiter.jpg", // surface texture
       siderealDay: 9.9,
       orbitData: {
         semiMajorAxis: 778_340_821, // in km (~5.2 AU)
@@ -270,7 +262,6 @@ export class Scene {
       radius: 2439.7,
       tiltAngle: 0.034,
       siderealDay: 1407.6,
-      surfaceURL: "textures/2k_mercury.jpg",
       orbitData: {
         semiMajorAxis: 57_909_227,
         eccentricity: 0.2056,
@@ -288,7 +279,6 @@ export class Scene {
       radius: 6051.8,
       tiltAngle: 177.36, // retrograde rotation
       siderealDay: 5832.5,
-      surfaceURL: "textures/2k_venus.jpg",
       axis: [0, -1, 0],
       // atmosphereURL: "textures/4k_venus_atmosphere.jpg",
       orbitData: {
@@ -308,8 +298,6 @@ export class Scene {
       radius: 3389.5, // radius in km
       tiltAngle: 25.19, // axial tilt in degrees
       siderealDay: 24.6,
-      surfaceURL: "textures/2k_mars_surface.jpg",
-      normalURL: "textures/2k_mars_normal.png",
       orbitData: {
         semiMajorAxis: 227_939_200, // in km (~1.52 AU)
         eccentricity: 0.0935,
@@ -327,7 +315,6 @@ export class Scene {
       radius: 58232,
       tiltAngle: 26.73,
       siderealDay: 10.7,
-      surfaceURL: "textures/2k_saturn.jpg",
       orbitData: {
         semiMajorAxis: 1_433_449_370,
         eccentricity: 0.0565,
@@ -346,7 +333,6 @@ export class Scene {
       tiltAngle: 7.77, // Tilt ~98°, use low value + flipped axis
       axis: [0, -1, 0], // Retrograde
       siderealDay: 17.24,
-      surfaceURL: "textures/2k_uranus.jpg",
       orbitData: {
         semiMajorAxis: 2_872_466_000,
         eccentricity: 0.0457,
@@ -383,7 +369,7 @@ export class Scene {
     this.orbitSystem.update(deltaTime);
     this.ccdSystem.update(deltaTime);
     this.camera.update(deltaTime / 1000);
-    
+
     if (this.settings.enableAsteroidDustCloud) {
       this.asteroidPCSystem.update(deltaTime);
       this.asteroidPCRenderSystem.update(deltaTime);
