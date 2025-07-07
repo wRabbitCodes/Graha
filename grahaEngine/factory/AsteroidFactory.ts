@@ -43,9 +43,22 @@ export class AsteroidFactory implements IFactory {
       const rot = quat.create();
       quat.random(rot);
 
+      // === Spin Axis & Initial Angle ===
+      const axis = vec3.normalize(vec3.create(), [
+        Math.random() - 0.5,
+        Math.random() - 0.5,
+        Math.random() - 0.5,
+      ]);
+      const initialAngle = Math.random() * 2 * Math.PI;
+
+      comp.spinAxes.push(axis);
+      comp.spinAngles.push(initialAngle);
+
+      // === Transform matrix ===
       const mat = mat4.create();
       mat4.fromRotationTranslationScale(mat, rot, pos, [scale, scale, scale]);
       comp.instanceMatrices.set(mat, i * 16);
+
       comp.state = COMPONENT_STATE.READY;
     }
   }

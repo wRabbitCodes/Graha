@@ -23,4 +23,7 @@ export class AsteroidComponent implements IComponent, IState {
   instanceCount: number = 0;
   instanceMatrices: Float32Array = new Float32Array();
   instanceVBO: WebGLBuffer | null = null;
+
+  spinAxes: vec3[] = [];
+  spinAngles: number[] = [];
 }

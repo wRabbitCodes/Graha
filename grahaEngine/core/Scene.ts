@@ -30,6 +30,7 @@ import { AsteroidRenderSystem } from "../engine/ecs/systems/AsteroidRenderSystem
 import { AsteroidFactory } from "../factory/AsteroidFactory";
 import { Entity } from "../engine/ecs/Entity";
 import { MODELS } from "../data/AssetsData";
+import { AsteroidSystem } from "../engine/ecs/systems/AsteroidSystem";
 
 export interface SettingsState {
   globalSceneScale: number;
@@ -70,6 +71,7 @@ export class Scene {
   private sunFactory: SunFactory;
   private planetRender: PlanetRenderSystem;
   private modelUpdate: ModelUpdateSystem;
+  private asteroidAnimate: AsteroidSystem;
   private planetFactory: EntityFactory;
   private asteroidFactory: AsteroidFactory;
   private orbitSystem: OrbitSystem;
@@ -99,6 +101,7 @@ export class Scene {
     this.planetRender = new PlanetRenderSystem(this.renderer, this.assetsLoader, this.registry, this.utils);
 
     this.modelUpdate = new ModelUpdateSystem(this.registry, this.utils);
+    this.asteroidAnimate = new AsteroidSystem(this.registry, this.utils);
     this.orbitSystem = new OrbitSystem(this.registry, this.utils);
     this.bbpRenderSystem = new BBPlotRenderSystem(this.renderer, this.registry, this.utils);
     this.orbitTracer = new OrbitPathRenderSystem(this.renderer, this.registry, this.utils);
@@ -129,10 +132,10 @@ export class Scene {
   for (const name of Object.keys(MODELS)) {
     const entity = this.asteroidFactory.create(this.assetsLoader.getModel(name)!);
     this.asteroidFactory.spawnAsteroidCluster(entity, 300, 2.2, 3.2, [0, Math.PI * 2]); // Main Belt
-    this.asteroidFactory.spawnAsteroidCluster(entity, 100, 5.2, 5.3, [3.13 - 1.05, 3.13 - 0.95]); // L4
-    this.asteroidFactory.spawnAsteroidCluster(entity, 100, 5.2, 5.3, [3.13 + 0.95, 3.13 + 1.05]); // L5
-    this.asteroidFactory.spawnAsteroidCluster(entity, 50, 1.85, 1.95, [0, Math.PI * 2]); // Hungaria
-    this.asteroidFactory.spawnAsteroidCluster(entity, 50, 3.6, 3.8, [0, Math.PI * 2]); // Hilda
+    // this.asteroidFactory.spawnAsteroidCluster(entity, 100, 5.2, 5.3, [3.13 - 1.05, 3.13 - 0.95]); // L4
+    // this.asteroidFactory.spawnAsteroidCluster(entity, 100, 5.2, 5.3, [3.13 + 0.95, 3.13 + 1.05]); // L5
+    // this.asteroidFactory.spawnAsteroidCluster(entity, 50, 1.85, 1.95, [0, Math.PI * 2]); // Hungaria
+    // this.asteroidFactory.spawnAsteroidCluster(entity, 50, 3.6, 3.8, [0, Math.PI * 2]); // Hilda
   }
 
 
@@ -340,7 +343,7 @@ export class Scene {
     
     this.frustumCuller.update(deltaTime);
 
-
+    this.asteroidAnimate.update(deltaTime);
     // this.planetRender.update(deltaTime);
     this.asteroidRenderer.update(deltaTime);
     // if(this.settings.highlightOrbit) {
