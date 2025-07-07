@@ -25,9 +25,11 @@ import { ENTITY_TYPE } from "../engine/ecs/components/ModelComponent";
 import { FrustumCullingSystem } from "../engine/ecs/systems/FrustumCuller";
 import { SunRenderSystem } from "../engine/ecs/systems/SunRenderSystem";
 import { AssetsLoader } from "./AssetsLoader";
-import { Entity } from "../engine/ecs/Entity";
 import { AsteroidComponent } from "../engine/ecs/components/AsteroidComponent";
 import { AsteroidRenderSystem } from "../engine/ecs/systems/AsteroidRenderSystem";
+import { AsteroidFactory } from "../factory/AsteroidFactory";
+import { Entity } from "../engine/ecs/Entity";
+import { MODELS } from "../data/AssetsData";
 
 export interface SettingsState {
   globalSceneScale: number;
@@ -69,6 +71,7 @@ export class Scene {
   private planetRender: PlanetRenderSystem;
   private modelUpdate: ModelUpdateSystem;
   private planetFactory: EntityFactory;
+  private asteroidFactory: AsteroidFactory;
   private orbitSystem: OrbitSystem;
   private entitySelectionSystem: EntitySelectionSystem;
   private rayCaster: Raycaster;
@@ -80,6 +83,7 @@ export class Scene {
   private orbitTracer: OrbitPathRenderSystem;
   private frustumCuller: FrustumCullingSystem;
   private asteroidRenderer: AsteroidRenderSystem;
+  private asteroidEntities: Entity[] = [];
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = new Canvas(canvas);
@@ -104,6 +108,7 @@ export class Scene {
     this.skyFactory = new SkyFactory(this.utils, this.registry);
     this.sunFactory = new SunFactory(this.utils, this.registry);
     this.planetFactory = new EntityFactory(this.utils, this.registry);
+    this.asteroidFactory = new AsteroidFactory(this.registry);
 
     this.rayCaster = new Raycaster();
     this.entitySelectionSystem = new EntitySelectionSystem(this.rayCaster, this.camera, this.registry, this.utils);
@@ -121,12 +126,15 @@ export class Scene {
     this.createPlanets();
 
     //ASTEROID TEST
-    const asteroidEntity = this.registry.createEntity();
-    const asteroidComp = new AsteroidComponent();
-    asteroidComp.position = vec3.fromValues(0, 0, 0);
-    asteroidComp.mesh = this.assetsLoader.getModel("asteroid1")!;
-    this.registry.addComponent(asteroidEntity, asteroidComp);
-    this.registry.setNameForEntityID(asteroidEntity.id, "Asteroid");
+  for (const name of Object.keys(MODELS)) {
+    const entity = this.asteroidFactory.create(this.assetsLoader.getModel(name)!);
+    this.asteroidFactory.spawnAsteroidCluster(entity, 300, 2.2, 3.2, [0, Math.PI * 2]); // Main Belt
+    this.asteroidFactory.spawnAsteroidCluster(entity, 100, 5.2, 5.3, [3.13 - 1.05, 3.13 - 0.95]); // L4
+    this.asteroidFactory.spawnAsteroidCluster(entity, 100, 5.2, 5.3, [3.13 + 0.95, 3.13 + 1.05]); // L5
+    this.asteroidFactory.spawnAsteroidCluster(entity, 50, 1.85, 1.95, [0, Math.PI * 2]); // Hungaria
+    this.asteroidFactory.spawnAsteroidCluster(entity, 50, 3.6, 3.8, [0, Math.PI * 2]); // Hilda
+  }
+
 
     this.canvas.enablePointerLock(() => this.entitySelectionSystem.update(0));
     this.canvas.onPointerLockChange((locked) => {
