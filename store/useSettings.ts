@@ -9,5 +9,7 @@ export const useSettings = create<SettingsState>((set) => ({
   highlightOrbit: false,
   latchedEntityID: undefined,
   entityMap: undefined,
+  enableAsteroidDustCloud: true,
+  enableAsteroidModels: false,
   set: (key, value) => set((state) => ({ ...state, [key]: value })),
 }));

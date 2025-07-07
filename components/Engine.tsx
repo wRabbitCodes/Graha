@@ -74,10 +74,21 @@ export default function Engine() {
       boundingBox: settings.boundingBox,
       highlightOrbit: settings.highlightOrbit,
       latchedEntityID: settings.latchedEntityID,
+      enableAsteroidDustCloud: settings.enableAsteroidDustCloud,
+      enableAsteroidModels: settings.enableAsteroidModels,
       set: settings.set,
       // Add more settings if needed
     });
-  }, [settings.boundingBox, settings.cameraSpeed, settings.mouseSensitivity, settings.boundingBox, settings.highlightOrbit, settings.latchedEntityID]);
+  }, [
+    settings.boundingBox,
+    settings.cameraSpeed,
+    settings.mouseSensitivity,
+    settings.boundingBox,
+    settings.highlightOrbit,
+    settings.latchedEntityID,
+    settings.enableAsteroidDustCloud,
+    settings.enableAsteroidModels,
+  ]);
 
   return (
     <div className="relative w-full h-full">

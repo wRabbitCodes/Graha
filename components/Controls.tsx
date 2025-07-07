@@ -12,6 +12,8 @@ export default function Controls() {
     highlightOrbit,
     latchedEntityID: latchedPlanet,
     entityMap,
+    enableAsteroidDustCloud,
+    enableAsteroidModels,
     set,
   } = useSettings();
 
@@ -73,6 +75,32 @@ export default function Controls() {
             />
             <label htmlFor="boundingBox" className="text-sm select-none">
               Show Bounding Boxes
+            </label>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="enableAsteroidDustCloud"
+              checked={enableAsteroidDustCloud}
+              onChange={(e) => set("enableAsteroidDustCloud", e.target.checked)}
+              className="w-4 h-4 accent-cyan-400"
+            />
+            <label htmlFor="enableAsteroidDustCloud" className="text-sm select-none">
+              Show Asteroid Dust
+            </label>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="enableAsteroidModels"
+              checked={enableAsteroidModels}
+              onChange={(e) => set("enableAsteroidModels", e.target.checked)}
+              className="w-4 h-4 accent-cyan-400"
+            />
+            <label htmlFor="enableAsteroidModels" className="text-sm select-none">
+              Show Asteroid Models
             </label>
           </div>
 

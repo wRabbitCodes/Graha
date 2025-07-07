@@ -7,9 +7,15 @@ import { AsteroidModelComponent } from "../components/AsteroidModelComponent";
 import { AsteroidModelRenderComponent } from "../components/RenderComponent";
 import { Registry } from "../Registry";
 import { System } from "../System";
+import { AssetsLoader } from "@/grahaEngine/core/AssetsLoader";
 
 export class AsteroidModelRenderSystem extends System implements IRenderSystem {
-  constructor(public renderer: Renderer, registry: Registry, utils: GLUtils) {
+  constructor(
+    private assetsLoader: AssetsLoader,
+    public renderer: Renderer,
+    registry: Registry,
+    utils: GLUtils
+  ) {
     super(registry, utils);
   }
 
@@ -38,7 +44,7 @@ export class AsteroidModelRenderSystem extends System implements IRenderSystem {
 
       this.renderer.enqueue({
         execute: (gl: WebGL2RenderingContext, ctx: RenderContext) => {
-          gl.useProgram(renderComp.program);
+          gl.useProgram(renderComp.program!);
           gl.bindVertexArray(renderComp.VAO);
 
           gl.uniformMatrix4fv(
@@ -52,17 +58,21 @@ export class AsteroidModelRenderSystem extends System implements IRenderSystem {
             ctx.projectionMatrix
           );
 
-          console.log("Draw call params:", {
-            vertexCount: renderComp.mesh!.count,
-            instanceCount: cloud.instanceCount,
-          });
+          const texLoc = gl.getUniformLocation(
+            renderComp.program!,
+            "u_diffuse"
+          );
 
-          debugger;
+          gl.activeTexture(gl.TEXTURE0);
+          gl.bindTexture(gl.TEXTURE_2D, renderComp.mesh?.texture!); // Use correct texture name
+          gl.uniform1i(texLoc, 0); // Tell shader to use texture unit 0
+
           // Draw instanced
-          gl.drawArraysInstanced(
+          gl.drawElementsInstanced(
             gl.TRIANGLES,
+            renderComp.mesh?.indices?.length!,
+            gl.UNSIGNED_SHORT,
             0,
-            renderComp.mesh!.count,
             cloud.instanceCount
           );
 
@@ -78,8 +88,8 @@ export class AsteroidModelRenderSystem extends System implements IRenderSystem {
   ) {
     const gl = this.utils.gl;
     renderComp.state = COMPONENT_STATE.LOADING;
-    renderComp.mesh = this.utils.createLowPolyRock();
-    
+    // renderComp.mesh = this.utils.createLowPolyRock();
+    renderComp.mesh = this.assetsLoader.getModel("asteroid1");
 
     renderComp.program = this.utils.createProgram(
       renderComp.vertShader,
@@ -95,14 +105,14 @@ export class AsteroidModelRenderSystem extends System implements IRenderSystem {
     // Vertex positions (location = 0)
     const posBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, posBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, renderComp.mesh.positions, gl.STATIC_DRAW);
+    gl.bufferData(gl.ARRAY_BUFFER, renderComp.mesh!.positions!, gl.STATIC_DRAW);
     gl.enableVertexAttribArray(0);
     gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
 
     // Vertex normals (location = 1)
     const normBuffer = gl.createBuffer();
     gl.bindBuffer(gl.ARRAY_BUFFER, normBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, renderComp.mesh.normals, gl.STATIC_DRAW);
+    gl.bufferData(gl.ARRAY_BUFFER, renderComp.mesh!.normals!, gl.STATIC_DRAW);
     gl.enableVertexAttribArray(1);
     gl.vertexAttribPointer(1, 3, gl.FLOAT, false, 0, 0);
 
@@ -111,6 +121,26 @@ export class AsteroidModelRenderSystem extends System implements IRenderSystem {
     gl.enableVertexAttribArray(2);
     gl.vertexAttribPointer(2, 3, gl.FLOAT, false, 0, 0);
     gl.vertexAttribDivisor(2, 1); // Advance per instance
+
+    // ---- UVs (location = 3)
+    const uvBuf = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, uvBuf);
+    gl.bufferData(gl.ARRAY_BUFFER, renderComp.mesh!.uvs!, gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(3);
+    gl.vertexAttribPointer(3, 2, gl.FLOAT, false, 0, 0);
+
+
+    // ---- Scales (location = 4)
+    const scaleBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, scaleBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, cloud.scales, gl.STATIC_DRAW);
+    gl.enableVertexAttribArray(4);
+    gl.vertexAttribPointer(4, 1, gl.FLOAT, false, 0, 0);
+    gl.vertexAttribDivisor(4, 1); // Per instance
+
+    const indexBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, indexBuffer);
+    gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, renderComp.mesh!.indices!, gl.STATIC_DRAW);
 
     gl.bindVertexArray(null);
 

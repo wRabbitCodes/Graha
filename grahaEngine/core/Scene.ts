@@ -39,8 +39,9 @@ export interface SettingsState {
   boundingBox: boolean;
   highlightOrbit: boolean;
   latchedEntityID?: number;
-  entityMap?: Map<number, string>,
-
+  entityMap?: Map<number, string>;
+  enableAsteroidDustCloud: boolean;
+  enableAsteroidModels: boolean;
   set: <K extends keyof SettingsState>(key: K, value: SettingsState[K]) => void;
 }
 
@@ -97,16 +98,48 @@ export class Scene {
     this.assetsLoader = new AssetsLoader(this.utils);
     this.renderer = new Renderer();
 
-    this.skyRender = new SkyRenderSystem(this.renderer, this.assetsLoader, this.registry, this.utils);
-    this.sunRender = new SunRenderSystem(this.renderer, this.assetsLoader, this.registry, this.utils);
-    this.planetRender = new PlanetRenderSystem(this.renderer, this.assetsLoader, this.registry, this.utils);
+    this.skyRender = new SkyRenderSystem(
+      this.renderer,
+      this.assetsLoader,
+      this.registry,
+      this.utils
+    );
+    this.sunRender = new SunRenderSystem(
+      this.renderer,
+      this.assetsLoader,
+      this.registry,
+      this.utils
+    );
+    this.planetRender = new PlanetRenderSystem(
+      this.renderer,
+      this.assetsLoader,
+      this.registry,
+      this.utils
+    );
 
     this.modelUpdate = new ModelUpdateSystem(this.registry, this.utils);
     this.orbitSystem = new OrbitSystem(this.registry, this.utils);
-    this.bbpRenderSystem = new BBPlotRenderSystem(this.renderer, this.registry, this.utils);
-    this.orbitTracer = new OrbitPathRenderSystem(this.renderer, this.registry, this.utils);
-    this.frustumCuller = new FrustumCullingSystem(this.camera, this.canvas, this.registry, this.utils);
-    this.cameraLatchSystem = new CameraLatchSystem(this.camera, this.registry, this.utils);
+    this.bbpRenderSystem = new BBPlotRenderSystem(
+      this.renderer,
+      this.registry,
+      this.utils
+    );
+    this.orbitTracer = new OrbitPathRenderSystem(
+      this.renderer,
+      this.registry,
+      this.utils
+    );
+    this.frustumCuller = new FrustumCullingSystem(
+      this.camera,
+      this.canvas,
+      this.registry,
+      this.utils
+    );
+    this.cameraLatchSystem = new CameraLatchSystem(
+      this.camera,
+      this.registry,
+      this.utils
+    );
 
     this.skyFactory = new SkyFactory(this.utils, this.registry);
     this.sunFactory = new SunFactory(this.utils, this.registry);
@@ -114,14 +147,39 @@ export class Scene {
     this.asteroidFactory = new AsteroidFactory(this.registry);
 
     this.rayCaster = new Raycaster();
-    this.entitySelectionSystem = new EntitySelectionSystem(this.rayCaster, this.camera, this.registry, this.utils);
-    this.selectionGlowRender = new SelectionGlowRenderSystem(this.renderer, this.registry, this.utils);
-    this.selectionTagRender = new SelectionTagSystem(this.renderer, this.registry, this.utils);
+    this.entitySelectionSystem = new EntitySelectionSystem(
+      this.rayCaster,
+      this.camera,
+      this.registry,
+      this.utils
+    );
+    this.selectionGlowRender = new SelectionGlowRenderSystem(
+      this.renderer,
+      this.registry,
+      this.utils
+    );
+    this.selectionTagRender = new SelectionTagSystem(
+      this.renderer,
+      this.registry,
+      this.utils
+    );
     this.ccdSystem = new CCDSystem(this.camera, this.registry, this.utils);
-    this.asteroidPCSystem = new AsteroidPointCloudSystem(this.registry, this.utils);
-    this.asteroidPCRenderSystem = new AsteroidPointCloudRenderSystem(this.renderer, this.registry, this.utils);
+    this.asteroidPCSystem = new AsteroidPointCloudSystem(
+      this.registry,
+      this.utils
+    );
+    this.asteroidPCRenderSystem = new AsteroidPointCloudRenderSystem(
+      this.renderer,
+      this.registry,
+      this.utils
+    );
     this.asteroidMSystem = new AsteroidModelSystem(this.registry, this.utils);
-    this.asteroidMRSystem = new AsteroidModelRenderSystem(this.renderer, this.registry, this.utils);
+    this.asteroidMRSystem = new AsteroidModelRenderSystem(
+      this.assetsLoader,
+      this.renderer,
+      this.registry,
+      this.utils
+    );
   }
 
   initialize() {
@@ -179,13 +237,13 @@ export class Scene {
       surfaceURL: "textures/4k_moon_surface.jpg",
       normalURL: "textures/4k_moon_normal.jpg",
       orbitData: {
-        semiMajorAxis : 384_400 * SETTINGS.GLOBAL_SCENE_SCALE/8,
-        eccentricity : 0.0549,
-        inclination : 5.145,
-        argumentOfPeriapsis : 318.15,
-        longitudeOfAscendingNode : 125.08,
-        orbitalPeriod : 27.3217,
-      }
+        semiMajorAxis: (384_400 * SETTINGS.GLOBAL_SCENE_SCALE) / 8,
+        eccentricity: 0.0549,
+        inclination: 5.145,
+        argumentOfPeriapsis: 318.15,
+        longitudeOfAscendingNode: 125.08,
+        orbitalPeriod: 27.3217,
+      },
     });
 
     this.planetFactory.create({
@@ -231,7 +289,7 @@ export class Scene {
       tiltAngle: 177.36, // retrograde rotation
       siderealDay: 5832.5,
       surfaceURL: "textures/2k_venus.jpg",
-      axis: [0,-1,0],
+      axis: [0, -1, 0],
       // atmosphereURL: "textures/4k_venus_atmosphere.jpg",
       orbitData: {
         semiMajorAxis: 108_209_475,
@@ -243,7 +301,7 @@ export class Scene {
         orbitalPeriod: 224.701,
       },
     });
-    
+
     this.planetFactory.create({
       type: ENTITY_TYPE.PLANET,
       name: "Mars",
@@ -302,7 +360,7 @@ export class Scene {
   }
 
   updateSettings(settings: SettingsState) {
-    this.settings = { ...settings};
+    this.settings = { ...settings };
   }
 
   update(deltaTime: number) {
@@ -325,22 +383,30 @@ export class Scene {
     this.orbitSystem.update(deltaTime);
     this.ccdSystem.update(deltaTime);
     this.camera.update(deltaTime / 1000);
-    this.asteroidPCSystem.update(deltaTime);
-    this.asteroidPCRenderSystem.update(deltaTime);
-    this.asteroidMSystem.update(deltaTime);
-    this.asteroidMRSystem.update(deltaTime);
+    
+    if (this.settings.enableAsteroidDustCloud) {
+      this.asteroidPCSystem.update(deltaTime);
+      this.asteroidPCRenderSystem.update(deltaTime);
+    }
+
+    if (this.settings.enableAsteroidModels) {
+      this.asteroidMSystem.update(deltaTime);
+      this.asteroidMRSystem.update(deltaTime);
+    }
 
     if (this.settings.latchedEntityID) {
-      this.cameraLatchSystem.setLatchEntity(this.registry.getEntityByID(this.settings.latchedEntityID)!);
+      this.cameraLatchSystem.setLatchEntity(
+        this.registry.getEntityByID(this.settings.latchedEntityID)!
+      );
       this.cameraLatchSystem.update(deltaTime);
     } else {
       this.cameraLatchSystem.clearLatch();
     }
-    
+
     this.frustumCuller.update(deltaTime);
 
     this.planetRender.update(deltaTime);
-    if(this.settings.highlightOrbit) {
+    if (this.settings.highlightOrbit) {
       this.orbitTracer.update(deltaTime);
     }
     if (this.settings.boundingBox) {

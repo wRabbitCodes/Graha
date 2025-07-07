@@ -7,4 +7,5 @@ export class AsteroidModelComponent implements IComponent {
   rotationSpeeds: Float32Array = new Float32Array(); // N
   center: vec3 = vec3.create();
   instanceCount = 0; // added for instancing
+  scales: Float32Array = new Float32Array();
 }

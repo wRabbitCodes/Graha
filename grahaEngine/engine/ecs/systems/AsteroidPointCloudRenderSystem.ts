@@ -18,13 +18,11 @@ export class AsteroidPointCloudRenderSystem extends System implements IRenderSys
   }
 
   update(deltaTime: number): void {
-    debugger;
     const entities = this.registry.getEntitiesWith(
       AsteroidPointCloudComponent,
     );
 
     for (const entity of entities) {
-      debugger;
       const cloud = this.registry.getComponent(entity, AsteroidPointCloudComponent);
       let renderComp = this.registry.getComponent(entity, AsteroidPointCloudRenderComponent);
       if (!renderComp) {
@@ -45,7 +43,6 @@ export class AsteroidPointCloudRenderSystem extends System implements IRenderSys
         execute: (gl: WebGL2RenderingContext, ctx: RenderContext) => {
           gl.useProgram(renderComp.program);
           gl.bindVertexArray(renderComp.VAO);
-          debugger;
           gl.uniformMatrix4fv(
             gl.getUniformLocation(renderComp.program!, "u_view"),
             false,

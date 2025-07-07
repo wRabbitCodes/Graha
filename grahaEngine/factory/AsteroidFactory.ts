@@ -18,9 +18,9 @@ export class AsteroidFactory implements IFactory {
     asteroidPCComp.state = COMPONENT_STATE.READY;
     this.registry.addComponent(entity, asteroidPCComp);
 
-    const instances = 2000;
+    const instances = 500;
     const asteroidMComp = new AsteroidModelComponent();
-    [asteroidMComp.positions, asteroidMComp.rotationSpeeds] =
+    [asteroidMComp.positions, asteroidMComp.rotationSpeeds, asteroidMComp.scales] =
       this.generatePoints(instances);
     asteroidMComp.center = vec3.fromValues(0, 0, 0);
     asteroidMComp.instanceCount = instances; // set instanceCount here
@@ -35,13 +35,14 @@ export class AsteroidFactory implements IFactory {
     const AU = 1.496e8; // in km
     const innerRadius = (2.1 * AU) / SETTINGS.DISTANCE_SCALE;
     const outerRadius = (3.3 * AU) / SETTINGS.DISTANCE_SCALE;
-    const verticalSpread = (0.15 * AU) / SETTINGS.DISTANCE_SCALE; // ±Y thickness of tube
-    const eccentricityRange = 0.05; // small offset from circular to slightly elliptical
+    const verticalSpread = (1.0 * AU) / SETTINGS.DISTANCE_SCALE; // ±Y thickness of tube
+    const eccentricityRange = 0.1; // small offset from circular to slightly elliptical
 
     const positions = new Float32Array(count * 3);
     const rotationSpeeds = new Float32Array(count); // optional per-asteroid speed
     const rotations: quat[] = [];
     const rotationAxes: vec3[] = [];
+    const scales = new Float32Array(count);
 
     for (let i = 0; i < count; i++) {
       // Semi-major axis in the asteroid belt range
@@ -74,7 +75,9 @@ export class AsteroidFactory implements IFactory {
         Math.random() - 0.5,
         Math.random() - 0.5
       ]));
+
+      scales[i] = 1.5 + Math.random() * 10.0; // Between 2.0 and 6.0 (adjust as needed)
     }
-    return [positions, rotationSpeeds];
+    return [positions, rotationSpeeds, scales];
   }
 }
