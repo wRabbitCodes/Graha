@@ -2,68 +2,59 @@ import { MeshData } from "@/grahaEngine/core/AssetsLoader";
 import { mat4, quat, vec3 } from "gl-matrix";
 import { Entity } from "../engine/ecs/Entity";
 import { Registry } from "../engine/ecs/Registry";
-import { AsteroidComponent } from "../engine/ecs/components/AsteroidComponent";
 import { IFactory } from "./IFactory";
 import { COMPONENT_STATE } from "../engine/ecs/Component";
+import { AsteroidPointCloudComponent } from "../engine/ecs/components/AsteroidPointCloudComponent";
+import { SETTINGS } from "../config/settings";
 
 export class AsteroidFactory implements IFactory {
   constructor(private registry: Registry) {}
-  create(mesh: MeshData) {
+  create() {
     const entity = this.registry.createEntity();
+    /// CALCULATION FOR POINTS
+    const AU = 1.496e8; // in km
+    const innerRadius = 2.1 * AU / SETTINGS.DISTANCE_SCALE;
+    const outerRadius = 3.3 * AU / SETTINGS.DISTANCE_SCALE;
+    const verticalSpread = 0.15 * AU / SETTINGS.DISTANCE_SCALE; // ±Y thickness of tube
+    const eccentricityRange = 0.05; // small offset from circular to slightly elliptical
+    const count = 5000;
 
-    const comp = new AsteroidComponent();
-    comp.mesh = mesh;
-
-    this.registry.addComponent(entity, comp);
-    return entity;
-  }
-
-  spawnAsteroidCluster(
-    modelEntity: Entity,
-    count: number,
-    minRadius: number,
-    maxRadius: number,
-    angleRange: [number, number]
-  ) {
-    const comp = this.registry.getComponent(modelEntity, AsteroidComponent);
-    if (!comp || !comp.mesh) return;
-    comp.instanceCount = count;
-    comp.instanceMatrices = new Float32Array(count * 16);
+    const positions = new Float32Array(count * 3);
+    const rotationSpeeds = new Float32Array(count); // optional per-asteroid speed
 
     for (let i = 0; i < count; i++) {
-      const angle = this.randomRange(angleRange[0], angleRange[1]);
-      const radius =
-        minRadius + Math.pow(Math.random(), 2) * (maxRadius - minRadius);
-      const x = radius * Math.cos(angle);
-      const z = radius * Math.sin(angle);
-      const y = this.randomRange(-0.05, 0.05);
+      // Semi-major axis in the asteroid belt range
+      const a = innerRadius + Math.random() * (outerRadius - innerRadius);
 
-      const scale = this.randomRange(0.05, 0.25);
-      const pos = vec3.fromValues(x, y, z);
-      const rot = quat.create();
-      quat.random(rot);
+      // Small random eccentricity (for ellipse-like orbits)
+      const e = Math.random() * eccentricityRange;
 
-      // === Spin Axis & Initial Angle ===
-      const axis = vec3.normalize(vec3.create(), [
-        Math.random() - 0.5,
-        Math.random() - 0.5,
-        Math.random() - 0.5,
-      ]);
-      const initialAngle = Math.random() * 2 * Math.PI;
+      // Compute corresponding semi-minor axis b
+      const b = a * Math.sqrt(1 - e * e);
 
-      comp.spinAxes.push(axis);
-      comp.spinAngles.push(initialAngle);
+      // Random angle θ in orbit (in radians)
+      const theta = Math.random() * 2 * Math.PI;
 
-      // === Transform matrix ===
-      const mat = mat4.create();
-      mat4.fromRotationTranslationScale(mat, rot, pos, [scale, scale, scale]);
-      comp.instanceMatrices.set(mat, i * 16);
+      // Parametric ellipse formula
+      const x = a * Math.cos(theta);
+      const z = b * Math.sin(theta);
 
-      comp.state = COMPONENT_STATE.READY;
+      // Y value gives the "tube" thickness
+      const y = (Math.random() - 0.5) * verticalSpread;
+
+      positions.set([x, y, z], i * 3);
+
+      // Random slight orbital speed offset
+      rotationSpeeds[i] = 0.00005 + Math.random() * 0.00003; // radians/ms
     }
-  }
 
-  private randomRange(min: number, max: number): number {
-    return Math.random() * (max - min) + min;
+    ///
+    const asteroidComp = new AsteroidPointCloudComponent();
+    asteroidComp.positions = positions;
+    asteroidComp.center = vec3.fromValues(0, 0, 0);
+    asteroidComp.rotationSpeeds = rotationSpeeds
+    asteroidComp.state = COMPONENT_STATE.READY;
+    this.registry.addComponent(entity, asteroidComp);
+    return entity;
   }
 }

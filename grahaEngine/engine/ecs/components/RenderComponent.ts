@@ -301,55 +301,23 @@ void main() {
   baseProgram?: WebGLProgram;
 }
 
-export class AsteroidRenderComponent extends RenderComponent {
-  vertShader = `#version 300 es
-precision mediump float;
-
-layout(location = 0) in vec3 a_position;
-layout(location = 1) in vec3 a_normal;
-layout(location = 2) in vec2 a_uv;
-layout(location = 3) in mat4 a_instanceModel;
-
-uniform mat4 u_view;
-uniform mat4 u_proj;
-
-out vec3 v_normal;
-out vec3 v_worldPos;
-out vec2 v_uv;
-
-void main() {
-  vec4 worldPos = a_instanceModel * vec4(a_position, 1.0);
-  v_worldPos = worldPos.xyz;
-  v_normal = mat3(a_instanceModel) * a_normal;
-  v_uv = a_uv;
-  gl_Position = u_proj * u_view * worldPos;
-}
-`;
+export class AsteroidPointCloudRenderComponent extends RenderComponent {
+ vertShader = `#version 300 es
+    layout(location = 0) in vec3 a_position;
+    uniform mat4 u_view;
+    uniform mat4 u_proj;
+    void main() {
+      gl_Position = u_proj * u_view * vec4(a_position, 1.0);
+      gl_PointSize = 2.5; // screen-space size
+    }
+  `;
 
   fragShader = `#version 300 es
-precision mediump float;
+    precision mediump float;
+    out vec4 fragColor;
+    void main() {
+      fragColor = vec4(0.8, 0.7, 0.5, 1.0); // dusty rock color
+    }
+  `;
 
-in vec3 v_normal;
-in vec3 v_worldPos;
-in vec2 v_uv;
-
-uniform vec3 u_lightPos;
-uniform bool u_hasTexture;
-uniform sampler2D u_diffuse;
-
-out vec4 outColor;
-
-void main() {
-  vec3 normal = normalize(v_normal);
-  vec3 lightDir = normalize(u_lightPos - v_worldPos);
-  float diff = max(dot(normal, lightDir), 0.2);
-
-  vec3 baseColor = vec3(0.4, 0.4, 0.4);
-  if (u_hasTexture) {
-    baseColor = texture(u_diffuse, v_uv).rgb;
-  }
-
-  outColor = vec4(baseColor * diff, 1.0);
-}
-`;
 }

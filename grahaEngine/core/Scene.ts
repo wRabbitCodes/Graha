@@ -1,36 +1,34 @@
 import { vec3 } from "gl-matrix";
+import { SETTINGS } from "../config/settings";
 import { Renderer } from "../engine/command/Renderer";
+import { ENTITY_TYPE } from "../engine/ecs/components/ModelComponent";
+import { Entity } from "../engine/ecs/Entity";
 import { Registry } from "../engine/ecs/Registry";
+import { BBPlotRenderSystem } from "../engine/ecs/systems/BBPlotRenderSystem";
+import { CameraLatchSystem } from "../engine/ecs/systems/CameraLatchSystem";
+import { CCDSystem } from "../engine/ecs/systems/CCDSystem";
 import { EntitySelectionSystem } from "../engine/ecs/systems/EntitySelectionSystem";
+import { FrustumCullingSystem } from "../engine/ecs/systems/FrustumCuller";
 import { ModelUpdateSystem } from "../engine/ecs/systems/ModelUpdateSystem";
+import { OrbitPathRenderSystem } from "../engine/ecs/systems/OrbitPathRenderSystem";
 import { OrbitSystem } from "../engine/ecs/systems/OrbitSystem";
 import { PlanetRenderSystem } from "../engine/ecs/systems/PlanetRenderSystem";
 import { SelectionGlowRenderSystem } from "../engine/ecs/systems/SelectionGlowRenderSystem";
+import { SelectionTagSystem } from "../engine/ecs/systems/SelectionTagSystem";
 import { SkyRenderSystem } from "../engine/ecs/systems/SkyRenderSystem";
+import { SunRenderSystem } from "../engine/ecs/systems/SunRenderSystem";
+import { AsteroidFactory } from "../factory/AsteroidFactory";
 import { EntityFactory } from "../factory/EntityFactory";
 import { SkyFactory } from "../factory/SkyFactory";
 import { SunFactory } from "../factory/SunFactory";
 import { GLUtils } from "../utils/GLUtils";
 import { Raycaster } from "../utils/Raycaster";
+import { AssetsLoader } from "./AssetsLoader";
 import { Camera } from "./Camera";
 import { Canvas } from "./Canvas";
 import { IO } from "./IO";
-import { SelectionTagSystem } from "../engine/ecs/systems/SelectionTagSystem";
-import { CCDSystem } from "../engine/ecs/systems/CCDSystem";
-import { BBPlotRenderSystem } from "../engine/ecs/systems/BBPlotRenderSystem";
-import { OrbitPathRenderSystem } from "../engine/ecs/systems/OrbitPathRenderSystem";
-import { SETTINGS } from "../config/settings";
-import { CameraLatchSystem } from "../engine/ecs/systems/CameraLatchSystem";
-import { ENTITY_TYPE } from "../engine/ecs/components/ModelComponent";
-import { FrustumCullingSystem } from "../engine/ecs/systems/FrustumCuller";
-import { SunRenderSystem } from "../engine/ecs/systems/SunRenderSystem";
-import { AssetsLoader } from "./AssetsLoader";
-import { AsteroidComponent } from "../engine/ecs/components/AsteroidComponent";
-import { AsteroidRenderSystem } from "../engine/ecs/systems/AsteroidRenderSystem";
-import { AsteroidFactory } from "../factory/AsteroidFactory";
-import { Entity } from "../engine/ecs/Entity";
-import { MODELS } from "../data/AssetsData";
-import { AsteroidSystem } from "../engine/ecs/systems/AsteroidSystem";
+import { AsteroidPointCloudSystem } from "../engine/ecs/systems/AsteroidPointCloudSystem";
+import { AsteroidPointCloudRenderSystem } from "../engine/ecs/systems/AsteroidPointCloudRenderSystem";
 
 export interface SettingsState {
   globalSceneScale: number;
@@ -71,7 +69,6 @@ export class Scene {
   private sunFactory: SunFactory;
   private planetRender: PlanetRenderSystem;
   private modelUpdate: ModelUpdateSystem;
-  private asteroidAnimate: AsteroidSystem;
   private planetFactory: EntityFactory;
   private asteroidFactory: AsteroidFactory;
   private orbitSystem: OrbitSystem;
@@ -84,8 +81,8 @@ export class Scene {
   private bbpRenderSystem: BBPlotRenderSystem;
   private orbitTracer: OrbitPathRenderSystem;
   private frustumCuller: FrustumCullingSystem;
-  private asteroidRenderer: AsteroidRenderSystem;
-  private asteroidEntities: Entity[] = [];
+  private asteroidSystem: AsteroidPointCloudSystem;
+  private asteroidRenderSystem: AsteroidPointCloudRenderSystem;
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = new Canvas(canvas);
@@ -101,7 +98,6 @@ export class Scene {
     this.planetRender = new PlanetRenderSystem(this.renderer, this.assetsLoader, this.registry, this.utils);
 
     this.modelUpdate = new ModelUpdateSystem(this.registry, this.utils);
-    this.asteroidAnimate = new AsteroidSystem(this.registry, this.utils);
     this.orbitSystem = new OrbitSystem(this.registry, this.utils);
     this.bbpRenderSystem = new BBPlotRenderSystem(this.renderer, this.registry, this.utils);
     this.orbitTracer = new OrbitPathRenderSystem(this.renderer, this.registry, this.utils);
@@ -118,26 +114,16 @@ export class Scene {
     this.selectionGlowRender = new SelectionGlowRenderSystem(this.renderer, this.registry, this.utils);
     this.selectionTagRender = new SelectionTagSystem(this.renderer, this.registry, this.utils);
     this.ccdSystem = new CCDSystem(this.camera, this.registry, this.utils);
-
-    this.asteroidRenderer = new AsteroidRenderSystem(this.renderer, this.registry, this.utils);
+    this.asteroidSystem = new AsteroidPointCloudSystem(this.registry, this.utils);
+    this.asteroidRenderSystem = new AsteroidPointCloudRenderSystem(this.renderer, this.registry, this.utils);
   }
 
   initialize() {
     if (this.registry.getAllEntities().length > 0) return; // Prevent re-init
     this.skyFactory.create();
     this.sunFactory.create();
+    this.asteroidFactory.create();
     this.createPlanets();
-
-    //ASTEROID TEST
-  for (const name of Object.keys(MODELS)) {
-    const entity = this.asteroidFactory.create(this.assetsLoader.getModel(name)!);
-    this.asteroidFactory.spawnAsteroidCluster(entity, 300, 2.2, 3.2, [0, Math.PI * 2]); // Main Belt
-    // this.asteroidFactory.spawnAsteroidCluster(entity, 100, 5.2, 5.3, [3.13 - 1.05, 3.13 - 0.95]); // L4
-    // this.asteroidFactory.spawnAsteroidCluster(entity, 100, 5.2, 5.3, [3.13 + 0.95, 3.13 + 1.05]); // L5
-    // this.asteroidFactory.spawnAsteroidCluster(entity, 50, 1.85, 1.95, [0, Math.PI * 2]); // Hungaria
-    // this.asteroidFactory.spawnAsteroidCluster(entity, 50, 3.6, 3.8, [0, Math.PI * 2]); // Hilda
-  }
-
 
     this.canvas.enablePointerLock(() => this.entitySelectionSystem.update(0));
     this.canvas.onPointerLockChange((locked) => {
@@ -329,33 +315,33 @@ export class Scene {
     this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
 
     this.skyRender.update(deltaTime);
-    // this.modelUpdate.update(deltaTime);
-    // this.orbitSystem.update(deltaTime);
-    // this.ccdSystem.update(deltaTime);
+    this.modelUpdate.update(deltaTime);
+    this.orbitSystem.update(deltaTime);
+    this.ccdSystem.update(deltaTime);
     this.camera.update(deltaTime / 1000);
+    this.asteroidSystem.update(deltaTime);
+    this.asteroidRenderSystem.update(deltaTime);
 
-    // if (this.settings.latchedEntityID) {
-    //   this.cameraLatchSystem.setLatchEntity(this.registry.getEntityByID(this.settings.latchedEntityID)!);
-    //   this.cameraLatchSystem.update(deltaTime);
-    // } else {
-    //   this.cameraLatchSystem.clearLatch();
-    // }
+    if (this.settings.latchedEntityID) {
+      this.cameraLatchSystem.setLatchEntity(this.registry.getEntityByID(this.settings.latchedEntityID)!);
+      this.cameraLatchSystem.update(deltaTime);
+    } else {
+      this.cameraLatchSystem.clearLatch();
+    }
     
     this.frustumCuller.update(deltaTime);
 
-    this.asteroidAnimate.update(deltaTime);
-    // this.planetRender.update(deltaTime);
-    this.asteroidRenderer.update(deltaTime);
-    // if(this.settings.highlightOrbit) {
-    //   this.orbitTracer.update(deltaTime);
-    // }
-    // if (this.settings.boundingBox) {
-    //   this.bbpRenderSystem.update(deltaTime);
-    // }
-    // this.selectionGlowRender.update(deltaTime);
-    // this.selectionTagRender.update(deltaTime);
+    this.planetRender.update(deltaTime);
+    if(this.settings.highlightOrbit) {
+      this.orbitTracer.update(deltaTime);
+    }
+    if (this.settings.boundingBox) {
+      this.bbpRenderSystem.update(deltaTime);
+    }
+    this.selectionGlowRender.update(deltaTime);
+    this.selectionTagRender.update(deltaTime);
 
-    // this.sunRender.update(deltaTime);
+    this.sunRender.update(deltaTime);
 
     this.renderer.flush(this.gl, {
       viewMatrix,
