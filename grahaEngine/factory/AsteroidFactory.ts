@@ -20,7 +20,7 @@ export class AsteroidFactory implements IFactory {
 
     const instances = 2000;
     const asteroidMComp = new AsteroidModelComponent();
-    [asteroidMComp.positions, asteroidMComp.rotationSpeeds, asteroidMComp.rotations, asteroidMComp.rotationAxes] =
+    [asteroidMComp.positions, asteroidMComp.rotationSpeeds] =
       this.generatePoints(instances);
     asteroidMComp.center = vec3.fromValues(0, 0, 0);
     asteroidMComp.instanceCount = instances; // set instanceCount here
@@ -40,8 +40,8 @@ export class AsteroidFactory implements IFactory {
 
     const positions = new Float32Array(count * 3);
     const rotationSpeeds = new Float32Array(count); // optional per-asteroid speed
-    const rotations: Float32Array = new Float32Array(count * 4);
-    const rotationAxes: Float32Array = new Float32Array(count * 3);
+    const rotations: quat[] = [];
+    const rotationAxes: vec3[] = [];
 
     for (let i = 0; i < count; i++) {
       // Semi-major axis in the asteroid belt range
@@ -68,14 +68,13 @@ export class AsteroidFactory implements IFactory {
       // Random slight orbital speed offset
       rotationSpeeds[i] = 0.00005 + Math.random() * 0.00003; // radians/ms
 
-      rotations.set([0, 0, 0, 1], i * 4); // identity
-      const axis = vec3.normalize(vec3.create(), [
+      rotations.push(quat.create()); // identity
+      rotationAxes.push(vec3.normalize(vec3.create(), [
         Math.random() - 0.5,
         Math.random() - 0.5,
-        Math.random() - 0.5,
-      ]);
-      rotationAxes.set(axis, i * 3);
+        Math.random() - 0.5
+      ]));
     }
-    return [positions, rotationSpeeds, rotations, rotationAxes];
+    return [positions, rotationSpeeds];
   }
 }
