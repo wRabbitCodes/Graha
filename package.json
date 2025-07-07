@@ -11,6 +11,8 @@
   "keywords": [],
   "author": "Aashish Bhandari",
   "dependencies": {
+    "@gltf-transform/core": "^4.2.0",
+    "@gltf-transform/extensions": "^4.2.0",
     "@heroicons/react": "^2.2.0",
     "@radix-ui/react-dialog": "^1.1.14",
     "@tailwindcss/forms": "^0.5.10",

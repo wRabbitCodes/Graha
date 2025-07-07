@@ -102,7 +102,7 @@ export default function Controls() {
                 }
                 className="w-full bg-gray-800 p-1 rounded text-white"
               >
-                {entityMap.entries().map(([id, name]) => (
+                {[...entityMap.entries()].map(([id, name]) => (
                   <option key={id} value={id}>
                     {name}
                   </option>

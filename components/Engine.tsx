@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Scene } from "@/grahaEngine/core/Scene";
-import { TEXTURES, FONTS } from "@/grahaEngine/data/assetsData";
+import { TEXTURES, FONTS, MODELS } from "@/grahaEngine/data/AssetsData";
 import Controls from "./Controls";
 import { useSettings } from "@/store/useSettings";
 
@@ -26,6 +26,7 @@ export default function Engine() {
       .loadAll({
         textures: TEXTURES,
         fonts: FONTS,
+        models: MODELS,
       })
       .then(() => {
         sceneInstance.initialize();

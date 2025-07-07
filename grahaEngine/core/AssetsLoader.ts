@@ -1,4 +1,13 @@
 import { GLUtils } from "../utils/GLUtils";
+import { NodeIO, Texture as GltfTexture } from "@gltf-transform/core";
+
+export interface MeshData {
+  positions: Float32Array;
+  normals?: Float32Array;
+  uvs?: Float32Array;
+  indices?: Uint16Array | Uint32Array;
+  texture?: WebGLTexture;
+}
 
 type FontConfig = {
   name: string;
@@ -17,7 +26,7 @@ export class AssetsLoader {
 
   private textures: Map<string, WebGLTexture> = new Map();
   private fonts: Map<string, FontFace> = new Map();
-  private models: Map<string, ArrayBuffer> = new Map();
+  private modelCache: Map<string, MeshData> = new Map();
 
   private totalAssets = 0;
   private loadedAssets = 0;
@@ -32,18 +41,18 @@ export class AssetsLoader {
     const fontEntries = config.fonts ?? [];
     const modelEntries = Object.entries(config.models ?? {});
 
-    this.totalAssets = textureEntries.length + fontEntries.length + modelEntries.length;
+    this.totalAssets =
+      textureEntries.length + fontEntries.length + modelEntries.length;
     this.loadedAssets = 0;
 
     const loadTasks: Promise<void>[] = [];
 
     for (const [name, url] of textureEntries) {
       loadTasks.push(
-        this.utils.loadTexture(url)
+        this.utils
+          .loadTexture(url)
           .then((texture) => {
             this.textures.set(name, texture);
-            console.log(`Loaded texture: ${name}`);
-
           })
           .catch((err) => {
             console.error(`❌ Failed to load texture: ${name} (${url})`, err);
@@ -59,7 +68,6 @@ export class AssetsLoader {
         this._loadFont(name, url)
           .then((font) => {
             console.log(`Loaded font: ${name}`);
-
             this.fonts.set(name, font);
           })
           .catch((err) => {
@@ -73,13 +81,9 @@ export class AssetsLoader {
 
     for (const [name, url] of modelEntries) {
       loadTasks.push(
-        fetch(url)
-          .then((res) => {
-            if (!res.ok) throw new Error(`HTTP ${res.status}`);
-            return res.arrayBuffer();
-          })
-          .then((buffer) => {
-            this.models.set(name, buffer);
+        this.loadGLBModel(url)
+          .then((mesh) => {
+            this.modelCache.set(name, mesh);
           })
           .catch((err) => {
             console.error(`❌ Failed to load model: ${name} (${url})`, err);
@@ -91,6 +95,45 @@ export class AssetsLoader {
     }
 
     await Promise.allSettled(loadTasks);
+  }
+
+  async loadGLBModel(url: string): Promise<MeshData> {
+    if (this.modelCache.has(url)) return this.modelCache.get(url)!;
+
+    const response = await fetch(url);
+    if (!response.ok)
+      throw new Error(`HTTP ${response.status} when loading ${url}`);
+
+    const arrayBuffer = await response.arrayBuffer();
+    const io = new NodeIO();
+    const document = await io.readBinary(new Uint8Array(arrayBuffer));
+    const mesh = document.getRoot().listMeshes()[0];
+    const prim = mesh.listPrimitives()[0];
+
+    const baseColorTex = prim.getMaterial()?.getBaseColorTexture();
+    let texture: WebGLTexture | undefined = undefined;
+
+    if (baseColorTex) {
+      const imageData = baseColorTex.getImage(); // Uint8Array | null
+      if (!imageData) throw new Error("Missing image data from texture");
+
+      const blob = new Blob([imageData], {
+        type: baseColorTex.getMimeType() || "image/png",
+      });
+
+      const imageBitmap = await createImageBitmap(blob);
+      texture = this.utils.createTextureFromImage(imageBitmap);
+    }
+
+    const meshData: MeshData = {
+      positions: prim.getAttribute("POSITION")!.getArray() as Float32Array,
+      normals: prim.getAttribute("NORMAL")?.getArray() as Float32Array,
+      uvs: prim.getAttribute("TEXCOORD_0")?.getArray() as Float32Array,
+      indices: prim.getIndices()?.getArray() as Uint16Array | Uint32Array,
+      texture,
+    };
+
+    return meshData;
   }
 
   getProgress(): number {
@@ -105,8 +148,8 @@ export class AssetsLoader {
     return this.fonts.get(name);
   }
 
-  getModel(name: string): ArrayBuffer | undefined {
-    return this.models.get(name);
+  getModel(name: string): MeshData | undefined {
+    return this.modelCache.get(name);
   }
 
   private async _loadFont(name: string, url: string): Promise<FontFace> {

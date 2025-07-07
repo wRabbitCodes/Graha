@@ -26,6 +26,8 @@ import { FrustumCullingSystem } from "../engine/ecs/systems/FrustumCuller";
 import { SunRenderSystem } from "../engine/ecs/systems/SunRenderSystem";
 import { AssetsLoader } from "./AssetsLoader";
 import { Entity } from "../engine/ecs/Entity";
+import { AsteroidComponent } from "../engine/ecs/components/AsteroidComponent";
+import { AsteroidRenderSystem } from "../engine/ecs/systems/AsteroidRenderSystem";
 
 export interface SettingsState {
   globalSceneScale: number;
@@ -77,6 +79,7 @@ export class Scene {
   private bbpRenderSystem: BBPlotRenderSystem;
   private orbitTracer: OrbitPathRenderSystem;
   private frustumCuller: FrustumCullingSystem;
+  private asteroidRenderer: AsteroidRenderSystem;
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = new Canvas(canvas);
@@ -107,6 +110,8 @@ export class Scene {
     this.selectionGlowRender = new SelectionGlowRenderSystem(this.renderer, this.registry, this.utils);
     this.selectionTagRender = new SelectionTagSystem(this.renderer, this.registry, this.utils);
     this.ccdSystem = new CCDSystem(this.camera, this.registry, this.utils);
+
+    this.asteroidRenderer = new AsteroidRenderSystem(this.renderer, this.registry, this.utils);
   }
 
   initialize() {
@@ -114,6 +119,14 @@ export class Scene {
     this.skyFactory.create();
     this.sunFactory.create();
     this.createPlanets();
+
+    //ASTEROID TEST
+    const asteroidEntity = this.registry.createEntity();
+    const asteroidComp = new AsteroidComponent();
+    asteroidComp.position = vec3.fromValues(0, 0, 0);
+    asteroidComp.mesh = this.assetsLoader.getModel("asteroid1")!;
+    this.registry.addComponent(asteroidEntity, asteroidComp);
+    this.registry.setNameForEntityID(asteroidEntity.id, "Asteroid");
 
     this.canvas.enablePointerLock(() => this.entitySelectionSystem.update(0));
     this.canvas.onPointerLockChange((locked) => {
@@ -305,29 +318,33 @@ export class Scene {
     this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
 
     this.skyRender.update(deltaTime);
-    this.modelUpdate.update(deltaTime);
-    this.orbitSystem.update(deltaTime);
-    this.ccdSystem.update(deltaTime);
+    // this.modelUpdate.update(deltaTime);
+    // this.orbitSystem.update(deltaTime);
+    // this.ccdSystem.update(deltaTime);
     this.camera.update(deltaTime / 1000);
 
-    if (this.settings.latchedEntityID) {
-      this.cameraLatchSystem.setLatchEntity(this.registry.getEntityByID(this.settings.latchedEntityID)!);
-      this.cameraLatchSystem.update(deltaTime);
-    } else {
-      this.cameraLatchSystem.clearLatch();
-    }
+    // if (this.settings.latchedEntityID) {
+    //   this.cameraLatchSystem.setLatchEntity(this.registry.getEntityByID(this.settings.latchedEntityID)!);
+    //   this.cameraLatchSystem.update(deltaTime);
+    // } else {
+    //   this.cameraLatchSystem.clearLatch();
+    // }
     
     this.frustumCuller.update(deltaTime);
-    this.planetRender.update(deltaTime);
-    if(this.settings.highlightOrbit) {
-      this.orbitTracer.update(deltaTime);
-    }
-    if (this.settings.boundingBox) {
-      this.bbpRenderSystem.update(deltaTime);
-    }
-    this.selectionGlowRender.update(deltaTime);
-    this.selectionTagRender.update(deltaTime);
-    this.sunRender.update(deltaTime);
+
+
+    // this.planetRender.update(deltaTime);
+    this.asteroidRenderer.update(deltaTime);
+    // if(this.settings.highlightOrbit) {
+    //   this.orbitTracer.update(deltaTime);
+    // }
+    // if (this.settings.boundingBox) {
+    //   this.bbpRenderSystem.update(deltaTime);
+    // }
+    // this.selectionGlowRender.update(deltaTime);
+    // this.selectionTagRender.update(deltaTime);
+
+    // this.sunRender.update(deltaTime);
 
     this.renderer.flush(this.gl, {
       viewMatrix,

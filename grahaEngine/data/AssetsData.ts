@@ -19,3 +19,7 @@ export const TEXTURES = {
 };
 
 export const FONTS = [{ name: "NeonSans", url: "fonts/NeonSans.ttf" }];
+
+export const MODELS = {
+  asteroid1: "models/asteroid_1.glb"
+}
