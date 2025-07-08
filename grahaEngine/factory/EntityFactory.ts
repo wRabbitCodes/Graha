@@ -74,6 +74,21 @@ export class EntityFactory implements IFactory {
 
     // RenderComponent (VAO and programs setup)
     // const program = ShaderStrategy.getDefaultProgram(this.gl, this.utils);
+
+    const shadowProgram = this.utils.createProgram(
+    `#version 300 es
+    layout(location = 0) in vec3 a_position;
+    uniform mat4 u_model;
+    uniform mat4 u_lightViewProj;
+    void main() {
+      gl_Position = u_lightViewProj * u_model * vec4(a_position, 1.0);
+    }`,
+    `#version 300 es
+    precision highp float;
+    void main() { }
+    `
+    );
+
     const program = this.utils.createProgram(
       `#version 300 es
     #pragma vscode_glsllint_stage : vert
@@ -121,6 +136,9 @@ export class EntityFactory implements IFactory {
   uniform sampler2D u_specularTexture;
   uniform sampler2D u_atmosphereTexture;
   uniform sampler2D u_nightTexture;
+  uniform sampler2D u_shadowMap;
+
+  uniform mat4 u_lightMatrix;
 
   uniform bool u_useNormal;
   uniform bool u_useSpecular;
@@ -172,8 +190,18 @@ export class EntityFactory implements IFactory {
       spec = pow(max(dot(viewDir, reflectDir), 0.0), 32.0) * specStrength * 0.8;
     }
 
+    // ---- SHADOW CALCULATION ----
+    float shadowFactor = 1.0;
+    vec4 fragPosLightSpace = u_lightMatrix * vec4(v_fragPos, 1.0);
+    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+    projCoords = projCoords * 0.5 + 0.5; // from [-1,1] to [0,1]
+    float closestDepth = texture(u_shadowMap, projCoords.xy).r;
+    float currentDepth = projCoords.z;
+    float bias = 0.001;
+    shadowFactor = currentDepth - bias > closestDepth ? 0.5 : 1.0;
+
     // --- DAY LIGHTED COLOR ---
-    vec3 dayLitColor = (ambient + diffuse) * surfaceColor + vec3(spec);
+    vec3 dayLitColor = ((ambient + diffuse) * shadowFactor) * surfaceColor + vec3(spec);
 
     // --- FINAL BLENDING ---
     vec3 finalColor = mix(nightColor, dayLitColor, dayFactor);
@@ -269,6 +297,7 @@ export class EntityFactory implements IFactory {
     const renderComp = new PlanetRenderComponent();
     renderComp.program = program;
     renderComp.atmosphereProgram = atmosphereProgram;
+    renderComp.shadowProgram = shadowProgram;
     this.registry.addComponent(entity, renderComp);
 
     return entity;

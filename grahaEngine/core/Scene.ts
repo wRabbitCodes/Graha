@@ -30,6 +30,8 @@ import { AssetsLoader } from "./AssetsLoader";
 import { Camera } from "./Camera";
 import { Canvas } from "./Canvas";
 import { IO } from "./IO";
+import { ShadowMap } from "../utils/ShadowMap";
+import { ShadowRenderSystem } from "../engine/ecs/systems/ShadowRenderSystem";
 
 export interface SettingsState {
   globalSceneScale: number;
@@ -87,6 +89,8 @@ export class Scene {
   private asteroidPCRenderSystem: AsteroidPointCloudRenderSystem;
   private asteroidMSystem: AsteroidModelSystem;
   private asteroidMRSystem: AsteroidModelRenderSystem;
+  private shadowMap: ShadowMap;
+  private shadowRSystem: ShadowRenderSystem;
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = new Canvas(canvas);
@@ -179,6 +183,8 @@ export class Scene {
       this.registry,
       this.utils
     );
+    this.shadowMap = new ShadowMap(this.gl);
+    this.shadowRSystem = new ShadowRenderSystem(this.shadowMap, this.renderer, this.registry, this.utils);
   }
 
   initialize() {
@@ -363,8 +369,8 @@ export class Scene {
     this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
 
     this.skyRender.update(deltaTime);
-    this.modelUpdate.update(deltaTime);
     this.orbitSystem.update(deltaTime);
+    this.modelUpdate.update(deltaTime);
     this.ccdSystem.update(deltaTime);
     this.camera.update(deltaTime / 1000);
 
@@ -379,6 +385,7 @@ export class Scene {
     }
     this.frustumCuller.update(deltaTime);
 
+    this.shadowRSystem.update(deltaTime);
     this.planetRender.update(deltaTime);
     if (this.settings.highlightOrbit) {
       this.orbitTracer.update(deltaTime);
@@ -410,6 +417,8 @@ export class Scene {
       cameraPos: this.camera.getPosition(),
       canvasHeight: this.canvas.canvas.height,
       canvasWidth: this.canvas.canvas.width,
+      shadowLightMatrix: this.shadowMap.lightViewProj,
+      shadowMap: this.shadowMap.depthTexture,      
     });
   }
 }

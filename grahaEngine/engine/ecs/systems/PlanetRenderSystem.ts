@@ -81,6 +81,17 @@ export class PlanetRenderSystem extends System implements IRenderSystem {
           gl.uniform3fv(renderComp.uniformLocations.lightPos, ctx.lightPos);
           gl.uniform3fv(renderComp.uniformLocations.viewPos, ctx.cameraPos);
 
+          gl.uniformMatrix4fv(
+            renderComp.uniformLocations.lightMatrix,
+            false,
+            ctx.shadowLightMatrix // passed from camera/light system
+          );
+
+          // Bind shadow texture:
+          gl.activeTexture(gl.TEXTURE5);
+          gl.bindTexture(gl.TEXTURE_2D, ctx.shadowMap);
+          gl.uniform1i(renderComp.uniformLocations.shadowMap, 5);
+
           gl.uniform1i(
             renderComp.uniformLocations.useNormal,
             texComp.normal ? 1 : 0
@@ -259,6 +270,9 @@ export class PlanetRenderSystem extends System implements IRenderSystem {
       program,
       "u_atmosphereRotation"
     );
+
+    renderComp.uniformLocations.shadowMap = gl.getUniformLocation(program, "u_shadowMap");
+    renderComp.uniformLocations.lightMatrix = gl.getUniformLocation(program, "u_lightMatrix");
   }
 
   private setupVAO(renderComp: PlanetRenderComponent) {

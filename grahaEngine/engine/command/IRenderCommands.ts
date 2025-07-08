@@ -12,4 +12,6 @@ export type RenderContext = {
   lightPos: vec3,
   canvasWidth: number,
   canvasHeight: number,
+  shadowMap: WebGLTexture;
+  shadowLightMatrix: mat4;
 }
