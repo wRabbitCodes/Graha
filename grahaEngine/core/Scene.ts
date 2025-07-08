@@ -2,8 +2,11 @@ import { vec3 } from "gl-matrix";
 import { SETTINGS } from "../config/settings";
 import { Renderer } from "../engine/command/Renderer";
 import { ENTITY_TYPE } from "../engine/ecs/components/ModelComponent";
-import { Entity } from "../engine/ecs/Entity";
 import { Registry } from "../engine/ecs/Registry";
+import { AsteroidModelRenderSystem } from "../engine/ecs/systems/AsteroidModelRenderSystem";
+import { AsteroidModelSystem } from "../engine/ecs/systems/AsteroidModelSystem";
+import { AsteroidPointCloudRenderSystem } from "../engine/ecs/systems/AsteroidPointCloudRenderSystem";
+import { AsteroidPointCloudSystem } from "../engine/ecs/systems/AsteroidPointCloudSystem";
 import { BBPlotRenderSystem } from "../engine/ecs/systems/BBPlotRenderSystem";
 import { CameraLatchSystem } from "../engine/ecs/systems/CameraLatchSystem";
 import { CCDSystem } from "../engine/ecs/systems/CCDSystem";
@@ -27,10 +30,6 @@ import { AssetsLoader } from "./AssetsLoader";
 import { Camera } from "./Camera";
 import { Canvas } from "./Canvas";
 import { IO } from "./IO";
-import { AsteroidPointCloudSystem } from "../engine/ecs/systems/AsteroidPointCloudSystem";
-import { AsteroidPointCloudRenderSystem } from "../engine/ecs/systems/AsteroidPointCloudRenderSystem";
-import { AsteroidModelSystem } from "../engine/ecs/systems/AsteroidModelSystem";
-import { AsteroidModelRenderSystem } from "../engine/ecs/systems/AsteroidModelRenderSystem";
 
 export interface SettingsState {
   globalSceneScale: number;
