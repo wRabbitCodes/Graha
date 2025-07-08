@@ -11,6 +11,7 @@ import { EntitySelectionComponent } from "../engine/ecs/components/EntitySelecti
 import { SETTINGS } from "../config/settings";
 import { CCDComponent } from "../engine/ecs/components/CCDComponent";
 import { MoonComponent } from "../engine/ecs/components/MoonComponent";
+import { ShadowCasterComponent } from "../engine/ecs/components/ShadowCasterComponent";
 
 export type EntityData = {
   name: string;
@@ -121,11 +122,15 @@ export class EntityFactory implements IFactory {
   uniform sampler2D u_specularTexture;
   uniform sampler2D u_atmosphereTexture;
   uniform sampler2D u_nightTexture;
+  uniform sampler2D u_shadowMap;
+  
+  uniform mat4 u_lightMatrix;
 
   uniform bool u_useNormal;
   uniform bool u_useSpecular;
   uniform bool u_useAtmosphere;
   uniform bool u_useNight;
+  uniform bool u_isMoon;
 
   uniform float u_atmosphereRotation;
 
@@ -166,6 +171,22 @@ export class EntityFactory implements IFactory {
     vec3 ambient = 0.05 * lightColor;
     vec3 diffuse = diff * lightColor;
 
+    // SHADOW
+    if (u_isMoon) {
+      vec4 fragPosLightSpace = u_lightMatrix * vec4(v_fragPos, 1.0);
+      vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
+      projCoords = projCoords * 0.5 + 0.5;
+      float shadowFactor = 1.0;
+      if (projCoords.x >= 0.0 && projCoords.x <= 1.0 &&
+        projCoords.y >= 0.0 && projCoords.y <= 1.0 &&
+        projCoords.z >= 0.0 && projCoords.z <= 1.0) {
+          float closestDepth = texture(u_shadowMap, projCoords.xy).r;
+          float bias = 0.001;
+          shadowFactor = projCoords.z - bias > closestDepth ? 0.3 : 1.0;
+        }
+    }
+ 
+
     float spec = 0.0;
     if (u_useSpecular && dayFactor > 0.0) {
       float specStrength = texture(u_specularTexture, v_uv).r;
@@ -180,6 +201,27 @@ export class EntityFactory implements IFactory {
 
     fragColor = vec4(finalColor, 1.0);
   }`);
+
+  const shadowProgram = this.utils.createProgram(
+    `#version 300 es
+    precision highp float;
+
+    layout(location = 0) in vec3 a_position;
+
+    uniform mat4 u_model;
+    uniform mat4 u_lightViewProj;
+
+    void main() {
+      gl_Position = u_lightViewProj * u_model * vec4(a_position, 1.0);
+    }`,
+    `#version 300 es
+    precision highp float;
+
+    void main() {
+      // WebGL2 automatically writes depth to the depth buffer.
+      // No need to output anything.
+    }`
+  );
 
 
   const atmosphereProgram = this.utils.createProgram(
@@ -264,11 +306,16 @@ export class EntityFactory implements IFactory {
       const moonComp = new MoonComponent();
       moonComp.parentEntity = params.parent;
       this.registry.addComponent(entity, moonComp);
+
+      const shadowCasterComp = new ShadowCasterComponent();
+      this.registry.addComponent(moonComp.parentEntity, shadowCasterComp);
     }
 
     const renderComp = new PlanetRenderComponent();
     renderComp.program = program;
     renderComp.atmosphereProgram = atmosphereProgram;
+    renderComp.shadowProgram = shadowProgram;
+
     this.registry.addComponent(entity, renderComp);
 
     return entity;

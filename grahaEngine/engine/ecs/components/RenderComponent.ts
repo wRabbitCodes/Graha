@@ -14,6 +14,7 @@ export class PlanetRenderComponent extends RenderComponent {
   uniformLocations: { [key: string]: WebGLUniformLocation | null } = {};
   sphereMesh?: SphereMesh;
   atmosphereProgram?: WebGLProgram;
+  shadowProgram?: WebGLProgram;
 }
 
 export class SkyRenderComponent extends RenderComponent {
