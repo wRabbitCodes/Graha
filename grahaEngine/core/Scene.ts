@@ -110,6 +110,7 @@ export class Scene {
       this.utils
     );
     this.planetRender = new PlanetRenderSystem(
+      this.canvas,
       this.renderer,
       this.assetsLoader,
       this.registry,
@@ -238,110 +239,110 @@ export class Scene {
       },
     });
 
-    this.planetFactory.create({
-      type: ENTITY_TYPE.PLANET,
-      name: "Jupiter",
-      radius: 69911, // radius in km
-      tiltAngle: 3.13, // axial tilt in degrees
-      siderealDay: 9.9,
-      orbitData: {
-        semiMajorAxis: 778_340_821, // in km (~5.2 AU)
-        eccentricity: 0.0489,
-        inclination: 1.305, // degrees
-        longitudeOfAscendingNode: 100.492,
-        argumentOfPeriapsis: 273.867,
-        meanAnomalyAtEpoch: 19.65, // degrees at J2000
-        orbitalPeriod: 4332.59, // in days (~11.86 Earth years)
-      },
-    });
+    // this.planetFactory.create({
+    //   type: ENTITY_TYPE.PLANET,
+    //   name: "Jupiter",
+    //   radius: 69911, // radius in km
+    //   tiltAngle: 3.13, // axial tilt in degrees
+    //   siderealDay: 9.9,
+    //   orbitData: {
+    //     semiMajorAxis: 778_340_821, // in km (~5.2 AU)
+    //     eccentricity: 0.0489,
+    //     inclination: 1.305, // degrees
+    //     longitudeOfAscendingNode: 100.492,
+    //     argumentOfPeriapsis: 273.867,
+    //     meanAnomalyAtEpoch: 19.65, // degrees at J2000
+    //     orbitalPeriod: 4332.59, // in days (~11.86 Earth years)
+    //   },
+    // });
 
-    this.planetFactory.create({
-      type: ENTITY_TYPE.PLANET,
-      name: "Mercury",
-      radius: 2439.7,
-      tiltAngle: 0.034,
-      siderealDay: 1407.6,
-      orbitData: {
-        semiMajorAxis: 57_909_227,
-        eccentricity: 0.2056,
-        inclination: 7.005,
-        longitudeOfAscendingNode: 48.331,
-        argumentOfPeriapsis: 29.124,
-        meanAnomalyAtEpoch: 174.796,
-        orbitalPeriod: 87.969,
-      },
-    });
+    // this.planetFactory.create({
+    //   type: ENTITY_TYPE.PLANET,
+    //   name: "Mercury",
+    //   radius: 2439.7,
+    //   tiltAngle: 0.034,
+    //   siderealDay: 1407.6,
+    //   orbitData: {
+    //     semiMajorAxis: 57_909_227,
+    //     eccentricity: 0.2056,
+    //     inclination: 7.005,
+    //     longitudeOfAscendingNode: 48.331,
+    //     argumentOfPeriapsis: 29.124,
+    //     meanAnomalyAtEpoch: 174.796,
+    //     orbitalPeriod: 87.969,
+    //   },
+    // });
 
-    this.planetFactory.create({
-      type: ENTITY_TYPE.PLANET,
-      name: "Venus",
-      radius: 6051.8,
-      tiltAngle: 177.36, // retrograde rotation
-      siderealDay: 5832.5,
-      axis: [0, -1, 0],
-      // atmosphereURL: "textures/4k_venus_atmosphere.jpg",
-      orbitData: {
-        semiMajorAxis: 108_209_475,
-        eccentricity: 0.0067,
-        inclination: 3.394,
-        longitudeOfAscendingNode: 76.68,
-        argumentOfPeriapsis: 54.884,
-        meanAnomalyAtEpoch: 50.115,
-        orbitalPeriod: 224.701,
-      },
-    });
+    // this.planetFactory.create({
+    //   type: ENTITY_TYPE.PLANET,
+    //   name: "Venus",
+    //   radius: 6051.8,
+    //   tiltAngle: 177.36, // retrograde rotation
+    //   siderealDay: 5832.5,
+    //   axis: [0, -1, 0],
+    //   // atmosphereURL: "textures/4k_venus_atmosphere.jpg",
+    //   orbitData: {
+    //     semiMajorAxis: 108_209_475,
+    //     eccentricity: 0.0067,
+    //     inclination: 3.394,
+    //     longitudeOfAscendingNode: 76.68,
+    //     argumentOfPeriapsis: 54.884,
+    //     meanAnomalyAtEpoch: 50.115,
+    //     orbitalPeriod: 224.701,
+    //   },
+    // });
 
-    this.planetFactory.create({
-      type: ENTITY_TYPE.PLANET,
-      name: "Mars",
-      radius: 3389.5, // radius in km
-      tiltAngle: 25.19, // axial tilt in degrees
-      siderealDay: 24.6,
-      orbitData: {
-        semiMajorAxis: 227_939_200, // in km (~1.52 AU)
-        eccentricity: 0.0935,
-        inclination: 1.85,
-        longitudeOfAscendingNode: 49.558,
-        argumentOfPeriapsis: 286.502,
-        meanAnomalyAtEpoch: 19.412, // degrees at J2000
-        orbitalPeriod: 686.971, // in days (~1.88 Earth years)
-      },
-    });
+    // this.planetFactory.create({
+    //   type: ENTITY_TYPE.PLANET,
+    //   name: "Mars",
+    //   radius: 3389.5, // radius in km
+    //   tiltAngle: 25.19, // axial tilt in degrees
+    //   siderealDay: 24.6,
+    //   orbitData: {
+    //     semiMajorAxis: 227_939_200, // in km (~1.52 AU)
+    //     eccentricity: 0.0935,
+    //     inclination: 1.85,
+    //     longitudeOfAscendingNode: 49.558,
+    //     argumentOfPeriapsis: 286.502,
+    //     meanAnomalyAtEpoch: 19.412, // degrees at J2000
+    //     orbitalPeriod: 686.971, // in days (~1.88 Earth years)
+    //   },
+    // });
 
-    this.planetFactory.create({
-      type: ENTITY_TYPE.PLANET,
-      name: "Saturn",
-      radius: 58232,
-      tiltAngle: 26.73,
-      siderealDay: 10.7,
-      orbitData: {
-        semiMajorAxis: 1_433_449_370,
-        eccentricity: 0.0565,
-        inclination: 2.485,
-        longitudeOfAscendingNode: 113.665,
-        argumentOfPeriapsis: 339.392,
-        meanAnomalyAtEpoch: 317.021,
-        orbitalPeriod: 10_759.22,
-      },
-    });
+    // this.planetFactory.create({
+    //   type: ENTITY_TYPE.PLANET,
+    //   name: "Saturn",
+    //   radius: 58232,
+    //   tiltAngle: 26.73,
+    //   siderealDay: 10.7,
+    //   orbitData: {
+    //     semiMajorAxis: 1_433_449_370,
+    //     eccentricity: 0.0565,
+    //     inclination: 2.485,
+    //     longitudeOfAscendingNode: 113.665,
+    //     argumentOfPeriapsis: 339.392,
+    //     meanAnomalyAtEpoch: 317.021,
+    //     orbitalPeriod: 10_759.22,
+    //   },
+    // });
 
-    this.planetFactory.create({
-      type: ENTITY_TYPE.PLANET,
-      name: "Uranus",
-      radius: 25362,
-      tiltAngle: 7.77, // Tilt ~98°, use low value + flipped axis
-      axis: [0, -1, 0], // Retrograde
-      siderealDay: 17.24,
-      orbitData: {
-        semiMajorAxis: 2_872_466_000,
-        eccentricity: 0.0457,
-        inclination: 0.769,
-        longitudeOfAscendingNode: 74.006,
-        argumentOfPeriapsis: 96.998,
-        meanAnomalyAtEpoch: 142.239,
-        orbitalPeriod: 30_688.5,
-      },
-    });
+    // this.planetFactory.create({
+    //   type: ENTITY_TYPE.PLANET,
+    //   name: "Uranus",
+    //   radius: 25362,
+    //   tiltAngle: 7.77, // Tilt ~98°, use low value + flipped axis
+    //   axis: [0, -1, 0], // Retrograde
+    //   siderealDay: 17.24,
+    //   orbitData: {
+    //     semiMajorAxis: 2_872_466_000,
+    //     eccentricity: 0.0457,
+    //     inclination: 0.769,
+    //     longitudeOfAscendingNode: 74.006,
+    //     argumentOfPeriapsis: 96.998,
+    //     meanAnomalyAtEpoch: 142.239,
+    //     orbitalPeriod: 30_688.5,
+    //   },
+    // });
   }
 
   updateSettings(settings: SettingsState) {

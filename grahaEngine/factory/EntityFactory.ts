@@ -88,22 +88,26 @@ export class EntityFactory implements IFactory {
     uniform mat4 u_view;
     uniform mat4 u_proj;
     uniform mat3 u_normalMatrix;
+    uniform mat4 u_textureMatrix; // <--- NEW
 
     out vec3 v_fragPos;
     out vec3 v_normal;
     out vec2 v_uv;
     out mat3 v_TBN;
+    out vec4 v_shadowCoord; // <--- NEW
 
     void main() {
-      vec3 T = normalize(u_normalMatrix * a_tangent);  // Placeholder tangent
-      vec3 N = normalize(u_normalMatrix * a_normal);  // Placeholder bitangent
-      vec3 B = normalize(cross(N,T));
-
+      vec3 T = normalize(u_normalMatrix * a_tangent);
+      vec3 N = normalize(u_normalMatrix * a_normal);
+      vec3 B = normalize(cross(N, T));
       v_TBN = mat3(T, B, N);
+
       v_uv = a_uv;
       vec4 worldPos = u_model * vec4(a_position, 1.0);
       v_fragPos = worldPos.xyz;
       v_normal = normalize(u_normalMatrix * a_normal);
+      v_shadowCoord = u_textureMatrix * worldPos; // <--- NEW
+
       gl_Position = u_proj * u_view * worldPos;
     }
   `,
@@ -115,19 +119,21 @@ export class EntityFactory implements IFactory {
   in vec3 v_fragPos;
   in vec3 v_normal;
   in mat3 v_TBN;
+  in vec4 v_shadowCoord; // <--- NEW
 
   uniform sampler2D u_surfaceTexture;
   uniform sampler2D u_normalTexture;
   uniform sampler2D u_specularTexture;
   uniform sampler2D u_atmosphereTexture;
   uniform sampler2D u_nightTexture;
-
+  uniform sampler2D u_shadowMap;        // <--- NEW
   uniform bool u_useNormal;
   uniform bool u_useSpecular;
   uniform bool u_useAtmosphere;
   uniform bool u_useNight;
 
   uniform float u_atmosphereRotation;
+  uniform float u_shadowBias;           // <--- NEW
 
   uniform vec3 u_lightPos;
   uniform vec3 u_viewPos;
@@ -151,35 +157,46 @@ export class EntityFactory implements IFactory {
     vec3 reflectDir = reflect(-lightDir, normal);
     float diff = max(dot(normal, lightDir), 0.0);
 
-    float dayFactor = smoothstep(0.05, 0.25, diff);  // soft transition
-    float nightFactor = clamp(1.0 - diff, 0.0, 1.0); 
+    float dayFactor = smoothstep(0.05, 0.25, diff);
+    float nightFactor = clamp(1.0 - diff, 0.0, 1.0);
     nightFactor = pow(nightFactor, 3.0);
 
-    // --- NIGHT COLOR ---
     vec3 nightColor = vec3(0.0);
     if (u_useNight) {
       nightColor = texture(u_nightTexture, v_uv).rgb;
     }
 
-    // --- DAY LIGHTING ---
+    // -------- SHADOW CALCULATION --------
+    vec3 projCoords = v_shadowCoord.xyz / v_shadowCoord.w;
+    float currentDepth = projCoords.z - u_shadowBias;
+
+    float shadow = 1.0;
+    if (projCoords.x >= 0.0 && projCoords.x <= 1.0 &&
+        projCoords.y >= 0.0 && projCoords.y <= 1.0 &&
+        projCoords.z >= 0.0 && projCoords.z <= 1.0) {
+      float closestDepth = texture(u_shadowMap, projCoords.xy).r;
+      if (currentDepth > closestDepth) {
+        shadow = smoothstep(closestDepth - 0.001, closestDepth + 0.001, currentDepth);
+      }
+    }
+
+    // ------------------------------------
+
     vec3 lightColor = vec3(1.0, 1.0, 0.9);
     vec3 ambient = 0.05 * lightColor;
-    vec3 diffuse = diff * lightColor;
+    vec3 diffuse = diff * lightColor * shadow;
 
     float spec = 0.0;
     if (u_useSpecular && dayFactor > 0.0) {
       float specStrength = texture(u_specularTexture, v_uv).r;
-      spec = pow(max(dot(viewDir, reflectDir), 0.0), 32.0) * specStrength * 0.8;
+      spec = pow(max(dot(viewDir, reflectDir), 0.0), 32.0) * specStrength * 0.8 * shadow;
     }
 
-    // --- DAY LIGHTED COLOR ---
     vec3 dayLitColor = (ambient + diffuse) * surfaceColor + vec3(spec);
-
-    // --- FINAL BLENDING ---
     vec3 finalColor = mix(nightColor, dayLitColor, dayFactor);
-
     fragColor = vec4(finalColor, 1.0);
-  }`);
+  }
+  `);
 
 
   const atmosphereProgram = this.utils.createProgram(
