@@ -27,10 +27,10 @@ import { SunFactory } from "../factory/SunFactory";
 import { GLUtils } from "../utils/GLUtils";
 import { Raycaster } from "../utils/Raycaster";
 import { AssetsLoader } from "./AssetsLoader";
-import { Camera } from "./Camera";
 import { Canvas } from "./Canvas";
 import { IO } from "./IO";
 import { ShadowCasterSystem } from "../engine/ecs/systems/ShadowCasterSystem";
+import { Camera } from "./camera/Camera";
 
 export interface SettingsState {
   globalSceneScale: number;
@@ -198,9 +198,9 @@ export class Scene {
         this.input.clear();
       } else {
         this.input.enableMouseInputs(
-          (e) => this.camera.freeLookMouseHandler(e),
-          (e) => this.camera.latchedWheelMouseHandler(e),
-          (e) => this.camera.latchedLookMouseHandler(e)
+          (e) => this.camera.state.handleNormalMouseMove!(this.camera, e),
+          (e) => this.camera.state.handleMouseWheel!(this.camera, e),
+          (e) => this.camera.state.handleClickAndDrag!(this.camera, e),
         );
         this.input.enableKeyboardInputs();
       }
@@ -357,10 +357,7 @@ export class Scene {
       console.log("Loading assets...", progress);
       return;
     }
-
-    this.camera.cameraKeyboardHandler(this.input.getKeys());
-
-
+    this.camera.state.handleKeyboard!(this.camera, this.input.getKeys());
     this.gl.enable(this.gl.DEPTH_TEST);
     this.gl.clearColor(0, 0, 0, 1);
     this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
@@ -404,14 +401,14 @@ export class Scene {
       this.cameraLatchSystem.clearLatch();
     }
 
-    const viewMatrix = this.camera.getViewMatrix();
+    const viewMatrix = this.camera.viewMatrix;
     const projectionMatrix = this.canvas.getProjectionMatrix();
 
     this.renderer.flush(this.gl, {
       viewMatrix,
       projectionMatrix,
       lightPos: vec3.fromValues(0, 0, 0),
-      cameraPos: this.camera.getPosition(),
+      cameraPos: this.camera.position,
       canvasHeight: this.canvas.canvas.height,
       canvasWidth: this.canvas.canvas.width,
     });

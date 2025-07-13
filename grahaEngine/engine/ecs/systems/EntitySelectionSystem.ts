@@ -1,5 +1,4 @@
 import { mat4, vec3 } from "gl-matrix";
-import { Camera } from "../../../core/Camera";
 import { GLUtils } from "../../../utils/GLUtils";
 import { Raycaster } from "../../../utils/Raycaster";
 import { COMPONENT_STATE } from "../Component";
@@ -8,6 +7,7 @@ import { EntitySelectionComponent } from "../components/EntitySelectionComponent
 import { Registry } from "../Registry";
 import { System } from "../System";
 import { Entity } from "../Entity";
+import { Camera } from "../../../core/camera/Camera";
 
 export class EntitySelectionSystem extends System {
   constructor(
@@ -27,7 +27,7 @@ export class EntitySelectionSystem extends System {
     )) {
       const modelComp = this.registry.getComponent(entity, ModelComponent);
       if (modelComp.state !== COMPONENT_STATE.READY) continue;
-      const ray = this.rayCaster.setFromViewMatrix(this.camera.getViewMatrix());
+      const ray = this.rayCaster.setFromViewMatrix(this.camera.viewMatrix);
       const scaleFromModel = vec3.create();
       mat4.getScaling(scaleFromModel, modelComp.modelMatrix);
       const distance = this.rayCaster.intersectSphere(

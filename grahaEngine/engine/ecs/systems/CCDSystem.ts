@@ -3,9 +3,9 @@ import { COMPONENT_STATE } from "../Component";
 import { CCDComponent, SphereCollider } from "../components/CCDComponent";
 import { ModelComponent } from "../components/ModelComponent";
 import { System } from "../System";
-import { Camera } from "../../../core/Camera";
 import { Registry } from "../Registry";
 import { GLUtils } from "../../../utils/GLUtils";
+import { Camera } from "../../../core/camera/Camera";
 
 // CCD => Camera Collision Detection
 export class CCDSystem extends System {
@@ -24,7 +24,7 @@ export class CCDSystem extends System {
 
       if (ccdComp.state !== COMPONENT_STATE.READY) continue;
 
-      this.camera.setPosition(this.handleCameraCollisions(modelComp));
+      this.camera.position = this.handleCameraCollisions(modelComp);
     }
   }
 
@@ -34,7 +34,7 @@ export class CCDSystem extends System {
   }
 
   private handleCameraCollisions(modelComp: ModelComponent) {
-    const pos = this.camera.getPosition();
+    const pos = this.camera.position;
     const alpha = 0.2;
 
     const radius = Math.max(...modelComp.scale!) * modelComp.boundingBoxScale;

@@ -1,5 +1,4 @@
 import { mat4, vec3 } from "gl-matrix";
-import { Camera } from "../../../core/Camera";
 import { GLUtils } from "../../../utils/GLUtils";
 import { COMPONENT_STATE } from "../Component";
 import {
@@ -10,6 +9,7 @@ import { ModelComponent } from "../components/ModelComponent";
 import { Entity } from "../Entity";
 import { Registry } from "../Registry";
 import { System } from "../System";
+import { Camera } from "@/grahaEngine/core/camera/Camera";
 
 export class CameraLatchSystem extends System {
   private latchedEntity: Entity | null = null;
@@ -77,7 +77,7 @@ export class CameraLatchSystem extends System {
 
       case LATCH_STATES.LATCHED:
         latch.state = COMPONENT_STATE.UNINITIALIZED;
-        this.camera.updateLatchedTarget(modelComp.position!);
+        this.camera.latchedTarget = modelComp.position!;
         break;
     }
   }
@@ -91,7 +91,7 @@ export class CameraLatchSystem extends System {
       latch.state = COMPONENT_STATE.READY;
       latch.elapsed = 0;
       // Cache initial camera front vector (direction)
-      latch.startDirection = this.camera.getFront();
+      latch.startDirection = this.camera.front;
     }
 
     latch.elapsed += deltaTime / 1000;
@@ -99,7 +99,7 @@ export class CameraLatchSystem extends System {
 
     // Desired direction = vector from camera position to target (normalized)
     const desiredDir = vec3.create();
-    vec3.sub(desiredDir, model.position!, this.camera.getPosition());
+    vec3.sub(desiredDir, model.position!, this.camera.position);
     vec3.normalize(desiredDir, desiredDir);
 
     // Interpolate direction vector between start and desired direction
@@ -127,7 +127,7 @@ export class CameraLatchSystem extends System {
     deltaTime: number
   ) {
     if (latch.state === COMPONENT_STATE.UNINITIALIZED) {
-      vec3.copy(latch.startPosition, this.camera.getPosition());
+      vec3.copy(latch.startPosition, this.camera.position);
       latch.elapsed = 0;
       latch.state = COMPONENT_STATE.READY;
     }
@@ -136,7 +136,7 @@ export class CameraLatchSystem extends System {
     const t = this.smoothstep(0, 1, latch.elapsed / latch.transitionTime);
 
     const offsetDir = vec3.create();
-    vec3.sub(offsetDir, this.camera.getPosition(), model.position!);
+    vec3.sub(offsetDir, this.camera.position, model.position!);
     vec3.normalize(offsetDir, offsetDir);
 
     const r = this.computeRadius(model);
@@ -149,7 +149,7 @@ export class CameraLatchSystem extends System {
       targetPosition,
       t
     );
-    this.camera.setPosition(interpolated);
+    this.camera.position = interpolated;
     this.camera.lookAtTarget(model.position!);
 
     const distance = vec3.distance(interpolated, model.position!);
