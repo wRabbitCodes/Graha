@@ -1,10 +1,3 @@
-import basicPlanetVert from '../engine/strategy/glsl/planet/basePlanet.vert.glsl';
-import basicPlanetFrag from '../engine/strategy/glsl/planet/basePlanet.frag.glsl';
-import planetAtmosphereVert from '../engine/strategy/glsl/planetAtmosphere/planetAtmosphere.vert.glsl';
-import planetAtmosphereFrag from '../engine/strategy/glsl/planetAtmosphere/planetAtmosphere.frag.glsl';
-import skyVert from '../engine/strategy/glsl/sky/sky.vert.glsl'
-import skyFrag from '../engine/strategy/glsl/sky/sky.frag.glsl'
-
 export const TEXTURES = {
   sky: "textures/milkyway.png",
   sun: "textures/lensFlare.png",
