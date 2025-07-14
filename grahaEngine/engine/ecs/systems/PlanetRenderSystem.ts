@@ -62,6 +62,7 @@ export class PlanetRenderSystem extends System {
           gl.useProgram(renderComp.program!);
           this.basePlanetShaderStrategy.setBindings(gl,ctx, {modelComp, renderComp}, texComp)
           gl.bindVertexArray(renderComp.VAO);
+          gl.depthFunc(gl.LEQUAL)
           gl.enable(gl.CULL_FACE);
           gl.cullFace(gl.FRONT);
           gl.drawElements(

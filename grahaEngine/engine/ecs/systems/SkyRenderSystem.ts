@@ -48,7 +48,6 @@ export class SkyRenderSystem extends System {
             gl.UNSIGNED_SHORT,
             0
           );
-          gl.depthFunc(gl.LESS);
           gl.bindVertexArray(null);
         },
       });
