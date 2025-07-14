@@ -5,7 +5,7 @@ import { ModelComponent } from "../components/ModelComponent";
 import { System } from "../System";
 import { Registry } from "../Registry";
 import { GLUtils } from "../../../utils/GLUtils";
-import { Camera } from "../../../core/camera/Camera";
+import { Camera } from "../../../core/Camera"
 
 // CCD => Camera Collision Detection
 export class CCDSystem extends System {

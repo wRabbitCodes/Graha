@@ -1,7 +1,7 @@
 import { System } from "../System";
 import { ModelComponent } from "../components/ModelComponent";
 import { Registry } from "../Registry";
-import { Camera } from "../../../core/camera/Camera";
+import { Camera } from "../../../core/Camera";
 import { vec3, mat4, vec4 } from "gl-matrix";
 import { GLUtils } from "../../../utils/GLUtils";
 import { Canvas } from "../../../core/Canvas";

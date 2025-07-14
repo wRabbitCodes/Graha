@@ -1,15 +1,15 @@
-import { mat4 } from "gl-matrix";
-import { RenderContext } from "../../command/IRenderCommands";
-import { IRenderSystem } from "../../command/IRenderSystem";
-import { Renderer } from "../../command/Renderer";
+import { AssetsLoader } from "../../../core/AssetsLoader";
 import { GLUtils } from "../../../utils/GLUtils";
+import { RenderContext } from "../../command/IRenderCommands";
+import { Renderer } from "../../command/Renderer";
+import { SkyStrategy } from "../../strategy/strategies/skyStrategy";
 import { COMPONENT_STATE } from "../Component";
 import { SkyRenderComponent } from "../components/RenderComponent";
 import { Registry } from "../Registry";
 import { System } from "../System";
-import { AssetsLoader } from "../../../core/AssetsLoader";
 
-export class SkyRenderSystem extends System implements IRenderSystem {
+export class SkyRenderSystem extends System {
+  private strategy: SkyStrategy;
   constructor(
     public renderer: Renderer,
     private assetsLoader: AssetsLoader,
@@ -17,6 +17,8 @@ export class SkyRenderSystem extends System implements IRenderSystem {
     utils: GLUtils
   ) {
     super(registry, utils);
+    this.strategy = new SkyStrategy(utils);
+    this.strategy.initialize();
   }
 
   update(deltaTime: number) {
@@ -24,7 +26,8 @@ export class SkyRenderSystem extends System implements IRenderSystem {
       const renderComp = this.registry.getComponent(entity, SkyRenderComponent);
       if (!renderComp) continue;
 
-      const texture = this.assetsLoader.getTexture("sky") ?? null;
+      const texture = this.assetsLoader.getTexture("sky");
+      if (!texture) return;
 
       // Initialize if needed
       if (renderComp.state === COMPONENT_STATE.UNINITIALIZED) {
@@ -35,55 +38,28 @@ export class SkyRenderSystem extends System implements IRenderSystem {
 
       this.renderer.enqueue({
         execute: (gl: WebGL2RenderingContext, ctx: RenderContext) => {
-          const program = renderComp.program!;
-          const VAO = renderComp.VAO!;
-          const sphereMesh = renderComp.sphereMesh!;
-
+          gl.useProgram(renderComp.program);
+          gl.bindVertexArray(renderComp.VAO);
+          this.strategy.setBindings(gl, ctx, {renderComp}, {texture})
           gl.depthFunc(gl.LEQUAL);
-          gl.useProgram(program);
-
-          const viewNoTranslation = mat4.clone(ctx.viewMatrix);
-          viewNoTranslation[12] =
-            viewNoTranslation[13] =
-            viewNoTranslation[14] =
-              0;
-
-          gl.uniformMatrix4fv(
-            gl.getUniformLocation(renderComp.program!, "u_view"),
-            false,
-            viewNoTranslation
-          );
-          gl.uniformMatrix4fv(
-            gl.getUniformLocation(renderComp.program!, "u_proj"),
-            false,
-            ctx.projectionMatrix
-          );
-
-          gl.activeTexture(gl.TEXTURE0 + 20);
-          gl.bindTexture(gl.TEXTURE_2D, texture);
-          gl.uniform1i(gl.getUniformLocation(renderComp.program!, "u_texture"), 20);
-
-          gl.bindVertexArray(VAO);
           gl.drawElements(
             gl.TRIANGLES,
-            sphereMesh.indices.length,
+            renderComp.sphereMesh!.indices.length,
             gl.UNSIGNED_SHORT,
             0
           );
-          gl.bindVertexArray(null);
-
           gl.depthFunc(gl.LESS);
+          gl.bindVertexArray(null);
         },
       });
     }
   }
 
   private initialize(renderComp: SkyRenderComponent) {
-    const gl = this.utils.gl;
 
     renderComp.state = COMPONENT_STATE.LOADING;
     renderComp.sphereMesh = this.utils.createUVSphere(1, 64, 64, true);
-
+    renderComp.program = this.strategy.getProgram();
     if (!renderComp.program || !renderComp.sphereMesh)
       return;
 
@@ -96,6 +72,8 @@ export class SkyRenderSystem extends System implements IRenderSystem {
     const program = renderComp.program!;
     const mesh = renderComp.sphereMesh!;
     const VAO = gl.createVertexArray()!;
+
+    gl.useProgram(this.strategy.getProgram());
     gl.bindVertexArray(VAO);
 
     const posBuffer = gl.createBuffer()!;

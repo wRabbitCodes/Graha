@@ -1,20 +1,18 @@
 import { mat4, vec3 } from "gl-matrix";
 import { IRenderCommand, RenderContext } from "./IRenderCommands.new";
 
-
-// Before introduction of renderpass , we manaually set and cleared certain webgl2 flags
-// like gl.enable(gl.BLEND) ... use render pass to group all such commands by renderpass
-// will be useful to efficently set shadows later
 export enum RenderPass {
-  OPAQUE = 0,      // For solid objects like planets
-  TRANSPARENT = 1, // For effects like atmospheres or selection glow
-  OVERLAY = 2,     // For UI elements, tags, etc.
+  OPAQUE = 0,
+  TRANSPARENT = 1,
+  OVERLAY = 2,
 }
 
+type RenderQueue = {
+  [pass in RenderPass]: IRenderCommand[];
+};
 
 export class Renderer {
-  private gl: WebGL2RenderingContext;
-  private commandQueue: Map<WebGLProgram, Map<RenderPass, IRenderCommand[]>> = new Map();
+  private queues: Map<WebGLProgram, RenderQueue> = new Map();
   private context: RenderContext = {
     viewMatrix: mat4.create(),
     projectionMatrix: mat4.create(),
@@ -23,69 +21,84 @@ export class Renderer {
     deltaTime: 0,
   };
 
-  constructor(gl: WebGL2RenderingContext) {
-    this.gl = gl;
-    this.configureWebGL();
+  constructor(private gl: WebGL2RenderingContext) {}
+
+  setRenderContext(partial: Partial<RenderContext>): void {
+    Object.assign(this.context, partial);
   }
 
-  private configureWebGL(): void {
+  enqueue(command: IRenderCommand): void {
+    if (!command.shaderProgram) return;
+
+    const program = command.shaderProgram;
+    if (!this.queues.has(program)) {
+      this.queues.set(program, {
+        [RenderPass.OPAQUE]: [],
+        [RenderPass.TRANSPARENT]: [],
+        [RenderPass.OVERLAY]: [],
+      });
+    }
+
+    const queue = this.queues.get(program)!;
+    queue[command.priority as RenderPass].push(command);
+  }
+
+  flush(): void {
     const gl = this.gl;
-    gl.clearColor(0.0, 0.0, 0.0, 1.0);
+
+    for (const [program, queue] of this.queues) {
+      gl.useProgram(program);
+
+      this.runPass(queue[RenderPass.OPAQUE], this.runOpaquePass.bind(this));
+      this.runPass(queue[RenderPass.TRANSPARENT], this.runTransparentPass.bind(this));
+      this.runPass(queue[RenderPass.OVERLAY], this.runOverlayPass.bind(this));
+    }
+
+    // Remove non-persistent commands and clear empty programs
+    for (const [program, queue] of this.queues) {
+      for (const pass of Object.values(RenderPass).filter(v => typeof v === "number")) {
+        const key = pass as RenderPass;
+        queue[key] = queue[key]?.filter(c => c.persistent) ?? [];
+      }
+      const allEmpty = Object.values(queue).every(q => q.length === 0);
+      if (allEmpty) {
+        this.queues.delete(program);
+      }
+    }
+  }
+
+  private runPass(commands: IRenderCommand[], handler: (command: IRenderCommand) => void): void {
+    for (const cmd of commands) {
+      if (cmd.validate(this.gl)) {
+        handler(cmd);
+      }
+    }
+  }
+
+  private runOpaquePass(cmd: IRenderCommand): void {
+    // Configure opaque state if needed
+    // this.gl.enable(this.gl.DEPTH_TEST);
+    cmd.execute(this.gl, this.context);
+  }
+
+  private runTransparentPass(cmd: IRenderCommand): void {
+    // Setup blending, disable depth write
+    const gl = this.gl;
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+    gl.depthMask(false);
+
+    cmd.execute(gl, this.context);
+
+    gl.depthMask(true);
+    gl.disable(gl.BLEND);
+  }
+
+  private runOverlayPass(cmd: IRenderCommand): void {
+    // Similar logic for overlays (e.g. disable depth test)
+    const gl = this.gl;
+    gl.disable(gl.DEPTH_TEST);
+    cmd.execute(gl, this.context);
     gl.enable(gl.DEPTH_TEST);
-    gl.depthFunc(gl.LEQUAL);
-    gl.clearDepth(1.0);
-  }
-
-  public setRenderContext(context: Partial<RenderContext>): void {
-    this.context = { ...this.context, ...context };
-  }
-
-  public enqueue(command: IRenderCommand): void {
-    const shaderProgram = command.shaderProgram;
-    if (!shaderProgram) return;
-
-    if (!this.commandQueue.has(shaderProgram)) {
-      this.commandQueue.set(shaderProgram, new Map([
-        [RenderPass.OPAQUE, []],
-        [RenderPass.TRANSPARENT, []],
-        [RenderPass.OVERLAY, []]
-      ]));
-    }
-
-    const passQueue = this.commandQueue.get(shaderProgram)!.get(command.priority as RenderPass) || [];
-    passQueue.push(command);
-    this.commandQueue.get(shaderProgram)!.set(command.priority as RenderPass, passQueue);
-  }
-
-  public flush(): void {
-    const gl = this.gl;
-    gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
-
-    // Render passes in order: OPAQUE, TRANSPARENT, OVERLAY
-    for (const [shaderProgram, passMap] of this.commandQueue) {
-      for (const pass of [RenderPass.OPAQUE, RenderPass.TRANSPARENT, RenderPass.OVERLAY]) {
-        const commands = passMap.get(pass) || [];
-        if (commands.length === 0) continue;
-
-        for (const command of commands) {
-          if (command.validate(gl)) {
-            command.execute(gl, this.context);
-            if (!command.persistent) {
-              commands.splice(commands.indexOf(command), 1);
-            }
-          }
-        }
-      }
-    }
-
-    // Clear non-persistent commands
-    for (const [shaderProgram, passMap] of this.commandQueue) {
-      for (const pass of [RenderPass.OPAQUE, RenderPass.TRANSPARENT, RenderPass.OVERLAY]) {
-        passMap.set(pass, passMap.get(pass)!.filter(cmd => cmd.persistent));
-      }
-      if ([...passMap.values()].every(queue => queue.length === 0)) {
-        this.commandQueue.delete(shaderProgram);
-      }
-    }
   }
 }

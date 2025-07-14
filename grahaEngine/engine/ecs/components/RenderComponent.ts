@@ -2,9 +2,6 @@ import { mat4, vec2, vec3, vec4 } from "gl-matrix";
 import { SphereMesh } from "../../../utils/GLUtils";
 import { COMPONENT_STATE, IComponent, IState } from "../Component";
 import { MeshData } from "@/grahaEngine/core/AssetsLoader";
-import { BaseShaderStrategy } from "@/grahaEngine/engine/shaders/strategies/shaderStrategy";
-import { AtmospherePlanetShaderStrategy } from "@/grahaEngine/engine/shaders/strategies/atmospherePlanetStrategy";
-import { BasePlanetShaderStrategy } from "../../shaders/strategies/basePlanetStrategy";
 
 export abstract class RenderComponent implements IComponent, IState {
   state = COMPONENT_STATE.UNINITIALIZED;
@@ -15,8 +12,7 @@ export abstract class RenderComponent implements IComponent, IState {
 
 export class PlanetRenderComponent extends RenderComponent {
   sphereMesh?: SphereMesh;
-  basePlanetShaderStrategy?: BasePlanetShaderStrategy;
-  atmosphereStrategy?: AtmospherePlanetShaderStrategy
+  atmosphereProgram?: WebGLProgram;
 }
 
 export class SkyRenderComponent extends RenderComponent {

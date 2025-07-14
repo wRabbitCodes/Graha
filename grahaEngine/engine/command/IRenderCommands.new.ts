@@ -10,7 +10,6 @@ export interface RenderContext {
 
 export interface IRenderCommand {
   execute(gl: WebGL2RenderingContext, ctx: RenderContext): void;
-  validate(gl: WebGL2RenderingContext): boolean;
   priority: number;
   shaderProgram: WebGLProgram | null;
   persistent: boolean;

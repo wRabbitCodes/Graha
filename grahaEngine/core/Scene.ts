@@ -15,7 +15,7 @@ import { FrustumCullingSystem } from "../engine/ecs/systems/FrustumCuller";
 import { ModelUpdateSystem } from "../engine/ecs/systems/ModelUpdateSystem";
 import { OrbitPathRenderSystem } from "../engine/ecs/systems/OrbitPathRenderSystem";
 import { OrbitSystem } from "../engine/ecs/systems/OrbitSystem";
-import { EntityRenderSystem } from "../engine/ecs/systems/PlanetRenderSystem";
+import { PlanetRenderSystem } from "../engine/ecs/systems/PlanetRenderSystem";
 import { SelectionGlowRenderSystem } from "../engine/ecs/systems/SelectionGlowRenderSystem";
 import { SelectionTagSystem } from "../engine/ecs/systems/SelectionTagSystem";
 import { SkyRenderSystem } from "../engine/ecs/systems/SkyRenderSystem";
@@ -29,8 +29,7 @@ import { Raycaster } from "../utils/Raycaster";
 import { AssetsLoader } from "./AssetsLoader";
 import { Canvas } from "./Canvas";
 import { IO } from "./IO";
-import { ShadowCasterSystem } from "../engine/ecs/systems/ShadowCasterSystem";
-import { Camera } from "./camera/Camera";
+import { Camera } from "./Camera";
 
 export interface SettingsState {
   globalSceneScale: number;
@@ -70,7 +69,7 @@ export class Scene {
   private skyFactory: SkyFactory;
   private sunRender: SunRenderSystem;
   private sunFactory: SunFactory;
-  private planetRender: EntityRenderSystem;
+  private planetRender: PlanetRenderSystem;
   private modelUpdate: ModelUpdateSystem;
   private planetFactory: EntityFactory;
   private asteroidFactory: AsteroidFactory;
@@ -88,7 +87,6 @@ export class Scene {
   private asteroidPCRenderSystem: AsteroidPointCloudRenderSystem;
   private asteroidMSystem: AsteroidModelSystem;
   private asteroidMRSystem: AsteroidModelRenderSystem;
-  private shadowCasterSystem: ShadowCasterSystem;
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = new Canvas(canvas);
@@ -98,6 +96,7 @@ export class Scene {
     this.utils = new GLUtils(this.gl);
     this.assetsLoader = new AssetsLoader(this.utils);
     this.renderer = new Renderer();
+    // this.rendererNew  = new RendererNew(this.gl);
 
     this.skyRender = new SkyRenderSystem(
       this.renderer,
@@ -111,7 +110,7 @@ export class Scene {
       this.registry,
       this.utils
     );
-    this.planetRender = new EntityRenderSystem(
+    this.planetRender = new PlanetRenderSystem(
       this.renderer,
       this.assetsLoader,
       this.registry,
@@ -181,7 +180,6 @@ export class Scene {
       this.registry,
       this.utils
     );
-    this.shadowCasterSystem = new ShadowCasterSystem(this.registry, this.utils);
   }
 
   initialize() {
@@ -358,6 +356,8 @@ export class Scene {
       return;
     }
     this.camera.state.handleKeyboard!(this.camera, this.input.getKeys());
+    this.camera.update(deltaTime / 1000);
+
     this.gl.enable(this.gl.DEPTH_TEST);
     this.gl.clearColor(0, 0, 0, 1);
     this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
@@ -365,20 +365,18 @@ export class Scene {
     this.skyRender.update(deltaTime);
     this.modelUpdate.update(deltaTime);
     this.orbitSystem.update(deltaTime);
-    this.shadowCasterSystem.update(deltaTime);
     this.ccdSystem.update(deltaTime);
-    this.camera.update(deltaTime / 1000);
 
     if (this.settings.enableAsteroidDustCloud) {
       this.asteroidPCSystem.update(deltaTime);
       this.asteroidPCRenderSystem.update(deltaTime);
     }
 
-    // if (this.settings.enableAsteroidModels) {
-    //   this.asteroidMSystem.update(deltaTime);
-    //   this.asteroidMRSystem.update(deltaTime);
-    // }
-    this.frustumCuller.update(deltaTime);
+    if (this.settings.enableAsteroidModels) {
+      this.asteroidMSystem.update(deltaTime);
+      this.asteroidMRSystem.update(deltaTime);
+    }
+    // this.frustumCuller.update(deltaTime);
 
     this.planetRender.update(deltaTime);
     if (this.settings.highlightOrbit) {
@@ -403,7 +401,6 @@ export class Scene {
 
     const viewMatrix = this.camera.viewMatrix;
     const projectionMatrix = this.canvas.getProjectionMatrix();
-
     this.renderer.flush(this.gl, {
       viewMatrix,
       projectionMatrix,
@@ -411,6 +408,7 @@ export class Scene {
       cameraPos: this.camera.position,
       canvasHeight: this.canvas.canvas.height,
       canvasWidth: this.canvas.canvas.width,
+      deltaTime,
     });
   }
 }

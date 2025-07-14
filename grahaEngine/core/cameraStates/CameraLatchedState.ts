@@ -1,6 +1,6 @@
 import { SETTINGS } from "@/grahaEngine/config/settings";
 import { mat4, vec3 } from "gl-matrix";
-import { ICameraState, Camera } from "./Camera";
+import { ICameraState, Camera } from "../Camera";
 
 export class CameraLatchedState implements ICameraState {
   handleNormalMouseMove(camera: Camera, e: MouseEvent): void {

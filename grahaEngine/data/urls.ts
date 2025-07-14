@@ -1,3 +1,10 @@
+import basicPlanetVert from '../engine/strategy/glsl/planet/basePlanet.vert.glsl';
+import basicPlanetFrag from '../engine/strategy/glsl/planet/basePlanet.frag.glsl';
+import planetAtmosphereVert from '../engine/strategy/glsl/planetAtmosphere/planetAtmosphere.vert.glsl';
+import planetAtmosphereFrag from '../engine/strategy/glsl/planetAtmosphere/planetAtmosphere.frag.glsl';
+import skyVert from '../engine/strategy/glsl/sky/sky.vert.glsl'
+import skyFrag from '../engine/strategy/glsl/sky/sky.frag.glsl'
+
 export const TEXTURES = {
   sky: "textures/milkyway.png",
   sun: "textures/lensFlare.png",
@@ -24,21 +31,3 @@ export const MODELS = {
   // asteroid1: "models/asteroid_1.glb",
   // asteroid2: "models/asteroid_2.glb"
 }
-
-export const SHADERS = {
-  planet: {
-    vertex: "basePlanet.vert.glsl",
-    fragment: "basePlanet.frag.glsl"
-  },
-  planetAtmosphere: {
-    vertex: "atmospherePlanet.vert.glsl",
-    fragment: "atmospherePlanet.frag.glsl"
-  },
-  selectionGlow: {
-    vertex: "selectionGlow.vert.glsl",
-    fragment: "selectionGlow.frag.glsl"
-  },
-  // Add more shaders as needed, e.g.:
-  // tag: { vertex: "tag.vert.glsl", fragment: "tag.frag.glsl" },
-  // sun: { vertex: "sun.vert.glsl", fragment: "sun.frag.glsl" },
-};

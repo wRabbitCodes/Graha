@@ -1,13 +1,14 @@
 import { mat3 } from "gl-matrix";
-import { BaseShaderStrategy } from "./shaderStrategy";
+import { BaseShaderStrategy } from "../shaderStrategy";
 import { IComponent } from "../../ecs/Component";
 import { ModelComponent } from "../../ecs/components/ModelComponent";
-import { RenderContext } from "../../command/IRenderCommands.new";
+import { RenderContext } from "../../command/IRenderCommands";
+import { Shaders } from "../shaders/shaders";
 
-export class BasePlanetShaderStrategy extends BaseShaderStrategy {
+export class BasePlanetStrategy extends BaseShaderStrategy {
  
     initialize(): void {
-        this.program = this.shaderLoader.getProgram('basicPlanet') ?? null;
+        this.program = this.utils.createProgram(Shaders.planet.vert, Shaders.planet.frag);
         if (!this.program) throw new Error('BasicPlanet shader program not found');
         const gl = this.utils.gl;
         this.uniformLocations = {
@@ -27,13 +28,9 @@ export class BasePlanetShaderStrategy extends BaseShaderStrategy {
         };
     }
 
-    getProgram() {
-        return this.program!;
-    }
-
     setBindings(gl: WebGL2RenderingContext, ctx: RenderContext,components: {[key: string]: IComponent}, textures: {[key:string]: WebGLTexture | undefined}): void {
         const modelComp = components.modelComp as ModelComponent;
-
+        gl.useProgram(this.program);
         gl.uniformMatrix3fv(
             this.uniformLocations.normalMatrix,
             false,

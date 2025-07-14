@@ -1,6 +1,6 @@
 import { mat4, quat, vec3 } from "gl-matrix";
-import { CameraFreeLookState } from "./CameraFreeLookState";
-import { CameraLatchedState } from "./CameraLatchedState";
+import { CameraFreeLookState } from "./cameraStates/CameraFreeLookState";
+import { CameraLatchedState } from "./cameraStates/CameraLatchedState";
 
 export interface ICameraState {
   update(camera: Camera, deltaTime: number): void;

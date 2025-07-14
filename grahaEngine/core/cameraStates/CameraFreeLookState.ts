@@ -1,6 +1,6 @@
 import { SETTINGS } from "@/grahaEngine/config/settings";
 import { quat, vec3 } from "gl-matrix";
-import { ICameraState, Camera } from "./Camera";
+import { ICameraState, Camera } from "../Camera";
 
 export class CameraFreeLookState implements ICameraState {
   

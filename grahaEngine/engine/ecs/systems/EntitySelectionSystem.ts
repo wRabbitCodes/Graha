@@ -7,7 +7,7 @@ import { EntitySelectionComponent } from "../components/EntitySelectionComponent
 import { Registry } from "../Registry";
 import { System } from "../System";
 import { Entity } from "../Entity";
-import { Camera } from "../../../core/camera/Camera";
+import { Camera } from "../../../core/Camera"
 
 export class EntitySelectionSystem extends System {
   constructor(

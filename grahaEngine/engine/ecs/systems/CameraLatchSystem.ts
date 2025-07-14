@@ -9,7 +9,7 @@ import { ModelComponent } from "../components/ModelComponent";
 import { Entity } from "../Entity";
 import { Registry } from "../Registry";
 import { System } from "../System";
-import { Camera } from "@/grahaEngine/core/camera/Camera";
+import { Camera } from "../../../core/Camera"
 
 export class CameraLatchSystem extends System {
   private latchedEntity: Entity | null = null;
@@ -49,6 +49,7 @@ export class CameraLatchSystem extends System {
   }
 
   update(deltaTime: number): void {
+    debugger;
     if (!this.latchedEntity) return;
     const modelComp = this.registry.getComponent(
       this.latchedEntity,
