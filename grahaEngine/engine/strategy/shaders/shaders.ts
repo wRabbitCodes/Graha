@@ -1,6 +1,8 @@
 import { aVertexShader, aFragmentShader } from "./atmosphere.shaders";
 import { pVertexShader, pFragmentShader } from "./planet.shaders";
-import { vertexShader, fragmentShader } from "./sky.shaders";
+import { sFragmentShader, sVertexShader } from "./selectionGlow.shaders";
+import { skVertexShader, skFragmentShader } from "./sky.shaders";
+import { tFragmentShader, tVertexShader } from "./tag.shaders";
 
 export const Shaders = {
     planet: {
@@ -12,7 +14,15 @@ export const Shaders = {
         frag: aFragmentShader,
     },
     sky: {
-        vert: vertexShader,
-        frag: fragmentShader,
+        vert: skVertexShader,
+        frag: skFragmentShader,
+    },
+    selectionGlow: {
+        vert: sVertexShader,
+        frag: sFragmentShader,
+    },
+    tag: {
+        vert: tVertexShader,
+        frag: tFragmentShader,
     }
 }

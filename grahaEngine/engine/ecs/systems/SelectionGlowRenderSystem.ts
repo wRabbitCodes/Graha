@@ -12,10 +12,14 @@ import {
 import { Registry } from "../Registry";
 import { System } from "../System";
 import { ModelComponent } from "../components/ModelComponent";
+import { SelectionGlowStrategy } from "../../strategy/strategies/selectionGlowStrategy";
 
 export class SelectionGlowRenderSystem extends System implements IRenderSystem {
+  private selectionGlowStrategy: SelectionGlowStrategy;
   constructor(public renderer: Renderer, registry: Registry, utils: GLUtils) {
     super(registry, utils);
+    this.selectionGlowStrategy = new SelectionGlowStrategy(utils);
+    this.selectionGlowStrategy.initialize();
   }
 
   update(deltaTime: number) {
@@ -61,30 +65,7 @@ export class SelectionGlowRenderSystem extends System implements IRenderSystem {
         execute: (gl: WebGL2RenderingContext, ctx: RenderContext) => {
           gl.useProgram(renderComp.program);
           gl.bindVertexArray(entityRenderComp.VAO);
-
-          const glowModel = mat4.clone(entityModelComp.modelMatrix);
-          mat4.scale(glowModel, glowModel, [1.05, 1.05, 1.05]);
-
-          gl.uniformMatrix4fv(
-            gl.getUniformLocation(renderComp.program!, "u_model"),
-            false,
-            glowModel
-          );
-          gl.uniformMatrix4fv(
-            gl.getUniformLocation(renderComp.program!, "u_view"),
-            false,
-            ctx.viewMatrix
-          );
-          gl.uniformMatrix4fv(
-            gl.getUniformLocation(renderComp.program!, "u_proj"),
-            false,
-            ctx.projectionMatrix
-          );
-          gl.uniform3fv(
-            gl.getUniformLocation(renderComp.program!, "u_cameraPos"),
-            ctx.cameraPos
-          );
-
+          this.selectionGlowStrategy.setBindings(gl, ctx, {renderComp, entityModelComp});
           gl.enable(gl.BLEND);
           gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
@@ -107,10 +88,7 @@ export class SelectionGlowRenderSystem extends System implements IRenderSystem {
 
   private initialize(renderComp: SelectionGlowRenderComponent) {
     renderComp.state = COMPONENT_STATE.LOADING;
-    renderComp.program = this.utils.createProgram(
-      renderComp.vertShader,
-      renderComp.fragShader
-    );
+    renderComp.program = this.selectionGlowStrategy.getProgram();
     renderComp.state = COMPONENT_STATE.READY;
   }
 }

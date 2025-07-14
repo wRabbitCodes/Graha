@@ -6,41 +6,63 @@ import { System } from "../System";
 import { ModelComponent } from "../components/ModelComponent";
 import { OrbitComponent } from "../components/OrbitComponent";
 import { MoonComponent } from "../components/MoonComponent";
+import { Entity } from "../Entity";
 
-// An ECS-based OrbitSystem that drives TransformComponent positions from Keplerian data
+// ECS-based OrbitSystem to drive ModelComponent.position from Keplerian elements
 export class OrbitSystem extends System {
   private readonly DEG2RAD = Math.PI / 180;
+  private readonly rotX = mat4.fromXRotation(mat4.create(), -Math.PI / 2);
 
   update(deltaTime: number): void {
-    const entities = this.registry.getEntitiesWith(OrbitComponent, ModelComponent);
+    const allEntities = this.registry.getEntitiesWith(OrbitComponent, ModelComponent);
+    const nonMoonEntities: Entity[] = [];
+    const moonEntities: Entity[] = [];
 
-    for (const entity of entities) {
-      const orbit = this.registry.getComponent(entity, OrbitComponent)!;
-      const model = this.registry.getComponent(entity, ModelComponent)!;
-      if (model.state !== COMPONENT_STATE.READY) continue;
-
-      if (orbit.state === COMPONENT_STATE.UNINITIALIZED) {
-        const simStart = "2025-06-30T00:00:00Z";
-        orbit.epochTime = OrbitAnamolyCalculator.calculateEpochTime(simStart);
-        orbit.meanAnomalyAtEpoch = (orbit.meanAnomalyAtEpoch * Math.PI) / 180;
-        orbit.elapsedDays = 0;
-        orbit.pathPoints = this.generateOrbitPathPoints(orbit, 180);
-        orbit.state = COMPONENT_STATE.READY;
+    // Classify into planets and moons
+    for (const entity of allEntities) {
+      if (this.registry.hasComponent(entity, MoonComponent)) {
+        moonEntities.push(entity);
+      } else {
+        nonMoonEntities.push(entity);
       }
-      //CHECK IF MOON....if so... translate it with Planet's position
-      const moonComp = this.registry.getComponent(entity, MoonComponent);
-      if (moonComp) {
-        const parentComp = this.registry.getComponent(moonComp.parentEntity!, ModelComponent);
-        const translate = vec3.create();
-        // mat4.multiply(model.modelMatrix, parentComp.modelMatrix, model.modelMatrix)
-        mat4.getTranslation(translate, parentComp.modelMatrix);
-        
-        vec3.add(model.position!, this.calculatePositionFromTime(orbit), translate);
+    }
 
-        // mat4.scale(translate,translate,parentComp.)
-        continue;
-      } 
-      model.position = this.calculatePositionFromTime(orbit);
+    // Step 1: update planet positions first
+    for (const entity of nonMoonEntities) {
+      this.updateOrbitEntity(entity);
+    }
+
+    // Step 2: now update moons (which depend on planet positions)
+    for (const entity of moonEntities) {
+      this.updateOrbitEntity(entity);
+    }
+  }
+
+  private updateOrbitEntity(entity: Entity): void {
+    const orbit = this.registry.getComponent(entity, OrbitComponent)!;
+    const model = this.registry.getComponent(entity, ModelComponent)!;
+    if (model.state !== COMPONENT_STATE.READY) return;
+
+    // Initialize if needed
+    if (orbit.state === COMPONENT_STATE.UNINITIALIZED) {
+      const simStart = "2025-06-30T00:00:00Z";
+      orbit.epochTime = OrbitAnamolyCalculator.calculateEpochTime(simStart);
+      orbit.meanAnomalyAtEpoch = orbit.meanAnomalyAtEpoch * this.DEG2RAD;
+      orbit.elapsedDays = 0;
+      orbit.pathPoints = this.generateOrbitPathPoints(orbit, 180);
+      orbit.state = COMPONENT_STATE.READY;
+    }
+
+    // Compute position from orbit
+    const orbitPosition = this.calculatePositionFromTime(orbit);
+
+    // If moon, offset with parent body's position
+    const moon = this.registry.getComponent(entity, MoonComponent);
+    if (moon) {
+      const parentModel = this.registry.getComponent(moon.parentEntity!, ModelComponent);
+      vec3.add(model.position!, orbitPosition, parentModel.position!);
+    } else {
+      model.position = orbitPosition;
     }
   }
 
@@ -69,11 +91,9 @@ export class OrbitSystem extends System {
         Math.cos(Ω) * Math.sin(theta + ω) * Math.cos(i));
     const z = r * Math.sin(theta + ω) * Math.sin(i);
 
-    const finalPos = vec3.fromValues(x, y, z);
-    const rotX = mat4.create();
-    mat4.fromXRotation(rotX, -Math.PI / 2);
-    vec3.transformMat4(finalPos, finalPos, rotX);
-    return finalPos;
+    const pos = vec3.fromValues(x, y, z);
+    vec3.transformMat4(pos, pos, this.rotX); // flatten orbit into XZ plane
+    return pos;
   }
 
   private generateOrbitPathPoints(orbit: OrbitComponent, segments: number): number[] {
@@ -90,4 +110,4 @@ export class OrbitSystem extends System {
     }
     return points;
   }
-} 
+}

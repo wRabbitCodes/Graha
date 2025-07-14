@@ -11,10 +11,13 @@ import { System } from "../System";
 import { RenderContext } from "../../command/IRenderCommands";
 import { SETTINGS } from "../../../config/settings";
 import { OrbitComponent } from "../components/OrbitComponent";
+import { TagStrategy } from "../../strategy/strategies/tagStrategy";
 
 export class SelectionTagSystem extends System implements IRenderSystem {
+  private tagStrategy: TagStrategy;
   constructor(public renderer: Renderer, registry: Registry, utils: GLUtils) {
     super(registry, utils);
+    this.tagStrategy = new TagStrategy(utils);
   }
 
   update(deltaTime: number): void {
@@ -59,59 +62,13 @@ export class SelectionTagSystem extends System implements IRenderSystem {
             ctx.cameraPos
           );
 
+          this.tagStrategy.setBindings(gl, ctx, {modelComp, renderComp});
+
           gl.enable(gl.BLEND);
           gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
           gl.disable(gl.DEPTH_TEST);
-
           gl.useProgram(renderComp.program);
-          gl.bindVertexArray(renderComp.VAO);
-
-          gl.uniformMatrix4fv(
-            gl.getUniformLocation(renderComp.program!, "u_view"),
-            false,
-            ctx.viewMatrix
-          );
-          gl.uniformMatrix4fv(
-            gl.getUniformLocation(renderComp.program!, "u_proj"),
-            false,
-            ctx.projectionMatrix
-          );
-          gl.uniform2f(
-            gl.getUniformLocation(renderComp.program!, "u_viewportSize"),
-            ctx.canvasWidth,
-            ctx.canvasHeight
-          );
-          gl.uniform3fv(
-            gl.getUniformLocation(renderComp.program!, "u_cameraPos"),
-            ctx.cameraPos
-          );
-
-          const scale = vec3.create();
-          mat4.getScaling(scale, modelComp.modelMatrix);
-          const radius = Math.max(...scale);
-          const worldPos = vec3.clone(modelComp.position!);
-          worldPos[1] += radius * 3;
-
-          gl.uniform3fv(
-            gl.getUniformLocation(renderComp.program!, "u_worldPos"),
-            worldPos
-          );
-          gl.uniform1f(
-            gl.getUniformLocation(renderComp.program!, "u_basePixelSize"),
-            256
-          );
-          gl.uniform1f(
-            gl.getUniformLocation(renderComp.program!, "u_time"),
-            renderComp.time
-          );
-
-          gl.uniform1f(
-            gl.getUniformLocation(renderComp.program!, "u_time"),
-            renderComp.time
-          );
-          gl.activeTexture(gl.TEXTURE0);
-          gl.bindTexture(gl.TEXTURE_2D, renderComp.texture!);
-          gl.uniform1i(gl.getUniformLocation(renderComp.program!, "u_text"), 0);
+          gl.bindVertexArray(renderComp.VAO);    
 
           gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
@@ -128,10 +85,6 @@ export class SelectionTagSystem extends System implements IRenderSystem {
     modelComp: ModelComponent,
     renderComp: TagRenderComponent
   ) {
-    renderComp.program = this.utils.createProgram(
-      renderComp.vertShader,
-      renderComp.fragShader
-    );
     this.setupVAO(renderComp);
     this.bindTextTexture(name, modelComp, renderComp);
     renderComp.state = COMPONENT_STATE.READY;

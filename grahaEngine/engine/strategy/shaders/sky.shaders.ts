@@ -1,4 +1,4 @@
-export const vertexShader = `#version 300 es
+export const skVertexShader = `#version 300 es
 #pragma vscode_glsllint_stage : vert
 precision mediump float;
 in vec3 a_position;
@@ -12,7 +12,7 @@ void main() {
     gl_Position = pos.xyww;
 }`
 
-export const fragmentShader = `#version 300 es
+export const skFragmentShader = `#version 300 es
 #pragma vscode_glsllint_stage : frag
 precision mediump float;
 in vec2 v_uv;
