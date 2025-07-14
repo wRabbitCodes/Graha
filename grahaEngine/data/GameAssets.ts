@@ -24,3 +24,21 @@ export const MODELS = {
   // asteroid1: "models/asteroid_1.glb",
   // asteroid2: "models/asteroid_2.glb"
 }
+
+export const SHADERS = {
+  planet: {
+    vertex: "basePlanet.vert.glsl",
+    fragment: "basePlanet.frag.glsl"
+  },
+  planetAtmosphere: {
+    vertex: "atmospherePlanet.vert.glsl",
+    fragment: "atmospherePlanet.frag.glsl"
+  },
+  selectionGlow: {
+    vertex: "selectionGlow.vert.glsl",
+    fragment: "selectionGlow.frag.glsl"
+  },
+  // Add more shaders as needed, e.g.:
+  // tag: { vertex: "tag.vert.glsl", fragment: "tag.frag.glsl" },
+  // sun: { vertex: "sun.vert.glsl", fragment: "sun.frag.glsl" },
+};
