@@ -3,9 +3,6 @@ import { quat, vec3 } from "gl-matrix";
 import { ICameraState, Camera } from "./Camera";
 
 export class CameraFreeLookState implements ICameraState {
-  handleClickAndDrag(camera: Camera, e: MouseEvent): void {
-        return;
-  }
   
   update(camera: Camera, deltaTime: number): void {
     camera.updateVectorsFromQuat();
@@ -34,10 +31,6 @@ export class CameraFreeLookState implements ICameraState {
     quat.mul(camera.orientation, pitchQuat, camera.orientation);
   }
 
-  handleMouseWheel(camera: Camera, e: WheelEvent) {
-    // Optional: Add zoom functionality
-  }
-
   handleKeyboard(camera: Camera, keys: Set<string>) {
     const pos = camera.position;
     const front = camera.front;
@@ -52,4 +45,8 @@ export class CameraFreeLookState implements ICameraState {
 
     camera.position = pos;
   }
+
+  handleMouseWheel() {};
+
+  handleClickAndDrag() {};
 }
