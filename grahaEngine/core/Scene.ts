@@ -15,7 +15,7 @@ import { FrustumCullingSystem } from "../engine/ecs/systems/FrustumCuller";
 import { ModelUpdateSystem } from "../engine/ecs/systems/ModelUpdateSystem";
 import { OrbitPathRenderSystem } from "../engine/ecs/systems/OrbitPathRenderSystem";
 import { OrbitSystem } from "../engine/ecs/systems/OrbitSystem";
-import { PlanetRenderSystem } from "../engine/ecs/systems/PlanetRenderSystem";
+import { EntityRenderSystem } from "../engine/ecs/systems/PlanetRenderSystem";
 import { SelectionGlowRenderSystem } from "../engine/ecs/systems/SelectionGlowRenderSystem";
 import { SelectionTagSystem } from "../engine/ecs/systems/SelectionTagSystem";
 import { SkyRenderSystem } from "../engine/ecs/systems/SkyRenderSystem";
@@ -70,7 +70,7 @@ export class Scene {
   private skyFactory: SkyFactory;
   private sunRender: SunRenderSystem;
   private sunFactory: SunFactory;
-  private planetRender: PlanetRenderSystem;
+  private planetRender: EntityRenderSystem;
   private modelUpdate: ModelUpdateSystem;
   private planetFactory: EntityFactory;
   private asteroidFactory: AsteroidFactory;
@@ -111,7 +111,7 @@ export class Scene {
       this.registry,
       this.utils
     );
-    this.planetRender = new PlanetRenderSystem(
+    this.planetRender = new EntityRenderSystem(
       this.renderer,
       this.assetsLoader,
       this.registry,

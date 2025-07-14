@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Scene } from "@/grahaEngine/core/Scene";
-import { TEXTURES, FONTS, MODELS } from "@/grahaEngine/data/GameAssets";
+import { TEXTURES, FONTS, MODELS } from "@/grahaEngine/data/urls";
 import Controls from "./Controls";
 import { useSettings } from "@/store/useSettings";
 

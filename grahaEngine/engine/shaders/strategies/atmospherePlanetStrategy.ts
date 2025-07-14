@@ -32,8 +32,4 @@ export class AtmospherePlanetShaderStrategy extends BaseShaderStrategy {
   getProgram(): WebGLProgram {
     return this.program!;
   }
-
-  getUniformLocations(): { [key: string]: WebGLUniformLocation | null } {
-    return this.uniformLocations;
-  }
 }
