@@ -1,4 +1,5 @@
 import { RenderContext, IRenderCommand } from "./IRenderCommands.new";
+import { mat4 } from "gl-matrix";
 
 export enum RenderPass {
   OPAQUE = 0,
@@ -10,20 +11,29 @@ export class Renderer {
   private gl: WebGL2RenderingContext;
   private commands: IRenderCommand[] = [];
   private context: Partial<RenderContext> = {};
-  private framebuffer: WebGLFramebuffer | null = null;
+  private fboMSAA: WebGLFramebuffer | null = null;
+  private colorRenderbufferMSAA: WebGLRenderbuffer | null = null;
+  private depthRenderbufferMSAA: WebGLRenderbuffer | null = null;
+  private fbo: WebGLFramebuffer | null = null;
   private colorTexture: WebGLTexture | null = null;
-  private depthTexture: WebGLTexture | null = null;
   private shadowFramebuffer: WebGLFramebuffer | null = null;
   private shadowDepthTexture: WebGLTexture | null = null;
   private shadowWidth: number = 2048;
   private shadowHeight: number = 2048;
   private width: number = 0;
   private height: number = 0;
+  private samples: number = 0;
+  private quadProgram: WebGLProgram | null = null;
+  private quadVAO: WebGLVertexArrayObject | null = null;
 
   constructor(gl: WebGL2RenderingContext) {
     this.gl = gl;
+    this.samples = Math.min(4, gl.getParameter(gl.MAX_SAMPLES));
+    console.log("Max samples:", this.samples);
+    gl.getExtension("EXT_color_buffer_float");
     this.initializeFramebuffer();
     this.initializeShadowFramebuffer();
+    this.initializeQuadProgram();
   }
 
   private checkGLError(operation: string) {
@@ -52,6 +62,7 @@ export class Renderer {
       case this.gl.FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT: return "FRAMEBUFFER_INCOMPLETE_MISSING_ATTACHMENT";
       case this.gl.FRAMEBUFFER_INCOMPLETE_DIMENSIONS: return "FRAMEBUFFER_INCOMPLETE_DIMENSIONS";
       case this.gl.FRAMEBUFFER_UNSUPPORTED: return "FRAMEBUFFER_UNSUPPORTED";
+      case this.gl.FRAMEBUFFER_INCOMPLETE_MULTISAMPLE: return "FRAMEBUFFER_INCOMPLETE_MULTISAMPLE";
       default: return `Unknown status (${status})`;
     }
   }
@@ -60,34 +71,52 @@ export class Renderer {
     const gl = this.gl;
     this.width = gl.canvas.width;
     this.height = gl.canvas.height;
-    console.log("Initializing framebuffer with size:", this.width, this.height); // Debug
+    console.log("Initializing framebuffer with size:", this.width, this.height, "samples:", this.samples);
     if (this.width <= 0 || this.height <= 0) {
       console.error("Invalid canvas size:", this.width, this.height);
       return;
     }
 
-    this.framebuffer = gl.createFramebuffer();
-    gl.bindFramebuffer(gl.FRAMEBUFFER, this.framebuffer);
+    // Multisampled framebuffer
+    this.fboMSAA = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.fboMSAA);
+
+    this.colorRenderbufferMSAA = gl.createRenderbuffer();
+    gl.bindRenderbuffer(gl.RENDERBUFFER, this.colorRenderbufferMSAA);
+    gl.renderbufferStorageMultisample(gl.RENDERBUFFER, this.samples, gl.RGBA8, this.width, this.height);
+    gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.RENDERBUFFER, this.colorRenderbufferMSAA);
+    this.checkGLError("color renderbuffer MSAA setup");
+
+    this.depthRenderbufferMSAA = gl.createRenderbuffer();
+    gl.bindRenderbuffer(gl.RENDERBUFFER, this.depthRenderbufferMSAA);
+    gl.renderbufferStorageMultisample(gl.RENDERBUFFER, this.samples, gl.DEPTH_COMPONENT24, this.width, this.height);
+    gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, this.depthRenderbufferMSAA);
+    this.checkGLError("depth renderbuffer MSAA setup");
+
+    gl.drawBuffers([gl.COLOR_ATTACHMENT0]);
+    const msaaStatus = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+    if (msaaStatus !== gl.FRAMEBUFFER_COMPLETE) {
+      console.error(`MSAA framebuffer is not complete: ${this.getFramebufferStatusString(msaaStatus)}`);
+    }
+    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.bindRenderbuffer(gl.RENDERBUFFER, null);
+
+    // Non-multisampled framebuffer
+    this.fbo = gl.createFramebuffer();
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.fbo);
 
     this.colorTexture = gl.createTexture();
+    gl.activeTexture(gl.TEXTURE0);
     gl.bindTexture(gl.TEXTURE_2D, this.colorTexture);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, this.width, this.height, 0, gl.RGBA, gl.UNSIGNED_BYTE, null);
+    gl.texStorage2D(gl.TEXTURE_2D, 1, gl.RGBA8, this.width, this.height);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
     gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.colorTexture, 0);
     this.checkGLError("color texture setup");
 
-    this.depthTexture = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_2D, this.depthTexture);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.DEPTH_COMPONENT24, this.width, this.height, 0, gl.DEPTH_COMPONENT, gl.UNSIGNED_INT, null);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, this.depthTexture, 0);
-    this.checkGLError("depth texture setup");
-
-    const status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
-    if (status !== gl.FRAMEBUFFER_COMPLETE) {
-      console.error(`Main framebuffer is not complete: ${this.getFramebufferStatusString(status)}`);
+    const fboStatus = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+    if (fboStatus !== gl.FRAMEBUFFER_COMPLETE) {
+      console.error(`FBO is not complete: ${this.getFramebufferStatusString(fboStatus)}`);
     }
     gl.bindTexture(gl.TEXTURE_2D, null);
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
@@ -121,6 +150,84 @@ export class Renderer {
     this.checkGLError("shadow framebuffer initialization");
   }
 
+  private initializeQuadProgram() {
+    const gl = this.gl;
+
+    const vertexShaderSource = `#version 300 es
+      #pragma vscode_glsllint_stage: vert
+      layout(location=0) in vec4 aPosition;
+      layout(location=1) in vec2 aTexCoord;
+      out vec2 vTexCoord;
+      void main() {
+        gl_Position = aPosition;
+        vTexCoord = aTexCoord;
+      }
+    `;
+
+    const fragmentShaderSource = `#version 300 es
+      #pragma vscode_glsllint_stage: frag
+      precision mediump float;
+      uniform sampler2D colorSampler;
+      in vec2 vTexCoord;
+      out vec4 fragColor;
+      void main() {
+        fragColor = texture(colorSampler, vTexCoord);
+      }
+    `;
+
+    const vertexShader = gl.createShader(gl.VERTEX_SHADER)!;
+    gl.shaderSource(vertexShader, vertexShaderSource);
+    gl.compileShader(vertexShader);
+    if (!gl.getShaderParameter(vertexShader, gl.COMPILE_STATUS)) {
+      console.error("Vertex shader compilation failed:", gl.getShaderInfoLog(vertexShader));
+    }
+
+    const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER)!;
+    gl.shaderSource(fragmentShader, fragmentShaderSource);
+    gl.compileShader(fragmentShader);
+    if (!gl.getShaderParameter(fragmentShader, gl.COMPILE_STATUS)) {
+      console.error("Fragment shader compilation failed:", gl.getShaderInfoLog(fragmentShader));
+    }
+
+    this.quadProgram = gl.createProgram()!;
+    gl.attachShader(this.quadProgram, vertexShader);
+    gl.attachShader(this.quadProgram, fragmentShader);
+    gl.linkProgram(this.quadProgram);
+    if (!gl.getProgramParameter(this.quadProgram, gl.LINK_STATUS)) {
+      console.error("Quad program linking failed:", gl.getProgramInfoLog(this.quadProgram));
+    }
+
+    gl.deleteShader(vertexShader);
+    gl.deleteShader(fragmentShader);
+
+    // Setup quad geometry
+    const quadData = new Float32Array([
+      -1,  1,  0, 1,
+      -1, -1,  0, 0,
+       1,  1,  1, 1,
+       1, -1,  1, 0,
+    ]);
+    this.quadVAO = gl.createVertexArray();
+    gl.bindVertexArray(this.quadVAO);
+
+    const buffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
+    gl.bufferData(gl.ARRAY_BUFFER, quadData, gl.STATIC_DRAW);
+    gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 16, 0);
+    gl.vertexAttribPointer(1, 2, gl.FLOAT, false, 16, 8);
+    gl.enableVertexAttribArray(0);
+    gl.enableVertexAttribArray(1);
+
+    gl.bindVertexArray(null);
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+
+    // Set texture uniform
+    gl.useProgram(this.quadProgram);
+    gl.uniform1i(gl.getUniformLocation(this.quadProgram, "colorSampler"), 0);
+    gl.useProgram(null);
+    this.checkGLError("quad program initialization");
+  }
+
   public setRenderContext(context: Partial<RenderContext>) {
     this.context = { ...this.context, ...context };
     this.checkGLError("setRenderContext");
@@ -132,7 +239,7 @@ export class Renderer {
 
   public flush() {
     const gl = this.gl;
-    console.log("Flushing", this.commands.length, "commands"); // Debug
+    console.log("Flushing", this.commands.length, "commands");
     this.commands.sort((a, b) => a.priority - b.priority);
 
     // Shadow pass (ignored for now)
@@ -143,6 +250,7 @@ export class Renderer {
       gl.clear(gl.DEPTH_BUFFER_BIT);
       for (const cmd of shadowCommands) {
         if (cmd.validate(gl)) {
+          console.log(`Executing shadow command with priority ${cmd.priority}`);
           cmd.execute(gl, this.context as RenderContext);
           this.checkGLError(`shadow command execution (priority ${cmd.priority})`);
         } else {
@@ -151,11 +259,11 @@ export class Renderer {
       }
     }
 
-    // Main pass
-    gl.bindFramebuffer(gl.FRAMEBUFFER, this.framebuffer);
-    const status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
-    if (status !== gl.FRAMEBUFFER_COMPLETE) {
-      console.error(`Main framebuffer is not complete before rendering: ${this.getFramebufferStatusString(status)}`);
+    // Main pass (render to multisampled framebuffer)
+    gl.bindFramebuffer(gl.FRAMEBUFFER, this.fboMSAA);
+    const msaaStatus = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
+    if (msaaStatus !== gl.FRAMEBUFFER_COMPLETE) {
+      console.error(`MSAA framebuffer is not complete before rendering: ${this.getFramebufferStatusString(msaaStatus)}`);
       gl.bindFramebuffer(gl.FRAMEBUFFER, null);
       return;
     }
@@ -163,14 +271,14 @@ export class Renderer {
     gl.clearColor(0, 0, 0, 1);
     gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
     gl.enable(gl.DEPTH_TEST);
-    console.log("Depth test enabled:", gl.getParameter(gl.DEPTH_TEST)); // Debug
-    console.log("Clear color:", gl.getParameter(gl.COLOR_CLEAR_VALUE)); // Debug
+    console.log("Depth test enabled:", gl.getParameter(gl.DEPTH_TEST));
+    console.log("Clear color:", gl.getParameter(gl.COLOR_CLEAR_VALUE));
     this.checkGLError("main pass setup");
 
     const mainCommands = this.commands.filter(cmd => cmd.priority !== RenderPass.SHADOW);
     for (const cmd of mainCommands) {
       if (cmd.validate(gl)) {
-        console.log(`Executing command with priority ${cmd.priority}`); // Debug
+        console.log(`Executing command with priority ${cmd.priority}`);
         cmd.execute(gl, { ...this.context, shadowDepthTexture: this.shadowDepthTexture ?? undefined });
         this.checkGLError(`main command execution (priority ${cmd.priority})`);
       } else {
@@ -178,20 +286,36 @@ export class Renderer {
       }
     }
 
-    // Blit to screen
-    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.framebuffer);
-    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
-    const blitStatus = gl.checkFramebufferStatus(gl.READ_FRAMEBUFFER);
-    if (blitStatus !== gl.FRAMEBUFFER_COMPLETE) {
-      console.error(`Main framebuffer is not complete before blit: ${this.getFramebufferStatusString(blitStatus)}`);
+    // Blit to non-multisampled framebuffer
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, this.fboMSAA);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, this.fbo);
+    const fboStatus = gl.checkFramebufferStatus(gl.DRAW_FRAMEBUFFER);
+    if (fboStatus !== gl.FRAMEBUFFER_COMPLETE) {
+      console.error(`FBO is not complete before blit: ${this.getFramebufferStatusString(fboStatus)}`);
       gl.bindFramebuffer(gl.FRAMEBUFFER, null);
       return;
     }
-    console.log("Blitting framebuffer to screen"); // Debug
+    gl.readBuffer(gl.COLOR_ATTACHMENT0);
+    gl.drawBuffers([gl.COLOR_ATTACHMENT0]);
+    console.log("Blitting MSAA framebuffer to FBO");
     gl.blitFramebuffer(0, 0, this.width, this.height, 0, 0, this.width, this.height, gl.COLOR_BUFFER_BIT, gl.NEAREST);
     this.checkGLError("blit framebuffer");
-    console.log("Blit complete"); // Debug
+    console.log("Blit complete");
+    gl.bindFramebuffer(gl.READ_FRAMEBUFFER, null);
+    gl.bindFramebuffer(gl.DRAW_FRAMEBUFFER, null);
+
+    // Render quad to default framebuffer
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
+    gl.viewport(0, 0, this.width, this.height);
+    gl.useProgram(this.quadProgram);
+    gl.activeTexture(gl.TEXTURE0);
+    gl.bindTexture(gl.TEXTURE_2D, this.colorTexture);
+    gl.bindVertexArray(this.quadVAO);
+    gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    gl.bindVertexArray(null);
+    gl.bindTexture(gl.TEXTURE_2D, null);
+    gl.useProgram(null);
+    this.checkGLError("quad rendering");
 
     this.commands = this.commands.filter(cmd => cmd.persistent);
   }
@@ -206,22 +330,33 @@ export class Renderer {
     this.gl.viewport(0, 0, width, height);
     this.checkGLError("viewport resize");
 
+    // Resize multisampled framebuffer
+    this.gl.bindRenderbuffer(this.gl.RENDERBUFFER, this.colorRenderbufferMSAA);
+    this.gl.renderbufferStorageMultisample(this.gl.RENDERBUFFER, this.samples, this.gl.RGBA8, width, height);
+    this.checkGLError("color renderbuffer MSAA resize");
+
+    this.gl.bindRenderbuffer(this.gl.RENDERBUFFER, this.depthRenderbufferMSAA);
+    this.gl.renderbufferStorageMultisample(this.gl.RENDERBUFFER, this.samples, this.gl.DEPTH_COMPONENT24, width, height);
+    this.checkGLError("depth renderbuffer MSAA resize");
+
+    // Resize non-multisampled framebuffer
     this.gl.bindTexture(this.gl.TEXTURE_2D, this.colorTexture);
-    this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.RGBA, width, height, 0, this.gl.RGBA, this.gl.UNSIGNED_BYTE, null);
+    this.gl.texStorage2D(this.gl.TEXTURE_2D, 1, this.gl.RGBA8, width, height);
     this.checkGLError("color texture resize");
 
-    this.gl.bindTexture(this.gl.TEXTURE_2D, this.depthTexture);
-    this.gl.texImage2D(this.gl.TEXTURE_2D, 0, this.gl.DEPTH_COMPONENT24, width, height, 0, this.gl.DEPTH_COMPONENT, this.gl.UNSIGNED_INT, null);
-    this.checkGLError("depth texture resize");
-
+    this.gl.bindRenderbuffer(this.gl.RENDERBUFFER, null);
     this.gl.bindTexture(this.gl.TEXTURE_2D, null);
   }
 
   public getDepthTexture(): WebGLTexture | null {
-    return this.depthTexture;
+    return null; // Multisampled framebuffer doesn't use a depth texture
   }
 
   public getShadowDepthTexture(): WebGLTexture | null {
     return this.shadowDepthTexture;
+  }
+
+  public getColorTexture(): WebGLTexture | null {
+    return this.colorTexture;
   }
 }
