@@ -1,57 +1,36 @@
-import { SETTINGS } from "../../../config/settings";
 import { AssetsLoader } from "../../../core/AssetsLoader";
 import { GLUtils } from "../../../utils/GLUtils";
 import { RenderContext } from "../../command/IRenderCommands";
 import { IRenderSystem } from "../../command/IRenderSystem";
 import { Renderer } from "../../command/Renderer";
+import { SunStrategy } from "../../strategy/strategies/sunStrategy";
 import { COMPONENT_STATE } from "../Component";
 import { SunRenderComponent } from "../components/RenderComponent";
 import { Registry } from "../Registry";
 import { System } from "../System";
 
 export class SunRenderSystem extends System implements IRenderSystem {
+  private sunStrategy;
   constructor(public renderer: Renderer,private assetsLoader: AssetsLoader, registry: Registry, utils: GLUtils) {
     super(registry, utils);
+    this.sunStrategy = new SunStrategy(utils);
+    this.sunStrategy.initialize();
   }
   update(deltaTime: number): void {
-    for (const entity of this.registry.getEntitiesWith(SunRenderComponent)) {
+      const entity = this.registry.getEntityByID(this.registry.getEntityIdFromName('sun'))!;
       const renderComp = this.registry.getComponent(entity, SunRenderComponent);
       const texture = this.assetsLoader.getTexture("sun");
       if (!texture) return;
       if (renderComp.state === COMPONENT_STATE.UNINITIALIZED)
         this.initialize(renderComp);
-      if (renderComp.state !== COMPONENT_STATE.READY) continue;
+      if (renderComp.state !== COMPONENT_STATE.READY) return;
 
       this.renderer.enqueue({
         execute: (gl: WebGL2RenderingContext, ctx: RenderContext) => {
           gl.useProgram(renderComp.program);
+          this.sunStrategy.setBindings(gl, ctx, {}, {sunTexture: texture});
+          
           // Set uniforms
-          gl.uniformMatrix4fv(
-            gl.getUniformLocation(renderComp.program!, "u_view"),
-            false,
-            ctx.viewMatrix
-          );
-          gl.uniformMatrix4fv(
-            gl.getUniformLocation(renderComp.program!, "u_proj"),
-            false,
-            ctx.projectionMatrix
-          );
-          gl.uniform3fv(
-            gl.getUniformLocation(renderComp.program!, "u_worldPos"),
-            ctx.lightPos
-          ); // Sun at origin
-          gl.uniform1f(
-            gl.getUniformLocation(renderComp.program!, "u_size"),
-            SETTINGS.SUN_SIZE 
-          ); // Scale of flare in world units
-
-          gl.activeTexture(gl.TEXTURE0 + 15);
-          gl.bindTexture(gl.TEXTURE_2D, texture);
-          gl.uniform1i(
-            gl.getUniformLocation(renderComp.program!, "u_lensflare"),
-            15
-          );
-
           // gl.disable(gl.DEPTH_TEST);
           gl.depthMask(false);
           gl.enable(gl.BLEND);
@@ -66,7 +45,6 @@ export class SunRenderSystem extends System implements IRenderSystem {
           // gl.enable(gl.DEPTH_TEST);
         },
       });
-    }
   }
 
   private initialize(renderComp: SunRenderComponent) {
@@ -78,6 +56,8 @@ export class SunRenderSystem extends System implements IRenderSystem {
   private setupVAO(renderComp: SunRenderComponent) {
     const gl = this.utils.gl;
     const vao = gl.createVertexArray()!;
+    renderComp.program = this.sunStrategy.getProgram();
+    gl.useProgram(renderComp.program);
     gl.bindVertexArray(vao);
     const positions = new Float32Array([-1, -1, 1, -1, -1, 1, 1, 1]);
     const buffer = gl.createBuffer()!;

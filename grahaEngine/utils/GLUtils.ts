@@ -207,7 +207,8 @@ export class GLUtils {
       image.src = url;
       image.crossOrigin = "anonymous"; // If loading from external URLs
       image.onload = () => {
-        requestIdleCallback(() => {
+        const idleCallback = window.requestIdleCallback || ((cb: () => void) => setTimeout(cb, 0));
+        idleCallback(() => {
           const texture = gl.createTexture();
           if (!texture) return reject("Failed to create texture");
           gl.activeTexture(gl.TEXTURE0 + (textureUnit ?? 0));

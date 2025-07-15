@@ -2,6 +2,7 @@ import { aVertexShader, aFragmentShader } from "./atmosphere.shaders";
 import { pVertexShader, pFragmentShader } from "./planet.shaders";
 import { sFragmentShader, sVertexShader } from "./selectionGlow.shaders";
 import { skVertexShader, skFragmentShader } from "./sky.shaders";
+import { sunFragmentShader, sunVertexShader } from "./sun.shaders";
 import { tFragmentShader, tVertexShader } from "./tag.shaders";
 
 export const Shaders = {
@@ -24,5 +25,9 @@ export const Shaders = {
     tag: {
         vert: tVertexShader,
         frag: tFragmentShader,
+    },
+    sun: {
+        vert: sunVertexShader,
+        frag: sunFragmentShader,
     }
 }

@@ -9,6 +9,7 @@ export class Registry {
   private entities = new Map<number, Entity>();
   private components = new Map<number, ComponentMap>();
   private entityToName = new Map<number, string>();
+  private nameToEntity = new Map<string, number>();
 
   createEntity(): Entity {
     const id = this.nextId++;
@@ -60,10 +61,15 @@ export class Registry {
 
   setNameForEntityID(entityID: number, name: string) {
     this.entityToName.set(entityID, name);
+    this.nameToEntity.set(name, entityID);
   }
 
   getNameFromEntityID(entityID: number): string {
     return this.entityToName.get(entityID)!;
+  }
+
+  getEntityIdFromName(name: string): number {
+    return this.nameToEntity.get(name)!;
   }
 
   getEntityIDToNameMap() {

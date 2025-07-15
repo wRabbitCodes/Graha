@@ -372,10 +372,10 @@ export class Scene {
       this.asteroidPCRenderSystem.update(deltaTime);
     }
 
-    if (this.settings.enableAsteroidModels) {
-      this.asteroidMSystem.update(deltaTime);
-      this.asteroidMRSystem.update(deltaTime);
-    }
+    // if (this.settings.enableAsteroidModels) {
+    //   this.asteroidMSystem.update(deltaTime);
+    //   this.asteroidMRSystem.update(deltaTime);
+    // }
     // this.frustumCuller.update(deltaTime);
 
     this.planetRender.update(deltaTime);
