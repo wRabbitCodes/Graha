@@ -1,5 +1,5 @@
 import { GLUtils } from "@/grahaEngine/utils/GLUtils";
-import { RenderContext } from "../command/IRenderCommands";
+import { RenderContext } from "../command/IRenderCommands.new";
 import { IComponent } from "../ecs/Component";
 
 export abstract class BaseShaderStrategy {
@@ -14,7 +14,7 @@ export abstract class BaseShaderStrategy {
     }
     
     abstract initialize(): void;
-    abstract setBindings(gl: WebGL2RenderingContext, ctx: RenderContext,components: {[key: string]: IComponent}, textures: {[key:string]: WebGLTexture}): void;
+    abstract setBindings(gl: WebGL2RenderingContext, ctx: Partial<RenderContext>,components: {[key: string]: IComponent}, textures: {[key:string]: WebGLTexture}): void;
 
     getProgram(): WebGLProgram {
         return this.program!;

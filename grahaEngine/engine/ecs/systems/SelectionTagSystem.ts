@@ -18,6 +18,7 @@ export class SelectionTagSystem extends System implements IRenderSystem {
   constructor(public renderer: Renderer, registry: Registry, utils: GLUtils) {
     super(registry, utils);
     this.tagStrategy = new TagStrategy(utils);
+    this.tagStrategy.initialize();
   }
 
   update(deltaTime: number): void {
@@ -47,12 +48,13 @@ export class SelectionTagSystem extends System implements IRenderSystem {
       }
       const entityName = this.registry.getNameFromEntityID(entity.id) || "";
       if (renderComp.state === COMPONENT_STATE.UNINITIALIZED)
-        this.initialize(entityName, modelComp, renderComp);
+        this.initialize(entityName, renderComp);
 
       if (renderComp.state !== COMPONENT_STATE.READY) continue;
 
       this.renderer.enqueue({
         execute: (gl: WebGL2RenderingContext, ctx: RenderContext) => {
+          debugger;
           this.updateTag(
             entityName,
             deltaTime,
@@ -82,12 +84,12 @@ export class SelectionTagSystem extends System implements IRenderSystem {
 
   private initialize(
     name: string,
-    modelComp: ModelComponent,
     renderComp: TagRenderComponent
   ) {
     this.setupVAO(renderComp);
-    this.bindTextTexture(name, modelComp, renderComp);
+    this.bindTextTexture(name, renderComp);
     renderComp.state = COMPONENT_STATE.READY;
+    renderComp.program = this.tagStrategy.getProgram();
   }
 
   private setupVAO(renderComp: TagRenderComponent) {
@@ -107,7 +109,6 @@ export class SelectionTagSystem extends System implements IRenderSystem {
 
   private bindTextTexture(
     name: string,
-    modelComp: ModelComponent,
     component: TagRenderComponent
   ) {
     const gl = this.utils.gl;
@@ -167,23 +168,31 @@ export class SelectionTagSystem extends System implements IRenderSystem {
       ? name
       : name.charAt(0);
 
+
+    // // Set size of quad roughly proportional to radius + text width
+    // vec2.set(
+    //   renderComp.size,
+    //   radius + (renderComp.textCanvas?.width ?? 0),
+    //   radius + (renderComp.textCanvas?.height ?? 0)
+    // );
+
+    // Position label just above planet surface (no additional offset here)
+    const popupPos = vec3.create();
+    vec3.set(popupPos, planetPos[0], planetPos[1] + radius, planetPos[2]);
+    // Base scale for tags (tweak as needed)
+    const baseScale = 0.003;
+
+    // Scale based on distance (makes tags shrink when far)
+    const scaleFactor = distToCamera * baseScale;
+    mat4.fromTranslation(renderComp.modelMatrix, popupPos);
+    mat4.scale(renderComp.modelMatrix, renderComp.modelMatrix, [scaleFactor, scaleFactor, scaleFactor]);
+
+    
     // Only update texture if text content changed (optional optimization)
     if (renderComp.currentText !== textToDraw) {
       this.updateTextTexture(renderComp, textToDraw);
       renderComp.currentText = textToDraw;
     }
-
-    // Set size of quad roughly proportional to radius + text width
-    vec2.set(
-      renderComp.size,
-      radius + (renderComp.textCanvas?.width ?? 0),
-      radius + (renderComp.textCanvas?.height ?? 0)
-    );
-
-    // Position label just above planet surface (no additional offset here)
-    const popupPos = vec3.create();
-    vec3.set(popupPos, planetPos[0], planetPos[1] + radius, planetPos[2]);
-    mat4.fromTranslation(renderComp.modelMatrix, popupPos);
   }
 
   private updateTextTexture(renderComp: TagRenderComponent, text: string) {

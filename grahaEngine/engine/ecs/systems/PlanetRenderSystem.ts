@@ -1,27 +1,27 @@
-import { GLUtils, SphereMesh } from "../../../utils/GLUtils";
-import { Registry } from "../Registry";
-import { RenderContext } from "../../command/IRenderCommands";
-import { Renderer } from "../../command/Renderer";
 import { System } from "../System";
+import { Renderer, RenderPass } from "../../command/Renderer.new"; // Use new Renderer
+import { Registry } from "../Registry";
+import { GLUtils } from "../../../utils/GLUtils";
 import { ModelComponent } from "../components/ModelComponent";
-import { PlanetRenderComponent } from "../components/RenderComponent";
+import { PlanetRenderComponent } from "../components/RenderComponent"; // Assuming this exists
+import { IRenderCommand, RenderContext } from "../../command/IRenderCommands.new"; // Use new IRenderCommands
+import { BasePlanetStrategy } from "../../strategy/strategies/basePlanetStrategy"; // Adjust path as needed
+import { AtmosphereStrategy } from "../../strategy/strategies/atmosphereStrategy"; // Adjust path as needed
+import { AssetsLoader } from "../../../core/AssetsLoader"; // Adjust path as needed
+import { SphereMesh } from "../../../utils/GLUtils"; // Adjust path as needed
 import { COMPONENT_STATE } from "../Component";
-import { mat3, mat4 } from "gl-matrix";
-import { AssetsLoader } from "../../../core/AssetsLoader";
-import { AtmosphereStrategy } from "../../strategy/strategies/atmosphereStrategy";
-import { BasePlanetStrategy } from "../../strategy/strategies/basePlanetStrategy";
 
 export class PlanetRenderSystem extends System {
-
   private basePlanetShaderStrategy!: BasePlanetStrategy;
   private atmosphereShaderStrategy!: AtmosphereStrategy;
   private VAO: WebGLVertexArrayObject | null = null;
   private mesh: SphereMesh | null = null;
+
   constructor(
     public renderer: Renderer,
     private assetsLoader: AssetsLoader,
     registry: Registry,
-    utils: GLUtils,
+    utils: GLUtils
   ) {
     super(registry, utils);
     this.initializeShaderStrategies();
@@ -57,12 +57,13 @@ export class PlanetRenderSystem extends System {
         night: this.assetsLoader.getTexture(`${entityName.toLowerCase()}Night`)
       };
 
+      // Base planet command
       this.renderer.enqueue({
-        execute: (gl: WebGL2RenderingContext, ctx: RenderContext) => {
+        execute: (gl: WebGL2RenderingContext, ctx: Partial<RenderContext>) => {
           gl.useProgram(renderComp.program!);
-          this.basePlanetShaderStrategy.setBindings(gl,ctx, {modelComp, renderComp}, texComp)
+          this.basePlanetShaderStrategy.setBindings(gl, ctx, { modelComp, renderComp }, texComp);
           gl.bindVertexArray(renderComp.VAO);
-          gl.depthFunc(gl.LEQUAL)
+          gl.depthFunc(gl.LEQUAL);
           gl.enable(gl.CULL_FACE);
           gl.cullFace(gl.FRONT);
           gl.drawElements(
@@ -74,35 +75,39 @@ export class PlanetRenderSystem extends System {
           gl.disable(gl.CULL_FACE);
           gl.bindVertexArray(null);
         },
+        validate: (gl: WebGL2RenderingContext) => !!renderComp.program && gl.getProgramParameter(renderComp.program, gl.LINK_STATUS),
+        priority: RenderPass.OPAQUE, // Base planet is opaque
+        shaderProgram: renderComp.program,
+        persistent: false
       });
 
-      if (!!texComp.atmosphere) {
+      // Atmosphere command (if atmosphere texture exists)
+      if (texComp.atmosphere) {
         this.renderer.enqueue({
-          execute: (gl: WebGL2RenderingContext, ctx: RenderContext) => {
-
+          execute: (gl: WebGL2RenderingContext, ctx: Partial<RenderContext>) => {
             gl.useProgram(renderComp.atmosphereProgram!);
-            this.atmosphereShaderStrategy.setBindings(gl, ctx, {modelComp}, {atmosphere: texComp.atmosphere!})
-
-            gl.bindVertexArray(this.VAO)
+            this.atmosphereShaderStrategy.setBindings(gl, ctx, { modelComp }, { atmosphere: texComp.atmosphere! });
+            gl.bindVertexArray(this.VAO);
             gl.enable(gl.CULL_FACE);
             gl.cullFace(gl.FRONT);
             gl.enable(gl.BLEND);
             gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
             gl.depthMask(false);
-
             gl.drawElements(
               gl.TRIANGLES,
               renderComp.sphereMesh!.indices.length,
               gl.UNSIGNED_SHORT,
               0
             );
-
             gl.depthMask(true);
             gl.disable(gl.BLEND);
             gl.disable(gl.CULL_FACE);
-
             gl.bindVertexArray(null);
           },
+          validate: (gl: WebGL2RenderingContext) => !!renderComp.atmosphereProgram && gl.getProgramParameter(renderComp.atmosphereProgram, gl.LINK_STATUS),
+          priority: RenderPass.TRANSPARENT, // Atmosphere is transparent
+          shaderProgram: renderComp.atmosphereProgram!,
+          persistent: false
         });
       }
     }
@@ -157,5 +162,4 @@ export class PlanetRenderSystem extends System {
 
     gl.bindVertexArray(null);
   }
-
 }

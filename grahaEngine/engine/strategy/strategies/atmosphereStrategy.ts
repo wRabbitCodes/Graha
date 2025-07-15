@@ -1,5 +1,5 @@
 import { mat4 } from "gl-matrix";
-import { RenderContext } from "../../command/IRenderCommands";
+import { RenderContext } from "../../command/IRenderCommands.new";
 import { IComponent } from "../../ecs/Component";
 import { BaseShaderStrategy } from "../shaderStrategy";
 import { ModelComponent } from "../../ecs/components/ModelComponent";
@@ -7,8 +7,8 @@ import { Shaders } from "../shaders/shaders";
 
 export class AtmosphereStrategy extends BaseShaderStrategy {
   private atmosphereRotation = 0;
-  setBindings(gl: WebGL2RenderingContext, ctx: RenderContext, components: { [key: string]: IComponent; }, textures: { [key: string]: WebGLTexture }): void {
-    this.atmosphereRotation += (ctx.deltaTime / 45000) % 1.0;
+  setBindings(gl: WebGL2RenderingContext, ctx: Partial<RenderContext>, components: { [key: string]: IComponent; }, textures: { [key: string]: WebGLTexture }): void {
+    this.atmosphereRotation += (ctx.deltaTime! / 45000) % 1.0;
     const modelComp = components.modelComp as ModelComponent;
     const atmosphereModel = mat4.clone(modelComp.modelMatrix);
     mat4.scale(atmosphereModel, atmosphereModel, [1.02, 1.02, 1.02]);
@@ -21,12 +21,12 @@ export class AtmosphereStrategy extends BaseShaderStrategy {
     gl.uniformMatrix4fv(
       this.uniformLocations.view,
       false,
-      ctx.viewMatrix
+      ctx.viewMatrix!
     );
     gl.uniformMatrix4fv(
       this.uniformLocations.projection,
       false,
-      ctx.projectionMatrix
+      ctx.projectionMatrix!
     );
     gl.uniform1f(
       this.uniformLocations.rotation,

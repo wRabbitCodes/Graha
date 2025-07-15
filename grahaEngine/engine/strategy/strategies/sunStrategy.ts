@@ -1,7 +1,6 @@
 import { SETTINGS } from "@/grahaEngine/config/settings";
-import { RenderContext } from "../../command/IRenderCommands";
+import { RenderContext } from "../../command/IRenderCommands.new";
 import { IComponent } from "../../ecs/Component";
-import { SunRenderComponent } from "../../ecs/components/RenderComponent";
 import { Shaders } from "../shaders/shaders";
 import { BaseShaderStrategy } from "../shaderStrategy";
 
@@ -18,22 +17,22 @@ export class SunStrategy extends BaseShaderStrategy {
         lensFlare: gl.getUniformLocation(this.program, "u_lensflare"),
     };
   }
-  setBindings(gl: WebGL2RenderingContext, ctx: RenderContext, components: { [key: string]: IComponent; }, textures: { [key: string]: WebGLTexture; }): void {
+  setBindings(gl: WebGL2RenderingContext, ctx: Partial<RenderContext>, components: { [key: string]: IComponent; }, textures: { [key: string]: WebGLTexture; }): void {
     const texture = textures.sunTexture as WebGLTexture;
     gl.useProgram(this.program)
     gl.uniformMatrix4fv(
       this.uniformLocations.view,
       false,
-      ctx.viewMatrix
+      ctx.viewMatrix!
     );
     gl.uniformMatrix4fv(
       this.uniformLocations.projection,
       false,
-      ctx.projectionMatrix
+      ctx.projectionMatrix!
     );
     gl.uniform3fv(
       this.uniformLocations.worldPos,
-      ctx.lightPos
+      ctx.lightPos!
     ); // Sun at origin
     gl.uniform1f(
       this.uniformLocations.size,

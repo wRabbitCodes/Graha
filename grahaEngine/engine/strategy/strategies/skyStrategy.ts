@@ -1,5 +1,5 @@
 import { mat4 } from "gl-matrix";
-import { RenderContext } from "../../command/IRenderCommands";
+import { RenderContext } from "../../command/IRenderCommands.new";
 import { IComponent } from "../../ecs/Component";
 import { BaseShaderStrategy } from "../shaderStrategy";
 import { Shaders } from "../shaders/shaders";
@@ -17,8 +17,8 @@ export class SkyStrategy extends BaseShaderStrategy {
         };
     }
 
-    setBindings(gl: WebGL2RenderingContext, ctx: RenderContext, components: { [key: string]: IComponent; }, textures: { [key: string]: WebGLTexture; }): void {
-        const viewNoTranslation = mat4.clone(ctx.viewMatrix);
+    setBindings(gl: WebGL2RenderingContext, ctx: Partial<RenderContext>, components: { [key: string]: IComponent; }, textures: { [key: string]: WebGLTexture; }): void {
+        const viewNoTranslation = mat4.clone(ctx.viewMatrix!);
         viewNoTranslation[12] =
         viewNoTranslation[13] =
         viewNoTranslation[14] =
@@ -33,7 +33,7 @@ export class SkyStrategy extends BaseShaderStrategy {
         gl.uniformMatrix4fv(
             this.uniformLocations.projection,
             false,
-            ctx.projectionMatrix
+            ctx.projectionMatrix!
         );
         gl.activeTexture(gl.TEXTURE0 + 20);
         gl.bindTexture(gl.TEXTURE_2D, textures.texture);

@@ -1,7 +1,7 @@
 import { AssetsLoader } from "../../../core/AssetsLoader";
 import { GLUtils } from "../../../utils/GLUtils";
-import { RenderContext } from "../../command/IRenderCommands";
-import { Renderer } from "../../command/Renderer";
+import { RenderContext, IRenderCommand } from "../../command/IRenderCommands.new"; // Use new IRenderCommands
+import { Renderer, RenderPass } from "../../command/Renderer.new"; // Use new Renderer
 import { SkyStrategy } from "../../strategy/strategies/skyStrategy";
 import { COMPONENT_STATE } from "../Component";
 import { SkyRenderComponent } from "../components/RenderComponent";
@@ -10,6 +10,7 @@ import { System } from "../System";
 
 export class SkyRenderSystem extends System {
   private strategy: SkyStrategy;
+
   constructor(
     public renderer: Renderer,
     private assetsLoader: AssetsLoader,
@@ -35,12 +36,12 @@ export class SkyRenderSystem extends System {
       }
 
       if (renderComp.state !== COMPONENT_STATE.READY) continue;
-
+      debugger;
       this.renderer.enqueue({
-        execute: (gl: WebGL2RenderingContext, ctx: RenderContext) => {
+        execute: (gl: WebGL2RenderingContext, ctx: Partial<RenderContext>) => {
           gl.useProgram(renderComp.program);
           gl.bindVertexArray(renderComp.VAO);
-          this.strategy.setBindings(gl, ctx, {renderComp}, {texture})
+          this.strategy.setBindings(gl, ctx, { renderComp }, { texture });
           gl.depthFunc(gl.LEQUAL);
           gl.drawElements(
             gl.TRIANGLES,
@@ -50,17 +51,19 @@ export class SkyRenderSystem extends System {
           );
           gl.bindVertexArray(null);
         },
+        validate: (gl: WebGL2RenderingContext) => !!renderComp.program && gl.getProgramParameter(renderComp.program, gl.LINK_STATUS),
+        priority: RenderPass.OPAQUE, // Skysphere renders first as background
+        shaderProgram: renderComp.program,
+        persistent: false
       });
     }
   }
 
   private initialize(renderComp: SkyRenderComponent) {
-
     renderComp.state = COMPONENT_STATE.LOADING;
     renderComp.sphereMesh = this.utils.createUVSphere(1, 64, 64, true);
     renderComp.program = this.strategy.getProgram();
-    if (!renderComp.program || !renderComp.sphereMesh)
-      return;
+    if (!renderComp.program || !renderComp.sphereMesh) return;
 
     this.setupVAO(renderComp);
     renderComp.state = COMPONENT_STATE.READY;

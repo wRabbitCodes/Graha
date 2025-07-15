@@ -5,5 +5,5 @@ import { Entity } from "../Entity";
 
 
 export class MoonComponent implements IComponent {
-    parentEntity?: Entity
+    parentEntity!: Entity
 }

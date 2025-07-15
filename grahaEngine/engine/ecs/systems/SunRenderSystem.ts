@@ -1,50 +1,59 @@
 import { AssetsLoader } from "../../../core/AssetsLoader";
 import { GLUtils } from "../../../utils/GLUtils";
-import { RenderContext } from "../../command/IRenderCommands";
-import { IRenderSystem } from "../../command/IRenderSystem";
-import { Renderer } from "../../command/Renderer";
+import { RenderContext, IRenderCommand } from "../../command/IRenderCommands.new"; // Use new IRenderCommands
+import { Renderer, RenderPass } from "../../command/Renderer.new"; // Use new Renderer
 import { SunStrategy } from "../../strategy/strategies/sunStrategy";
 import { COMPONENT_STATE } from "../Component";
 import { SunRenderComponent } from "../components/RenderComponent";
 import { Registry } from "../Registry";
 import { System } from "../System";
 
-export class SunRenderSystem extends System implements IRenderSystem {
-  private sunStrategy;
-  constructor(public renderer: Renderer,private assetsLoader: AssetsLoader, registry: Registry, utils: GLUtils) {
+export class SunRenderSystem extends System {
+  private sunStrategy: SunStrategy;
+
+  constructor(
+    public renderer: Renderer,
+    private assetsLoader: AssetsLoader,
+    registry: Registry,
+    utils: GLUtils
+  ) {
     super(registry, utils);
     this.sunStrategy = new SunStrategy(utils);
     this.sunStrategy.initialize();
   }
+
   update(deltaTime: number): void {
-      const entity = this.registry.getEntityByID(this.registry.getEntityIdFromName('sun'))!;
-      const renderComp = this.registry.getComponent(entity, SunRenderComponent);
-      const texture = this.assetsLoader.getTexture("sun");
-      if (!texture) return;
-      if (renderComp.state === COMPONENT_STATE.UNINITIALIZED)
-        this.initialize(renderComp);
-      if (renderComp.state !== COMPONENT_STATE.READY) return;
+    const entity = this.registry.getEntityByID(this.registry.getEntityIdFromName('sun'))!;
+    const renderComp = this.registry.getComponent(entity, SunRenderComponent);
+    const texture = this.assetsLoader.getTexture("sun");
+    if (!texture) return;
+    if (renderComp.state === COMPONENT_STATE.UNINITIALIZED)
+      this.initialize(renderComp);
+    if (renderComp.state !== COMPONENT_STATE.READY) return;
 
-      this.renderer.enqueue({
-        execute: (gl: WebGL2RenderingContext, ctx: RenderContext) => {
-          gl.useProgram(renderComp.program);
-          this.sunStrategy.setBindings(gl, ctx, {}, {sunTexture: texture});
-          
-          // Set uniforms
-          // gl.disable(gl.DEPTH_TEST);
-          gl.depthMask(false);
-          gl.enable(gl.BLEND);
-          gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
+    this.renderer.enqueue({
+      execute: (gl: WebGL2RenderingContext, ctx: Partial<RenderContext>) => {
+        gl.useProgram(renderComp.program);
+        this.sunStrategy.setBindings(gl, ctx, {}, { sunTexture: texture });
+        // Set uniforms
+        // gl.disable(gl.DEPTH_TEST);
+        gl.depthMask(false);
+        gl.enable(gl.BLEND);
+        gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
 
-          gl.bindVertexArray(renderComp.VAO);
-          gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
-          gl.bindVertexArray(null);
+        gl.bindVertexArray(renderComp.VAO);
+        gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+        gl.bindVertexArray(null);
 
-          gl.disable(gl.BLEND);
-          gl.depthMask(true);
-          // gl.enable(gl.DEPTH_TEST);
-        },
-      });
+        gl.disable(gl.BLEND);
+        gl.depthMask(true);
+        // gl.enable(gl.DEPTH_TEST);
+      },
+      validate: (gl: WebGL2RenderingContext) => !!renderComp.program && gl.getProgramParameter(renderComp.program, gl.LINK_STATUS),
+      priority: RenderPass.TRANSPARENT, // Sun uses additive blending
+      shaderProgram: renderComp.program,
+      persistent: false
+    });
   }
 
   private initialize(renderComp: SunRenderComponent) {

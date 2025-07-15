@@ -1,6 +1,7 @@
 import { vec3 } from "gl-matrix";
 import { SETTINGS } from "../config/settings";
 import { Renderer } from "../engine/command/Renderer";
+import { Renderer as RendererNew } from "../engine/command/Renderer.new"
 import { ENTITY_TYPE } from "../engine/ecs/components/ModelComponent";
 import { Registry } from "../engine/ecs/Registry";
 import { AsteroidModelRenderSystem } from "../engine/ecs/systems/AsteroidModelRenderSystem";
@@ -65,6 +66,7 @@ export class Scene {
   private settings!: SettingsState;
   private registry = new Registry();
   private renderer: Renderer;
+  private rendererNew: RendererNew
   private skyRender: SkyRenderSystem;
   private skyFactory: SkyFactory;
   private sunRender: SunRenderSystem;
@@ -96,22 +98,22 @@ export class Scene {
     this.utils = new GLUtils(this.gl);
     this.assetsLoader = new AssetsLoader(this.utils);
     this.renderer = new Renderer();
-    // this.rendererNew  = new RendererNew(this.gl);
+    this.rendererNew  = new RendererNew(this.gl);
 
     this.skyRender = new SkyRenderSystem(
-      this.renderer,
+      this.rendererNew,
       this.assetsLoader,
       this.registry,
       this.utils
     );
     this.sunRender = new SunRenderSystem(
-      this.renderer,
+      this.rendererNew,
       this.assetsLoader,
       this.registry,
       this.utils
     );
     this.planetRender = new PlanetRenderSystem(
-      this.renderer,
+      this.rendererNew,
       this.assetsLoader,
       this.registry,
       this.utils
@@ -367,27 +369,7 @@ export class Scene {
     this.orbitSystem.update(deltaTime);
     this.ccdSystem.update(deltaTime);
 
-    if (this.settings.enableAsteroidDustCloud) {
-      this.asteroidPCSystem.update(deltaTime);
-      this.asteroidPCRenderSystem.update(deltaTime);
-    }
-
-    // if (this.settings.enableAsteroidModels) {
-    //   this.asteroidMSystem.update(deltaTime);
-    //   this.asteroidMRSystem.update(deltaTime);
-    // }
-    // this.frustumCuller.update(deltaTime);
-
     this.planetRender.update(deltaTime);
-    if (this.settings.highlightOrbit) {
-      this.orbitTracer.update(deltaTime);
-    }
-    if (this.settings.boundingBox) {
-      this.bbpRenderSystem.update(deltaTime);
-    }
-    this.selectionGlowRender.update(deltaTime);
-    this.selectionTagRender.update(deltaTime);
-
     this.sunRender.update(deltaTime);
 
     if (this.settings.latchedEntityID) {
@@ -401,7 +383,7 @@ export class Scene {
 
     const viewMatrix = this.camera.viewMatrix;
     const projectionMatrix = this.canvas.getProjectionMatrix();
-    this.renderer.flush(this.gl, {
+    this.rendererNew.setRenderContext({
       viewMatrix,
       projectionMatrix,
       lightPos: vec3.fromValues(0, 0, 0),
@@ -410,5 +392,6 @@ export class Scene {
       canvasWidth: this.canvas.canvas.width,
       deltaTime,
     });
+    this.rendererNew.flush();
   }
 }

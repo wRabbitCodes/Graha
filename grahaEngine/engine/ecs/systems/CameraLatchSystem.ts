@@ -49,7 +49,6 @@ export class CameraLatchSystem extends System {
   }
 
   update(deltaTime: number): void {
-    debugger;
     if (!this.latchedEntity) return;
     const modelComp = this.registry.getComponent(
       this.latchedEntity,
