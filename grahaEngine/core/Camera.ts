@@ -98,8 +98,9 @@ export class Camera {
   }
 
   updateViewMatrix() {
-    const center = vec3.add(vec3.create(), this.position, this.front);
-    mat4.lookAt(this.viewMatrix, this.position, center, this.up);
+    const cameraFront = this.front;
+    const center = vec3.add(vec3.create(), vec3.fromValues(0, 0, 0), cameraFront); // [0,0,0] + front
+    mat4.lookAt(this.viewMatrix, vec3.fromValues(0, 0, 0), center, this.up);
   }
 
   lookInDirection(direction: vec3) {
@@ -114,7 +115,7 @@ export class Camera {
       this.viewMatrix,
       this.position,
       target,
-      vec3.fromValues(0, 1, 0)
+      this.worldUp,
     );
 
     // Update front vector as well so getFront() stays correct
@@ -122,7 +123,6 @@ export class Camera {
   }
 
   lookAtTarget(target: vec3) {
-    const up = vec3.fromValues(0, 1, 0); // or this.worldUp if you're tracking it
-    mat4.lookAt(this.viewMatrix, this.position, target, up);
+    mat4.lookAt(this.viewMatrix, this.position, target, this.worldUp);
   }
 }

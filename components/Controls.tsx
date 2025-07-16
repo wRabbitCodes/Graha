@@ -14,6 +14,7 @@ export default function Controls() {
     entityMap,
     enableAsteroidDustCloud,
     enableAsteroidModels,
+    showEntityLabel,
     set,
   } = useSettings();
 
@@ -114,6 +115,19 @@ export default function Controls() {
             />
             <label htmlFor="highlightOrbit" className="text-sm select-none">
               Highlight Orbit
+            </label>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <input
+              type="checkbox"
+              id="showEntityLabel"
+              checked={showEntityLabel}
+              onChange={(e) => set("showEntityLabel", e.target.checked)}
+              className="w-4 h-4 accent-cyan-400"
+            />
+            <label htmlFor="showEntityLabel" className="text-sm select-none">
+              Show Label
             </label>
           </div>
 

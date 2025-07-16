@@ -42,6 +42,7 @@ export interface SettingsState {
   entityMap?: Map<number, string>;
   enableAsteroidDustCloud: boolean;
   enableAsteroidModels: boolean;
+  showEntityLabel: boolean;
   set: <K extends keyof SettingsState>(key: K, value: SettingsState[K]) => void;
 }
 
@@ -414,6 +415,13 @@ export class Scene {
       deltaTime,
     });
     this.renderer.flush();
-    this.htmlTagSystem.update(deltaTime);
+
+    if (this.settings.showEntityLabel) {
+      this.htmlTagSystem.enableTags();
+      this.htmlTagSystem.update(deltaTime);
+    } else {
+      this.htmlTagSystem.disableTags();
+    }
+
   }
 }

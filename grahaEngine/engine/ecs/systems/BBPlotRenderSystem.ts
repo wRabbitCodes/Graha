@@ -17,17 +17,8 @@ export class BBPlotRenderSystem extends System {
   update(deltaTime: number): void {
     for (const entity of this.registry.getEntitiesWith(
       ModelComponent,
-      EntitySelectionComponent
     )) {
-      const selectionComp = this.registry.getComponent(
-        entity,
-        EntitySelectionComponent
-      );
-      if (selectionComp?.state !== COMPONENT_STATE.READY) continue;
-      if (!selectionComp.isSelected) {
-        this.registry.removeComponent(entity, BBPlotRenderComponent);
-        continue;
-      }
+
       const modelComp = this.registry.getComponent(entity, ModelComponent);
       if (modelComp?.state !== COMPONENT_STATE.READY) continue;
       const renderComp = this.registry.getComponent(

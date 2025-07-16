@@ -76,6 +76,7 @@ export default function Engine() {
       latchedEntityID: settings.latchedEntityID,
       enableAsteroidDustCloud: settings.enableAsteroidDustCloud,
       enableAsteroidModels: settings.enableAsteroidModels,
+      showEntityLabel: settings.showEntityLabel,
       set: settings.set,
       // Add more settings if needed
     });
@@ -88,6 +89,7 @@ export default function Engine() {
     settings.latchedEntityID,
     settings.enableAsteroidDustCloud,
     settings.enableAsteroidModels,
+    settings.showEntityLabel,
   ]);
 
   return (

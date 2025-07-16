@@ -10,6 +10,7 @@ import { Renderer } from "../../command/Renderer";
 export class HTMLTagSystem extends System {
     private tagElements: Map<string, HTMLDivElement> = new Map();
     private container: HTMLDivElement;
+    private enabled: boolean = true;
 
     constructor(private renderer: Renderer, registry: Registry, utils: GLUtils) {
         super(registry, utils);
@@ -52,7 +53,29 @@ export class HTMLTagSystem extends System {
         `;
         document.head.appendChild(style);
     }
+    
+    isEnabled() {
+        return this.enabled === true;
+    }
 
+    enableTags() {
+        if (this.enabled) return;
+        this.enabled = true;
+        // Toggle visibility of all tags
+        for (const tag of this.tagElements.values()) {
+            tag.style.display = "block";
+        }
+    }
+
+    disableTags() {
+        if(!this.enabled) return;
+        this.enabled = false;
+        // Toggle visibility of all tags
+        for (const tag of this.tagElements.values()) {
+            tag.style.display = "none";
+        }
+    }
+    
     update(_: number): void {
         const viewProj = mat4.create();
         const ctx = this.renderer.getRenderContext();

@@ -11,5 +11,6 @@ export const useSettings = create<SettingsState>((set) => ({
   entityMap: undefined,
   enableAsteroidDustCloud: true,
   enableAsteroidModels: false,
+  showEntityLabel: true,
   set: (key, value) => set((state) => ({ ...state, [key]: value })),
 }));
