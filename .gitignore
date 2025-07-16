@@ -1,0 +1,22 @@
+public
+public/*.*
+node_modules
+package-lock.json
+
+#vscode 
+.vscode
+
+# next.js
+.next
+.next/*.*
+next-env.d.ts
+
+# production
+/build
+
+# local env files
+.env*.local
+.env
+
+# typescript
+*.tsbuildinfo
