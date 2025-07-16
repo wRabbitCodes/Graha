@@ -30,6 +30,7 @@ import { AssetsLoader } from "./AssetsLoader";
 import { Canvas } from "./Canvas";
 import { IO } from "./IO";
 import { Camera } from "./Camera";
+import { HTMLTagSystem } from "../engine/ecs/systems/HTMLTagSystem";
 
 export interface SettingsState {
   globalSceneScale: number;
@@ -87,6 +88,7 @@ export class Scene {
   private asteroidPCRenderSystem: AsteroidPointCloudRenderSystem;
   private asteroidMSystem: AsteroidModelSystem;
   private asteroidMRSystem: AsteroidModelRenderSystem;
+  private htmlTagSystem: HTMLTagSystem;
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = new Canvas(canvas);
@@ -179,6 +181,7 @@ export class Scene {
       this.registry,
       this.utils
     );
+    this.htmlTagSystem = new HTMLTagSystem(this.renderer, this.registry, this.utils);
   }
 
   initialize() {
@@ -382,7 +385,7 @@ export class Scene {
     }
     
     this.selectionGlowRender.update(deltaTime);
-    this.selectionTagRender.update(deltaTime);
+    // this.selectionTagRender.update(deltaTime);
 
 
     if (this.settings.latchedEntityID) {
@@ -411,5 +414,6 @@ export class Scene {
       deltaTime,
     });
     this.renderer.flush();
+    this.htmlTagSystem.update(deltaTime);
   }
 }

@@ -76,6 +76,7 @@ export class BBPlotRenderComponent extends RenderComponent {
 
 export class OrbitPathRenderComponent extends RenderComponent {
   pathSegmentCount = 180;
+  orbitColor?: vec3;
 
   vertSrc = `#version 300 es
 layout(location = 0) in vec3 a_position;
@@ -164,10 +165,13 @@ void main() {
 precision mediump float;
 
 in float v_alpha;
+
+uniform vec3 u_orbitColor;
+
 out vec4 fragColor;
 
 void main() {
-  fragColor = vec4(1.0, 1.0, 1.0, v_alpha * 0.5); // white with soft alpha
+  fragColor = vec4(u_orbitColor, v_alpha * 0.5); // white with soft alpha
 }
 `;
 

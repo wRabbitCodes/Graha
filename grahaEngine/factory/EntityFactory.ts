@@ -45,6 +45,7 @@ export class EntityFactory implements IFactory {
     transform.siderealDay = params.siderealDay ?? 24;
     transform.axis = params.axis ?? vec3.fromValues(0, 1, 0);
     transform.type = params.type;
+    transform.name = params.name;
     this.registry.addComponent(entity, transform);
     
 

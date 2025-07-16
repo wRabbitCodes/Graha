@@ -7,6 +7,7 @@ export enum ENTITY_TYPE {
 }
 export class ModelComponent implements IComponent, IState {
   state = COMPONENT_STATE.UNINITIALIZED;
+  name?: string;
   type = ENTITY_TYPE.PLANET;
   scale?: vec3;
   position?: vec3;

@@ -158,6 +158,8 @@ export class OrbitPathRenderSystem extends System {
             gl.getUniformLocation(renderComp.baseProgram!, "u_fadeSpan"),
             1.0
           );
+          gl.uniform3fv(gl.getUniformLocation(renderComp.baseProgram!, "u_orbitColor"),
+        renderComp.orbitColor ?? vec3.fromValues(1.0,1.0,1.0));
 
           gl.enable(gl.BLEND);
           gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);

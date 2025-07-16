@@ -201,6 +201,10 @@ export class Renderer {
     this.checkGLError("setRenderContext");
   }
 
+  public getRenderContext() {
+    return this.context;
+  }
+
   public enqueue(command: IRenderCommand) {
     this.commands.push(command);
   }
