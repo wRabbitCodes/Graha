@@ -118,7 +118,7 @@ export class Scene {
       this.utils
     );
 
-    this.modelUpdate = new ModelUpdateSystem(this.registry, this.utils);
+    this.modelUpdate = new ModelUpdateSystem(this.camera, this.registry, this.utils);
     this.orbitSystem = new OrbitSystem(this.registry, this.utils);
     this.bbpRenderSystem = new BBPlotRenderSystem(
       this.renderer,

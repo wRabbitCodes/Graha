@@ -50,7 +50,7 @@ export class SunRenderSystem extends System {
         // gl.enable(gl.DEPTH_TEST);
       },
       validate: (gl: WebGL2RenderingContext) => !!renderComp.program && gl.getProgramParameter(renderComp.program, gl.LINK_STATUS),
-      priority: RenderPass.TRANSPARENT, // Sun uses additive blending
+      priority: RenderPass.TRANSPARENT,
       shaderProgram: renderComp.program,
       persistent: false
     });
