@@ -1,5 +1,5 @@
 import { SETTINGS } from "@/grahaEngine/config/settings";
-import { RenderContext } from "../../command/IRenderCommands.new";
+import { RenderContext } from "../../command/IRenderCommands";
 import { IComponent } from "../../ecs/Component";
 import { Shaders } from "../shaders/shaders";
 import { BaseShaderStrategy } from "../shaderStrategy";

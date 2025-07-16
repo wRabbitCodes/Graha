@@ -1,4 +1,4 @@
-import { mat4, mat3, vec3 } from "gl-matrix";
+import { mat4, vec3 } from "gl-matrix";
 
 export interface RenderContext {
   viewMatrix: mat4;
@@ -8,8 +8,6 @@ export interface RenderContext {
   deltaTime: number;
   canvasHeight: number;
   canvasWidth: number;
-  shadowDepthTexture: WebGLTexture; // Shadow map
-  lightViewProjection: mat4; // Light's view-projection matrix
 }
 
 export interface IRenderCommand {

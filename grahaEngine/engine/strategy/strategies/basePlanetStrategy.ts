@@ -2,7 +2,7 @@ import { mat3 } from "gl-matrix";
 import { BaseShaderStrategy } from "../shaderStrategy";
 import { IComponent } from "../../ecs/Component";
 import { ModelComponent } from "../../ecs/components/ModelComponent";
-import { RenderContext } from "../../command/IRenderCommands.new";
+import { RenderContext } from "../../command/IRenderCommands";
 import { Shaders } from "../shaders/shaders";
 
 export class BasePlanetStrategy extends BaseShaderStrategy {

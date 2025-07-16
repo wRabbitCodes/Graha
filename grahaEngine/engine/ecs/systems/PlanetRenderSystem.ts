@@ -1,10 +1,10 @@
 import { System } from "../System";
-import { Renderer, RenderPass } from "../../command/Renderer.new"; // Use new Renderer
+import { Renderer, RenderPass } from "../../command/Renderer"; // Use new Renderer
 import { Registry } from "../Registry";
 import { GLUtils } from "../../../utils/GLUtils";
 import { ModelComponent } from "../components/ModelComponent";
 import { PlanetRenderComponent } from "../components/RenderComponent"; // Assuming this exists
-import { IRenderCommand, RenderContext } from "../../command/IRenderCommands.new"; // Use new IRenderCommands
+import { IRenderCommand, RenderContext } from "../../command/IRenderCommands"; // Use new IRenderCommands
 import { BasePlanetStrategy } from "../../strategy/strategies/basePlanetStrategy"; // Adjust path as needed
 import { AtmosphereStrategy } from "../../strategy/strategies/atmosphereStrategy"; // Adjust path as needed
 import { AssetsLoader } from "../../../core/AssetsLoader"; // Adjust path as needed

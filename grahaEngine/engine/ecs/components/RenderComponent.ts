@@ -37,6 +37,8 @@ export class TagRenderComponent extends RenderComponent {
   textCanvas?: HTMLCanvasElement;
   time = 0;
   flickerOffset = Math.random() * 100;
+  canvasSize?: vec2;
+  animationTime = 0;
   // blinkTimer = 0;
   // isBlinking = false;
   // pulseStrength = 0;
@@ -165,7 +167,7 @@ in float v_alpha;
 out vec4 fragColor;
 
 void main() {
-  fragColor = vec4(1.0, 1.0, 1.0, v_alpha * 0.15); // white with soft alpha
+  fragColor = vec4(1.0, 1.0, 1.0, v_alpha * 0.5); // white with soft alpha
 }
 `;
 
@@ -187,7 +189,7 @@ export class AsteroidPointCloudRenderComponent extends RenderComponent {
     precision mediump float;
     out vec4 fragColor;
     void main() {
-      fragColor = vec4(0.85, 0.85, 0.85, 0.95); // dusty rock color
+      fragColor = vec4(0.85, 0.85, 0.85, 1.0); // dusty rock color
     }
   `;
 }

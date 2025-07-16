@@ -1,5 +1,5 @@
 import { GLUtils } from "@/grahaEngine/utils/GLUtils";
-import { RenderContext } from "../command/IRenderCommands.new";
+import { RenderContext } from "../command/IRenderCommands";
 import { IComponent } from "../ecs/Component";
 
 export abstract class BaseShaderStrategy {

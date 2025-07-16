@@ -1,7 +1,7 @@
 import { mat4, vec3 } from "gl-matrix";
 import { GLUtils } from "@/grahaEngine/utils/GLUtils";
 import { OrbitAnamolyCalculator } from "@/grahaEngine/utils/OrbitAnamolyCalculator";
-import { Renderer } from "../../command/Renderer.new";
+import { Renderer } from "../../command/Renderer";
 import { COMPONENT_STATE } from "../Component";
 import { ENTITY_TYPE, ModelComponent } from "../components/ModelComponent";
 import { MoonComponent } from "../components/MoonComponent";
@@ -10,8 +10,8 @@ import { OrbitPathRenderComponent } from "../components/RenderComponent";
 import { Entity } from "../Entity";
 import { Registry } from "../Registry";
 import { System } from "../System";
-import { RenderContext } from "../../command/IRenderCommands.new";
-import { RenderPass } from "../../command/Renderer.new";
+import { RenderContext } from "../../command/IRenderCommands";
+import { RenderPass } from "../../command/Renderer";
 
 export class OrbitPathRenderSystem extends System {
   constructor(public renderer: Renderer, registry: Registry, utils: GLUtils) {
@@ -156,7 +156,7 @@ export class OrbitPathRenderSystem extends System {
           );
           gl.uniform1f(
             gl.getUniformLocation(renderComp.baseProgram!, "u_fadeSpan"),
-            20.0
+            1.0
           );
 
           gl.enable(gl.BLEND);

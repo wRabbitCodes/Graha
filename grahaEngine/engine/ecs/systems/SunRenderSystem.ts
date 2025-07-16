@@ -1,7 +1,7 @@
 import { AssetsLoader } from "../../../core/AssetsLoader";
 import { GLUtils } from "../../../utils/GLUtils";
-import { RenderContext, IRenderCommand } from "../../command/IRenderCommands.new"; // Use new IRenderCommands
-import { Renderer, RenderPass } from "../../command/Renderer.new"; // Use new Renderer
+import { RenderContext, IRenderCommand } from "../../command/IRenderCommands"; // Use new IRenderCommands
+import { Renderer, RenderPass } from "../../command/Renderer"; // Use new Renderer
 import { SunStrategy } from "../../strategy/strategies/sunStrategy";
 import { COMPONENT_STATE } from "../Component";
 import { SunRenderComponent } from "../components/RenderComponent";

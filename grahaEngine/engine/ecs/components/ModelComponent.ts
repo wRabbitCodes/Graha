@@ -17,6 +17,6 @@ export class ModelComponent implements IComponent, IState {
   rotationQuat=quat.create();
   tiltQuat=quat.create();
   modelMatrix=mat4.create();
-  boundingBoxScale = 1.5;
+  boundingBoxScale = 2;
   isVisible: boolean = true; // Add inside ModelComponent class
 }

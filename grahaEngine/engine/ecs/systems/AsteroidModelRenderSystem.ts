@@ -1,7 +1,7 @@
 import { AssetsLoader } from "@/grahaEngine/core/AssetsLoader";
 import { GLUtils } from "@/grahaEngine/utils/GLUtils";
-import { RenderContext } from "../../command/IRenderCommands.new";
-import { Renderer, RenderPass } from "../../command/Renderer.new";
+import { RenderContext } from "../../command/IRenderCommands";
+import { Renderer, RenderPass } from "../../command/Renderer";
 import { COMPONENT_STATE } from "../Component";
 import { AsteroidModelComponent } from "../components/AsteroidModelComponent";
 import { AsteroidModelRenderComponent } from "../components/RenderComponent";

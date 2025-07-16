@@ -1,6 +1,6 @@
 import { GLUtils } from "@/grahaEngine/utils/GLUtils";
-import { RenderContext } from "../../command/IRenderCommands.new";
-import { Renderer, RenderPass } from "../../command/Renderer.new";
+import { RenderContext } from "../../command/IRenderCommands";
+import { Renderer, RenderPass } from "../../command/Renderer";
 import { SelectionGlowStrategy } from "../../strategy/strategies/selectionGlowStrategy";
 import { COMPONENT_STATE } from "../Component";
 import { EntitySelectionComponent } from "../components/EntitySelectionComponent";

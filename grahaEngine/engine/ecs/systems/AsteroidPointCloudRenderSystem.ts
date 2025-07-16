@@ -1,13 +1,13 @@
 import { GLUtils } from "@/grahaEngine/utils/GLUtils";
 import { IRenderSystem } from "../../command/IRenderSystem";
-import { Renderer } from "../../command/Renderer.new";
+import { Renderer } from "../../command/Renderer";
 import { COMPONENT_STATE } from "../Component";
 import { AsteroidPointCloudComponent } from "../components/AsteroidPointCloudComponent";
 import { AsteroidPointCloudRenderComponent } from "../components/RenderComponent";
 import { Registry } from "../Registry";
 import { System } from "../System";
-import { RenderContext } from "../../command/IRenderCommands.new";
-import { RenderPass } from "../../command/Renderer.new";
+import { RenderContext } from "../../command/IRenderCommands";
+import { RenderPass } from "../../command/Renderer";
 
 export class AsteroidPointCloudRenderSystem extends System {
   constructor(

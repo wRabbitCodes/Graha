@@ -1,5 +1,5 @@
 import { mat4, vec2, vec3 } from "gl-matrix";
-import { Renderer, RenderPass } from "../../command/Renderer.new";
+import { Renderer, RenderPass } from "../../command/Renderer";
 import { GLUtils } from "@/grahaEngine/utils/GLUtils";
 import { COMPONENT_STATE } from "../Component";
 import { EntitySelectionComponent } from "../components/EntitySelectionComponent";
@@ -10,7 +10,7 @@ import { System } from "../System";
 import { SETTINGS } from "@/grahaEngine/config/settings";
 import { OrbitComponent } from "../components/OrbitComponent";
 import { TagStrategy } from "../../strategy/strategies/tagStrategy";
-import { RenderContext } from "../../command/IRenderCommands.new";
+import { RenderContext } from "../../command/IRenderCommands";
 
 export class SelectionTagSystem extends System {
   private tagStrategy: TagStrategy;
@@ -86,14 +86,12 @@ export class SelectionTagSystem extends System {
     }
   }
 
-  private initialize(
-    name: string,
-    renderComp: TagRenderComponent
-  ) {
+  private initialize(name: string, renderComp: TagRenderComponent) {
     this.setupVAO(renderComp);
     this.bindTextTexture(name, renderComp);
     renderComp.state = COMPONENT_STATE.READY;
     renderComp.program = this.tagStrategy.getProgram();
+    renderComp.animationTime = 0.0; // Initialize animation time
   }
 
   private setupVAO(renderComp: TagRenderComponent) {
@@ -102,7 +100,7 @@ export class SelectionTagSystem extends System {
     const buffer = gl.createBuffer()!;
     gl.bindVertexArray(vao);
     gl.bindBuffer(gl.ARRAY_BUFFER, buffer);
-    gl.bufferData(gl.ARRAY_BUFFER, renderComp.popupQuad, gl.STATIC_DRAW);
+    gl.bufferData(gl.ARRAY_BUFFER, renderComp.popupQuad, gl.DYNAMIC_DRAW);
     gl.enableVertexAttribArray(0);
     gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 16, 0);
     gl.enableVertexAttribArray(1);
@@ -111,23 +109,18 @@ export class SelectionTagSystem extends System {
     renderComp.VAO = vao;
   }
 
-  private bindTextTexture(
-    name: string,
-    component: TagRenderComponent
-  ) {
+  private bindTextTexture(name: string, component: TagRenderComponent) {
     const gl = this.utils.gl;
     const canvas = document.createElement("canvas");
     component.textCanvas = canvas;
-    canvas.width = 1024;
-    canvas.height = 256;
+    canvas.width = 512;
+    canvas.height = 128;
     component.currentText = name;
     const ctx = canvas.getContext("2d")!;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.font = `120px NeonSans`;
+    ctx.font = `40px NeonSans`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.lineWidth = 4;
-    ctx.shadowBlur = 0;
     ctx.fillStyle = "#00ffff";
     ctx.fillText(name, canvas.width / 2, canvas.height / 2);
 
@@ -140,6 +133,8 @@ export class SelectionTagSystem extends System {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
     component.texture = tex;
+
+    component.canvasSize = vec2.fromValues(canvas.width, canvas.height);
   }
 
   private updateTag(
@@ -150,7 +145,8 @@ export class SelectionTagSystem extends System {
     orbitComp: OrbitComponent | null,
     cameraPos: vec3
   ) {
-    renderComp.time += dt / 500;
+    // Update animation time independently of deltaTime
+    renderComp.animationTime = (renderComp.animationTime + 0.016) % 10.0; // 60 FPS assumption (0.016s per frame), 10s cycle
 
     const scale = vec3.create();
     mat4.getScaling(scale, modelComp.modelMatrix);
@@ -168,10 +164,8 @@ export class SelectionTagSystem extends System {
 
     const popupPos = vec3.create();
     vec3.set(popupPos, planetPos[0], planetPos[1] + radius, planetPos[2]);
-    const baseScale = 0.003;
-    const scaleFactor = distToCamera * baseScale;
+
     mat4.fromTranslation(renderComp.modelMatrix, popupPos);
-    mat4.scale(renderComp.modelMatrix, renderComp.modelMatrix, [scaleFactor, scaleFactor, scaleFactor]);
 
     if (renderComp.currentText !== textToDraw) {
       this.updateTextTexture(renderComp, textToDraw);
@@ -185,16 +179,14 @@ export class SelectionTagSystem extends System {
     }
     const canvas = renderComp.textCanvas;
     const ctx = canvas.getContext("2d")!;
-    canvas.width = 1024;
-    canvas.height = 256;
+    canvas.width = 512;
+    canvas.height = 128;
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.font = `120px NeonSans`;
+    ctx.font = `40px NeonSans`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillStyle = "#00ffff";
-    ctx.shadowColor = "#00ffff";
-    ctx.shadowBlur = 10;
     ctx.fillText(text, canvas.width / 2, canvas.height / 2);
 
     const gl = this.utils.gl;
@@ -205,5 +197,7 @@ export class SelectionTagSystem extends System {
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
     gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+
+    renderComp.canvasSize = vec2.fromValues(canvas.width, canvas.height);
   }
 }

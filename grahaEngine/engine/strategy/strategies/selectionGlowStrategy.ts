@@ -4,7 +4,6 @@ import { IComponent } from "../../ecs/Component";
 import { Shaders } from "../shaders/shaders";
 import { BaseShaderStrategy } from "../shaderStrategy";
 import { ModelComponent } from "../../ecs/components/ModelComponent";
-import { SelectionGlowRenderComponent } from "../../ecs/components/RenderComponent";
 
 export class SelectionGlowStrategy extends BaseShaderStrategy {
     initialize(): void {
@@ -20,7 +19,6 @@ export class SelectionGlowStrategy extends BaseShaderStrategy {
     }
     setBindings(gl: WebGL2RenderingContext, ctx: RenderContext, components: { [key: string]: IComponent; }): void {
         gl.useProgram(this.program);
-        const renderComp = components.renderComp as SelectionGlowRenderComponent;
         const entityModelComp = components.entityModelComp as ModelComponent;
         const glowModel = mat4.clone(entityModelComp.modelMatrix);
         mat4.scale(glowModel, glowModel, [1.05, 1.05, 1.05]);

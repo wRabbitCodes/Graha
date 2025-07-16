@@ -1,6 +1,6 @@
 import { vec3 } from "gl-matrix";
 import { SETTINGS } from "../config/settings";
-import { Renderer as RendererNew } from "../engine/command/Renderer.new"
+import { Renderer } from "../engine/command/Renderer"
 import { ENTITY_TYPE } from "../engine/ecs/components/ModelComponent";
 import { Registry } from "../engine/ecs/Registry";
 import { AsteroidModelRenderSystem } from "../engine/ecs/systems/AsteroidModelRenderSystem";
@@ -30,8 +30,6 @@ import { AssetsLoader } from "./AssetsLoader";
 import { Canvas } from "./Canvas";
 import { IO } from "./IO";
 import { Camera } from "./Camera";
-import { ShadowCasterSystem } from "../engine/ecs/systems/ShadowCasterSystem";
-import { CameraLatchedState } from "./cameraStates/CameraLatchedState";
 
 export interface SettingsState {
   globalSceneScale: number;
@@ -66,7 +64,7 @@ export class Scene {
 
   private settings!: SettingsState;
   private registry = new Registry();
-  private rendererNew: RendererNew
+  private renderer: Renderer
   private skyRender: SkyRenderSystem;
   private skyFactory: SkyFactory;
   private sunRender: SunRenderSystem;
@@ -78,7 +76,6 @@ export class Scene {
   private orbitSystem: OrbitSystem;
   private entitySelectionSystem: EntitySelectionSystem;
   private rayCaster: Raycaster;
-  private shadowCasterSystem: ShadowCasterSystem;
   private selectionGlowRender: SelectionGlowRenderSystem;
   private selectionTagRender: SelectionTagSystem;
   private cameraLatchSystem: CameraLatchSystem;
@@ -98,22 +95,22 @@ export class Scene {
     this.gl = this.canvas.gl;
     this.utils = new GLUtils(this.gl);
     this.assetsLoader = new AssetsLoader(this.utils);
-    this.rendererNew  = new RendererNew(this.gl);
+    this.renderer  = new Renderer(this.gl);
 
     this.skyRender = new SkyRenderSystem(
-      this.rendererNew,
+      this.renderer,
       this.assetsLoader,
       this.registry,
       this.utils
     );
     this.sunRender = new SunRenderSystem(
-      this.rendererNew,
+      this.renderer,
       this.assetsLoader,
       this.registry,
       this.utils
     );
     this.planetRender = new PlanetRenderSystem(
-      this.rendererNew,
+      this.renderer,
       this.assetsLoader,
       this.registry,
       this.utils
@@ -122,12 +119,12 @@ export class Scene {
     this.modelUpdate = new ModelUpdateSystem(this.registry, this.utils);
     this.orbitSystem = new OrbitSystem(this.registry, this.utils);
     this.bbpRenderSystem = new BBPlotRenderSystem(
-      this.rendererNew,
+      this.renderer,
       this.registry,
       this.utils
     );
     this.orbitTracer = new OrbitPathRenderSystem(
-      this.rendererNew,
+      this.renderer,
       this.registry,
       this.utils
     );
@@ -149,7 +146,6 @@ export class Scene {
     this.asteroidFactory = new AsteroidFactory(this.registry);
 
     this.rayCaster = new Raycaster();
-    this.shadowCasterSystem = new ShadowCasterSystem(this.rendererNew, this.registry, this.utils);
     this.entitySelectionSystem = new EntitySelectionSystem(
       this.rayCaster,
       this.camera,
@@ -157,12 +153,12 @@ export class Scene {
       this.utils
     );
     this.selectionGlowRender = new SelectionGlowRenderSystem(
-      this.rendererNew,
+      this.renderer,
       this.registry,
       this.utils
     );
     this.selectionTagRender = new SelectionTagSystem(
-      this.rendererNew,
+      this.renderer,
       this.registry,
       this.utils
     );
@@ -172,14 +168,14 @@ export class Scene {
       this.utils
     );
     this.asteroidPCRenderSystem = new AsteroidPointCloudRenderSystem(
-      this.rendererNew,
+      this.renderer,
       this.registry,
       this.utils
     );
     this.asteroidMSystem = new AsteroidModelSystem(this.registry, this.utils);
     this.asteroidMRSystem = new AsteroidModelRenderSystem(
       this.assetsLoader,
-      this.rendererNew,
+      this.renderer,
       this.registry,
       this.utils
     );
@@ -242,110 +238,110 @@ export class Scene {
       },
     });
 
-    // this.planetFactory.create({
-    //   type: ENTITY_TYPE.PLANET,
-    //   name: "Jupiter",
-    //   radius: 69911, // radius in km
-    //   tiltAngle: 3.13, // axial tilt in degrees
-    //   siderealDay: 9.9,
-    //   orbitData: {
-    //     semiMajorAxis: 778_340_821, // in km (~5.2 AU)
-    //     eccentricity: 0.0489,
-    //     inclination: 1.305, // degrees
-    //     longitudeOfAscendingNode: 100.492,
-    //     argumentOfPeriapsis: 273.867,
-    //     meanAnomalyAtEpoch: 19.65, // degrees at J2000
-    //     orbitalPeriod: 4332.59, // in days (~11.86 Earth years)
-    //   },
-    // });
+    this.planetFactory.create({
+      type: ENTITY_TYPE.PLANET,
+      name: "Jupiter",
+      radius: 69911, // radius in km
+      tiltAngle: 3.13, // axial tilt in degrees
+      siderealDay: 9.9,
+      orbitData: {
+        semiMajorAxis: 778_340_821, // in km (~5.2 AU)
+        eccentricity: 0.0489,
+        inclination: 1.305, // degrees
+        longitudeOfAscendingNode: 100.492,
+        argumentOfPeriapsis: 273.867,
+        meanAnomalyAtEpoch: 19.65, // degrees at J2000
+        orbitalPeriod: 4332.59, // in days (~11.86 Earth years)
+      },
+    });
 
-    // this.planetFactory.create({
-    //   type: ENTITY_TYPE.PLANET,
-    //   name: "Mercury",
-    //   radius: 2439.7,
-    //   tiltAngle: 0.034,
-    //   siderealDay: 1407.6,
-    //   orbitData: {
-    //     semiMajorAxis: 57_909_227,
-    //     eccentricity: 0.2056,
-    //     inclination: 7.005,
-    //     longitudeOfAscendingNode: 48.331,
-    //     argumentOfPeriapsis: 29.124,
-    //     meanAnomalyAtEpoch: 174.796,
-    //     orbitalPeriod: 87.969,
-    //   },
-    // });
+    this.planetFactory.create({
+      type: ENTITY_TYPE.PLANET,
+      name: "Mercury",
+      radius: 2439.7,
+      tiltAngle: 0.034,
+      siderealDay: 1407.6,
+      orbitData: {
+        semiMajorAxis: 57_909_227,
+        eccentricity: 0.2056,
+        inclination: 7.005,
+        longitudeOfAscendingNode: 48.331,
+        argumentOfPeriapsis: 29.124,
+        meanAnomalyAtEpoch: 174.796,
+        orbitalPeriod: 87.969,
+      },
+    });
 
-    // this.planetFactory.create({
-    //   type: ENTITY_TYPE.PLANET,
-    //   name: "Venus",
-    //   radius: 6051.8,
-    //   tiltAngle: 177.36, // retrograde rotation
-    //   siderealDay: 5832.5,
-    //   axis: [0, -1, 0],
-    //   // atmosphereURL: "textures/4k_venus_atmosphere.jpg",
-    //   orbitData: {
-    //     semiMajorAxis: 108_209_475,
-    //     eccentricity: 0.0067,
-    //     inclination: 3.394,
-    //     longitudeOfAscendingNode: 76.68,
-    //     argumentOfPeriapsis: 54.884,
-    //     meanAnomalyAtEpoch: 50.115,
-    //     orbitalPeriod: 224.701,
-    //   },
-    // });
+    this.planetFactory.create({
+      type: ENTITY_TYPE.PLANET,
+      name: "Venus",
+      radius: 6051.8,
+      tiltAngle: 177.36, // retrograde rotation
+      siderealDay: 5832.5,
+      axis: [0, -1, 0],
+      // atmosphereURL: "textures/4k_venus_atmosphere.jpg",
+      orbitData: {
+        semiMajorAxis: 108_209_475,
+        eccentricity: 0.0067,
+        inclination: 3.394,
+        longitudeOfAscendingNode: 76.68,
+        argumentOfPeriapsis: 54.884,
+        meanAnomalyAtEpoch: 50.115,
+        orbitalPeriod: 224.701,
+      },
+    });
 
-    // this.planetFactory.create({
-    //   type: ENTITY_TYPE.PLANET,
-    //   name: "Mars",
-    //   radius: 3389.5, // radius in km
-    //   tiltAngle: 25.19, // axial tilt in degrees
-    //   siderealDay: 24.6,
-    //   orbitData: {
-    //     semiMajorAxis: 227_939_200, // in km (~1.52 AU)
-    //     eccentricity: 0.0935,
-    //     inclination: 1.85,
-    //     longitudeOfAscendingNode: 49.558,
-    //     argumentOfPeriapsis: 286.502,
-    //     meanAnomalyAtEpoch: 19.412, // degrees at J2000
-    //     orbitalPeriod: 686.971, // in days (~1.88 Earth years)
-    //   },
-    // });
+    this.planetFactory.create({
+      type: ENTITY_TYPE.PLANET,
+      name: "Mars",
+      radius: 3389.5, // radius in km
+      tiltAngle: 25.19, // axial tilt in degrees
+      siderealDay: 24.6,
+      orbitData: {
+        semiMajorAxis: 227_939_200, // in km (~1.52 AU)
+        eccentricity: 0.0935,
+        inclination: 1.85,
+        longitudeOfAscendingNode: 49.558,
+        argumentOfPeriapsis: 286.502,
+        meanAnomalyAtEpoch: 19.412, // degrees at J2000
+        orbitalPeriod: 686.971, // in days (~1.88 Earth years)
+      },
+    });
 
-    // this.planetFactory.create({
-    //   type: ENTITY_TYPE.PLANET,
-    //   name: "Saturn",
-    //   radius: 58232,
-    //   tiltAngle: 26.73,
-    //   siderealDay: 10.7,
-    //   orbitData: {
-    //     semiMajorAxis: 1_433_449_370,
-    //     eccentricity: 0.0565,
-    //     inclination: 2.485,
-    //     longitudeOfAscendingNode: 113.665,
-    //     argumentOfPeriapsis: 339.392,
-    //     meanAnomalyAtEpoch: 317.021,
-    //     orbitalPeriod: 10_759.22,
-    //   },
-    // });
+    this.planetFactory.create({
+      type: ENTITY_TYPE.PLANET,
+      name: "Saturn",
+      radius: 58232,
+      tiltAngle: 26.73,
+      siderealDay: 10.7,
+      orbitData: {
+        semiMajorAxis: 1_433_449_370,
+        eccentricity: 0.0565,
+        inclination: 2.485,
+        longitudeOfAscendingNode: 113.665,
+        argumentOfPeriapsis: 339.392,
+        meanAnomalyAtEpoch: 317.021,
+        orbitalPeriod: 10_759.22,
+      },
+    });
 
-    // this.planetFactory.create({
-    //   type: ENTITY_TYPE.PLANET,
-    //   name: "Uranus",
-    //   radius: 25362,
-    //   tiltAngle: 7.77, // Tilt ~98°, use low value + flipped axis
-    //   axis: [0, -1, 0], // Retrograde
-    //   siderealDay: 17.24,
-    //   orbitData: {
-    //     semiMajorAxis: 2_872_466_000,
-    //     eccentricity: 0.0457,
-    //     inclination: 0.769,
-    //     longitudeOfAscendingNode: 74.006,
-    //     argumentOfPeriapsis: 96.998,
-    //     meanAnomalyAtEpoch: 142.239,
-    //     orbitalPeriod: 30_688.5,
-    //   },
-    // });
+    this.planetFactory.create({
+      type: ENTITY_TYPE.PLANET,
+      name: "Uranus",
+      radius: 25362,
+      tiltAngle: 7.77, // Tilt ~98°, use low value + flipped axis
+      axis: [0, -1, 0], // Retrograde
+      siderealDay: 17.24,
+      orbitData: {
+        semiMajorAxis: 2_872_466_000,
+        eccentricity: 0.0457,
+        inclination: 0.769,
+        longitudeOfAscendingNode: 74.006,
+        argumentOfPeriapsis: 96.998,
+        meanAnomalyAtEpoch: 142.239,
+        orbitalPeriod: 30_688.5,
+      },
+    });
   }
 
   updateSettings(settings: SettingsState) {
@@ -361,35 +357,51 @@ export class Scene {
     this.camera.state.handleKeyboard!(this.camera, this.input.getKeys());
     this.camera.update(deltaTime / 1000);
 
-    this.gl.enable(this.gl.DEPTH_TEST);
-    this.gl.clearColor(0, 0, 0, 1);
-    this.gl.clear(this.gl.COLOR_BUFFER_BIT | this.gl.DEPTH_BUFFER_BIT);
-
     this.skyRender.update(deltaTime);
     this.modelUpdate.update(deltaTime);
     this.orbitSystem.update(deltaTime);
     this.ccdSystem.update(deltaTime);
 
+    if (this.settings.enableAsteroidDustCloud) {
+      this.asteroidPCSystem.update(deltaTime);
+      this.asteroidPCRenderSystem.update(deltaTime);
+    }
+
+    // if (this.settings.enableAsteroidModels) {
+    //   this.asteroidMSystem.update(deltaTime);
+    //   this.asteroidMRSystem.update(deltaTime);
+    // }
+    this.planetRender.update(deltaTime);
+
+
+    if (this.settings.highlightOrbit) {
+      this.orbitTracer.update(deltaTime);
+    }
+    if (this.settings.boundingBox) {
+      this.bbpRenderSystem.update(deltaTime);
+    }
+    
+    this.selectionGlowRender.update(deltaTime);
+    this.selectionTagRender.update(deltaTime);
+
+
     if (this.settings.latchedEntityID) {
       this.cameraLatchSystem.setLatchEntity(
         this.registry.getEntityByID(this.settings.latchedEntityID)!
       );
-      // this.shadowCasterSystem.setLatchedEntity(
-      //   this.registry.getEntityByID(this.settings.latchedEntityID)!
-      // )
       this.cameraLatchSystem.update(deltaTime);
-      // this.shadowCasterSystem.update(deltaTime);
     } else {
       this.cameraLatchSystem.clearLatch();
     }
 
-    this.planetRender.update(deltaTime);
+    // this.frustumCuller.update(deltaTime);
+
     this.sunRender.update(deltaTime);
 
 
     const viewMatrix = this.camera.viewMatrix;
     const projectionMatrix = this.canvas.getProjectionMatrix();
-    this.rendererNew.setRenderContext({
+    this.renderer.setRenderContext({
       viewMatrix,
       projectionMatrix,
       lightPos: vec3.fromValues(0, 0, 0),
@@ -398,6 +410,6 @@ export class Scene {
       canvasWidth: this.canvas.canvas.width,
       deltaTime,
     });
-    this.rendererNew.flush();
+    this.renderer.flush();
   }
 }

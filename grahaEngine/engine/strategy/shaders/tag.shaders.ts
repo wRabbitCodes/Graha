@@ -10,6 +10,7 @@ export const tVertexShader = `#version 300 es
     uniform vec3 u_worldPos;
     uniform float u_basePixelSize;
     uniform vec2 u_viewportSize;
+    uniform vec2 u_canvasSize;
 
     out vec2 v_uv;
 
@@ -17,6 +18,8 @@ export const tVertexShader = `#version 300 es
         vec3 right = vec3(u_view[0][0], u_view[1][0], u_view[2][0]);
         vec3 up    = vec3(u_view[0][1], u_view[1][1], u_view[2][1]);
 
+        // Compute aspect ratio of canvas
+        float aspectRatio = u_canvasSize.x / u_canvasSize.y;
         // Estimate distance from camera to label
         vec4 viewPos = u_view * vec4(u_worldPos, 1.0);
         float dist = abs(viewPos.z); // distance in view space
@@ -24,24 +27,28 @@ export const tVertexShader = `#version 300 es
         // Approximate NDC pixel scale factor
         float ndcPixelSize = 2.0 / u_viewportSize.y; // NDC per pixel (height-based)
 
-        float scale = u_basePixelSize * ndcPixelSize * dist;
+        // Fixed screen-space scale based on canvas height
+        float scaleY = max(u_basePixelSize * ndcPixelSize * dist, 1.5);
+        float scaleX = scaleY * aspectRatio; // Adjust X scale to maintain canvas aspect ratio
 
-        vec3 offset = a_position.x * scale * right + a_position.y * scale * up;
+        // Apply offset: a_position.y in [-0.5, 0.5], shift up by 0.5 to align bottom with worldPos
+        vec3 offset = a_position.x * scaleX * right + (a_position.y + 0.5) * scaleY * up;
         vec3 finalPos = u_worldPos + offset;
 
         gl_Position = u_proj * u_view * vec4(finalPos, 1.0);
         v_uv = a_uv;
     }
-    `;
+`;
 
 export const tFragmentShader = `#version 300 es
     #pragma vscode_glsllint_stage: frag
-
     precision mediump float;
 
     in vec2 v_uv;
     uniform sampler2D u_text;
     uniform float u_time;
+    uniform float u_fillDuration; // Duration of fill phase
+    uniform float u_glowDuration; // Duration of full glow phase
 
     out vec4 fragColor;
 
@@ -52,32 +59,32 @@ export const tFragmentShader = `#version 300 es
 
     void main() {
       vec4 base = texture(u_text, v_uv);
-      if (base.a < 0.1) discard;
+      if (base.a < 0.4) discard; // Strict alpha threshold for font only
 
-      float cycleTime = mod(u_time, 4.0);
+      // Total cycle duration
+      float totalDuration = u_fillDuration + u_glowDuration + 1.0; // +1.0 for flicker-off
+      float cycleTime = mod(u_time, totalDuration);
 
-      float brightness = 0.4; // baseline dim
+      float brightness = 0.4; // Baseline dim
 
-      // Left to right fill phase (between 0.5 and 2.5 sec)
-      if (cycleTime > 0.5 && cycleTime <= 2.5) {
-        float fillProgress = (cycleTime - 0.5) / 2.0;
+      // Fill phase
+      if (cycleTime <= u_fillDuration) {
+        float fillProgress = cycleTime / u_fillDuration; // Slow fill from left to right
         if (v_uv.x <= fillProgress) {
           brightness = 1.0;
         }
       }
-
-      // Fully lit
-      if (cycleTime > 2.5 && cycleTime <= 3.5) {
+      // Full glow phase
+      else if (cycleTime <= u_fillDuration + u_glowDuration) {
         brightness = 1.0;
       }
-
-      // Flicker off (short gap at end)
-      if (cycleTime > 3.5) {
+      // Flicker-off phase
+      else {
         brightness = 0.4;
       }
 
-      // Animate hue while glowing
-      float hue = mod(u_time * 0.1, 1.0);
+      // Animate hue for neon effect
+      float hue = mod(u_time * 0.05, 1.0); // Slower hue shift
       vec3 neonColor = hsv2rgb(vec3(hue, 0.8, 1.0));
 
       vec3 finalColor = mix(vec3(0.0), neonColor, brightness);
@@ -85,4 +92,4 @@ export const tFragmentShader = `#version 300 es
 
       fragColor = vec4(finalColor, finalAlpha);
     }
-    `;
+`;

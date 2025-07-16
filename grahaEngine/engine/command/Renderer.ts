@@ -1,4 +1,4 @@
-import { RenderContext, IRenderCommand } from "./IRenderCommands.new";
+import { RenderContext, IRenderCommand } from "./IRenderCommands";
 import { mat4 } from "gl-matrix";
 
 export enum RenderPass {
@@ -16,10 +16,6 @@ export class Renderer {
   private depthRenderbufferMSAA: WebGLRenderbuffer | null = null;
   private fbo: WebGLFramebuffer | null = null;
   private colorTexture: WebGLTexture | null = null;
-  private shadowFramebuffer: WebGLFramebuffer | null = null;
-  private shadowDepthTexture: WebGLTexture | null = null;
-  private shadowWidth: number = 2048;
-  private shadowHeight: number = 2048;
   private width: number = 0;
   private height: number = 0;
   private samples: number = 0;
@@ -32,7 +28,6 @@ export class Renderer {
     console.log("Max samples:", this.samples);
     gl.getExtension("EXT_color_buffer_float");
     this.initializeFramebuffer();
-    this.initializeShadowFramebuffer();
     this.initializeQuadProgram();
   }
 
@@ -121,33 +116,6 @@ export class Renderer {
     gl.bindTexture(gl.TEXTURE_2D, null);
     gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     this.checkGLError("framebuffer initialization");
-  }
-
-  private initializeShadowFramebuffer() {
-    const gl = this.gl;
-    this.shadowFramebuffer = gl.createFramebuffer();
-    gl.bindFramebuffer(gl.FRAMEBUFFER, this.shadowFramebuffer);
-
-    this.shadowDepthTexture = gl.createTexture();
-    gl.bindTexture(gl.TEXTURE_2D, this.shadowDepthTexture);
-    gl.texImage2D(gl.TEXTURE_2D, 0, gl.DEPTH_COMPONENT24, this.shadowWidth, this.shadowHeight, 0, gl.DEPTH_COMPONENT, gl.UNSIGNED_INT, null);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
-    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-    gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.TEXTURE_2D, this.shadowDepthTexture, 0);
-    this.checkGLError("shadow depth texture setup");
-
-    gl.drawBuffers([]);
-    gl.readBuffer(gl.NONE);
-    gl.bindTexture(gl.TEXTURE_2D, null);
-    gl.bindFramebuffer(gl.FRAMEBUFFER, null);
-
-    const status = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
-    if (status !== gl.FRAMEBUFFER_COMPLETE) {
-      console.error(`Shadow framebuffer is not complete: ${this.getFramebufferStatusString(status)}`);
-    }
-    this.checkGLError("shadow framebuffer initialization");
   }
 
   private initializeQuadProgram() {
@@ -242,28 +210,6 @@ export class Renderer {
     console.log("Flushing", this.commands.length, "commands");
     this.commands.sort((a, b) => a.priority - b.priority);
 
-    // Shadow pass
-    const shadowCommands = this.commands.filter(cmd => cmd.priority === RenderPass.SHADOW);
-    if (shadowCommands.length > 0) {
-      gl.bindFramebuffer(gl.FRAMEBUFFER, this.shadowFramebuffer);
-      gl.viewport(0, 0, this.shadowWidth, this.shadowHeight);
-      gl.clear(gl.DEPTH_BUFFER_BIT);
-      gl.enable(gl.DEPTH_TEST);
-      gl.enable(gl.CULL_FACE);
-      gl.cullFace(gl.FRONT);
-      for (const cmd of shadowCommands) {
-        if (cmd.validate(gl)) {
-          console.log(`Executing shadow command with priority ${cmd.priority}`);
-          cmd.execute(gl, { ...this.context });
-          this.checkGLError(`shadow command execution (priority ${cmd.priority})`);
-        } else {
-          console.warn(`Shadow command validation failed`);
-        }
-      }
-      gl.cullFace(gl.BACK);
-      gl.disable(gl.CULL_FACE);
-    }
-
     // Main pass
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.fboMSAA);
     const msaaStatus = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
@@ -280,11 +226,13 @@ export class Renderer {
     console.log("Clear color:", gl.getParameter(gl.COLOR_CLEAR_VALUE));
     this.checkGLError("main pass setup");
 
+    // Future: Add Shadow Mapping
+
     const mainCommands = this.commands.filter(cmd => cmd.priority !== RenderPass.SHADOW);
     for (const cmd of mainCommands) {
       if (cmd.validate(gl)) {
         console.log(`Executing command with priority ${cmd.priority}`);
-        cmd.execute(gl, { ...this.context, shadowDepthTexture: this.shadowDepthTexture ?? undefined });
+        cmd.execute(gl, { ...this.context});
         this.checkGLError(`main command execution (priority ${cmd.priority})`);
       } else {
         console.warn(`Main command validation failed (priority ${cmd.priority})`);
@@ -351,10 +299,6 @@ export class Renderer {
 
     this.gl.bindRenderbuffer(this.gl.RENDERBUFFER, null);
     this.gl.bindTexture(this.gl.TEXTURE_2D, null);
-  }
-
-  public getShadowDepthTexture(): WebGLTexture | null {
-    return this.shadowDepthTexture;
   }
 
   public getColorTexture(): WebGLTexture | null {

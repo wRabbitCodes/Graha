@@ -1,13 +1,13 @@
 import { mat4, vec3 } from "gl-matrix";
 import { GLUtils } from "@/grahaEngine/utils/GLUtils";
-import { Renderer, RenderPass } from "../../command/Renderer.new";
+import { Renderer, RenderPass } from "../../command/Renderer";
 import { COMPONENT_STATE } from "../Component";
 import { EntitySelectionComponent } from "../components/EntitySelectionComponent";
 import { ModelComponent } from "../components/ModelComponent";
 import { BBPlotRenderComponent, PlanetRenderComponent } from "../components/RenderComponent";
 import { Registry } from "../Registry";
 import { System } from "../System";
-import { RenderContext } from "../../command/IRenderCommands.new";
+import { RenderContext } from "../../command/IRenderCommands";
 
 export class BBPlotRenderSystem extends System {
   constructor(public renderer: Renderer, registry: Registry, utils: GLUtils) {

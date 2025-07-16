@@ -13,7 +13,7 @@ export class AsteroidFactory implements IFactory {
     const entity = this.registry.createEntity();
     const asteroidPCComp = new AsteroidPointCloudComponent();
     [asteroidPCComp.positions, asteroidPCComp.rotationSpeeds] =
-      this.generatePointsRadialTorus(50000);
+      this.generatePointsRadialTorus(10000);
     asteroidPCComp.center = vec3.fromValues(0, 0, 0);
     asteroidPCComp.state = COMPONENT_STATE.READY;
     this.registry.addComponent(entity, asteroidPCComp);

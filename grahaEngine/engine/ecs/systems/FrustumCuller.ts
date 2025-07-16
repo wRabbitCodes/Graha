@@ -5,8 +5,11 @@ import { Camera } from "../../../core/Camera";
 import { vec3, mat4, vec4 } from "gl-matrix";
 import { GLUtils } from "../../../utils/GLUtils";
 import { Canvas } from "../../../core/Canvas";
+import { Entity } from "../Entity";
+import { MoonComponent } from "../components/MoonComponent";
 
 export class FrustumCullingSystem extends System {
+  private latchedEntity?: Entity;
   constructor(
     private camera: Camera,
     private canvas: Canvas,
@@ -26,6 +29,10 @@ export class FrustumCullingSystem extends System {
       if (distance < -radius) return false;
     }
     return true;
+  }
+
+  setLatchedEntity(entity: Entity) {
+    this.latchedEntity = entity;
   }
 
   // FrustumUtils.ts
@@ -84,6 +91,10 @@ export class FrustumCullingSystem extends System {
     const planes = this.getFrustumPlanesFromMatrix(vp);
 
     for (const entity of this.registry.getEntitiesWith(ModelComponent)) {
+      if (entity == this.latchedEntity) continue;
+      const moon = this.registry.getComponent(entity, MoonComponent)
+      if (moon && moon.parentEntity == this.latchedEntity) continue;           
+      
       const model = this.registry.getComponent(entity, ModelComponent);
       if (!model || model.state !== "READY") continue;
 
