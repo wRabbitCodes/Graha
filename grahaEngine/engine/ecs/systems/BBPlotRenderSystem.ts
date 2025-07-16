@@ -1,19 +1,15 @@
 import { mat4, vec3 } from "gl-matrix";
-import { GLUtils } from "../../../utils/GLUtils";
-import { RenderContext } from "../../command/IRenderCommands";
-import { IRenderSystem } from "../../command/IRenderSystem";
-import { Renderer } from "../../command/Renderer";
+import { GLUtils } from "@/grahaEngine/utils/GLUtils";
+import { Renderer, RenderPass } from "../../command/Renderer.new";
 import { COMPONENT_STATE } from "../Component";
 import { EntitySelectionComponent } from "../components/EntitySelectionComponent";
 import { ModelComponent } from "../components/ModelComponent";
-import {
-  BBPlotRenderComponent,
-  PlanetRenderComponent,
-} from "../components/RenderComponent";
+import { BBPlotRenderComponent, PlanetRenderComponent } from "../components/RenderComponent";
 import { Registry } from "../Registry";
 import { System } from "../System";
+import { RenderContext } from "../../command/IRenderCommands.new";
 
-export class BBPlotRenderSystem extends System implements IRenderSystem {
+export class BBPlotRenderSystem extends System {
   constructor(public renderer: Renderer, registry: Registry, utils: GLUtils) {
     super(registry, utils);
   }
@@ -57,7 +53,7 @@ export class BBPlotRenderSystem extends System implements IRenderSystem {
           gl.bindVertexArray(renderComp.VAO);
 
           const boxModelMatrix = mat4.clone(modelComp.modelMatrix);
-          mat4.scale(boxModelMatrix, boxModelMatrix, vec3.fromValues(modelComp.boundingBoxScale!,modelComp.boundingBoxScale!, modelComp.boundingBoxScale!));
+          mat4.scale(boxModelMatrix, boxModelMatrix, vec3.fromValues(modelComp.boundingBoxScale!, modelComp.boundingBoxScale!, modelComp.boundingBoxScale!));
           gl.uniformMatrix4fv(
             gl.getUniformLocation(bbRenderComp.program!, "u_model"),
             false,
@@ -83,6 +79,12 @@ export class BBPlotRenderSystem extends System implements IRenderSystem {
 
           gl.bindVertexArray(null);
         },
+        validate: (gl: WebGL2RenderingContext) => {
+          return !!bbRenderComp.program && !!renderComp.VAO && gl.getProgramParameter(bbRenderComp.program!, gl.LINK_STATUS);
+        },
+        priority: RenderPass.TRANSPARENT,
+        shaderProgram: bbRenderComp.program,
+        persistent: false,
       });
     }
   }

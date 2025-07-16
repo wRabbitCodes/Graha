@@ -25,6 +25,8 @@ export class BasePlanetStrategy extends BaseShaderStrategy {
             useNormal: gl.getUniformLocation(this.program!, "u_useNormal"),
             useSpecular: gl.getUniformLocation(this.program!, "u_useSpecular"),
             useNight: gl.getUniformLocation(this.program!, "u_useNight"),
+            shadowMap: gl.getUniformLocation(this.program, "u_shadowMap"),
+            lightViewProjection: gl.getUniformLocation(this.program!, "u_lightViewProjection"),
         };
     }
 
@@ -53,7 +55,7 @@ export class BasePlanetStrategy extends BaseShaderStrategy {
         );
         gl.uniform3fv(this.uniformLocations.lightPos, ctx.lightPos!);
         gl.uniform3fv(this.uniformLocations.viewPos, ctx.cameraPos!);
-
+        
         gl.uniform1i(
             this.uniformLocations.useNormal,
             textures.normal ? 1 : 0
@@ -76,7 +78,7 @@ export class BasePlanetStrategy extends BaseShaderStrategy {
     }
 
     private bindTextures(
-        texComp: { [key: string]: WebGLTexture | undefined }
+        texComp: { [key: string]: WebGLTexture | undefined },
     ) {
         const gl = this.utils.gl;
         let idx = 0;

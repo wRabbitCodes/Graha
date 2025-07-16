@@ -10,8 +10,6 @@ export interface RenderContext {
   canvasWidth: number;
   shadowDepthTexture: WebGLTexture; // Shadow map
   lightViewProjection: mat4; // Light's view-projection matrix
-  shadowTranslation: vec3;
-  shadowScale: number;
 }
 
 export interface IRenderCommand {

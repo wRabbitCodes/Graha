@@ -1,6 +1,5 @@
 import { vec3 } from "gl-matrix";
 import { SETTINGS } from "../config/settings";
-import { Renderer } from "../engine/command/Renderer";
 import { Renderer as RendererNew } from "../engine/command/Renderer.new"
 import { ENTITY_TYPE } from "../engine/ecs/components/ModelComponent";
 import { Registry } from "../engine/ecs/Registry";
@@ -31,6 +30,8 @@ import { AssetsLoader } from "./AssetsLoader";
 import { Canvas } from "./Canvas";
 import { IO } from "./IO";
 import { Camera } from "./Camera";
+import { ShadowCasterSystem } from "../engine/ecs/systems/ShadowCasterSystem";
+import { CameraLatchedState } from "./cameraStates/CameraLatchedState";
 
 export interface SettingsState {
   globalSceneScale: number;
@@ -65,7 +66,6 @@ export class Scene {
 
   private settings!: SettingsState;
   private registry = new Registry();
-  private renderer: Renderer;
   private rendererNew: RendererNew
   private skyRender: SkyRenderSystem;
   private skyFactory: SkyFactory;
@@ -78,6 +78,7 @@ export class Scene {
   private orbitSystem: OrbitSystem;
   private entitySelectionSystem: EntitySelectionSystem;
   private rayCaster: Raycaster;
+  private shadowCasterSystem: ShadowCasterSystem;
   private selectionGlowRender: SelectionGlowRenderSystem;
   private selectionTagRender: SelectionTagSystem;
   private cameraLatchSystem: CameraLatchSystem;
@@ -97,7 +98,6 @@ export class Scene {
     this.gl = this.canvas.gl;
     this.utils = new GLUtils(this.gl);
     this.assetsLoader = new AssetsLoader(this.utils);
-    this.renderer = new Renderer();
     this.rendererNew  = new RendererNew(this.gl);
 
     this.skyRender = new SkyRenderSystem(
@@ -122,12 +122,12 @@ export class Scene {
     this.modelUpdate = new ModelUpdateSystem(this.registry, this.utils);
     this.orbitSystem = new OrbitSystem(this.registry, this.utils);
     this.bbpRenderSystem = new BBPlotRenderSystem(
-      this.renderer,
+      this.rendererNew,
       this.registry,
       this.utils
     );
     this.orbitTracer = new OrbitPathRenderSystem(
-      this.renderer,
+      this.rendererNew,
       this.registry,
       this.utils
     );
@@ -149,6 +149,7 @@ export class Scene {
     this.asteroidFactory = new AsteroidFactory(this.registry);
 
     this.rayCaster = new Raycaster();
+    this.shadowCasterSystem = new ShadowCasterSystem(this.rendererNew, this.registry, this.utils);
     this.entitySelectionSystem = new EntitySelectionSystem(
       this.rayCaster,
       this.camera,
@@ -156,12 +157,12 @@ export class Scene {
       this.utils
     );
     this.selectionGlowRender = new SelectionGlowRenderSystem(
-      this.renderer,
+      this.rendererNew,
       this.registry,
       this.utils
     );
     this.selectionTagRender = new SelectionTagSystem(
-      this.renderer,
+      this.rendererNew,
       this.registry,
       this.utils
     );
@@ -171,14 +172,14 @@ export class Scene {
       this.utils
     );
     this.asteroidPCRenderSystem = new AsteroidPointCloudRenderSystem(
-      this.renderer,
+      this.rendererNew,
       this.registry,
       this.utils
     );
     this.asteroidMSystem = new AsteroidModelSystem(this.registry, this.utils);
     this.asteroidMRSystem = new AsteroidModelRenderSystem(
       this.assetsLoader,
-      this.renderer,
+      this.rendererNew,
       this.registry,
       this.utils
     );
@@ -369,17 +370,22 @@ export class Scene {
     this.orbitSystem.update(deltaTime);
     this.ccdSystem.update(deltaTime);
 
-    this.planetRender.update(deltaTime);
-    this.sunRender.update(deltaTime);
-
     if (this.settings.latchedEntityID) {
       this.cameraLatchSystem.setLatchEntity(
         this.registry.getEntityByID(this.settings.latchedEntityID)!
       );
+      // this.shadowCasterSystem.setLatchedEntity(
+      //   this.registry.getEntityByID(this.settings.latchedEntityID)!
+      // )
       this.cameraLatchSystem.update(deltaTime);
+      // this.shadowCasterSystem.update(deltaTime);
     } else {
       this.cameraLatchSystem.clearLatch();
     }
+
+    this.planetRender.update(deltaTime);
+    this.sunRender.update(deltaTime);
+
 
     const viewMatrix = this.camera.viewMatrix;
     const projectionMatrix = this.canvas.getProjectionMatrix();

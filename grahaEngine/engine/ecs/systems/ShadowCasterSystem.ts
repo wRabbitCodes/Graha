@@ -2,7 +2,6 @@ import { mat4, vec3 } from "gl-matrix";
 import { GLUtils } from "../../../utils/GLUtils";
 import { IRenderCommand } from "../../command/IRenderCommands.new";
 import { Renderer, RenderPass } from "../../command/Renderer.new";
-import { Shaders } from "../../strategy/shaders/shaders";
 import { COMPONENT_STATE } from "../Component";
 import { ModelComponent } from "../components/ModelComponent";
 import { MoonComponent } from "../components/MoonComponent";
@@ -10,7 +9,7 @@ import { Entity } from "../Entity";
 import { Registry } from "../Registry";
 import { System } from "../System";
 
-export class ShadowRenderSystem extends System {
+export class ShadowCasterSystem extends System {
   private program: WebGLProgram | null = null;
   private uniformLocations: { model: WebGLUniformLocation; lightViewProjection: WebGLUniformLocation } | null = null;
   private sharedVAO: WebGLVertexArrayObject | null = null;
@@ -30,11 +29,54 @@ export class ShadowRenderSystem extends System {
   }
 
   private initializeShader() {
-    this.program = this.utils.createProgram(Shaders.shadow.vert, Shaders.shadow.frag);
-    if (!this.program) throw new Error('Shadow shader program not found');
+    const gl = this.utils.gl;
+
+    const vertexShaderSource = `#version 300 es
+      #pragma vscode_glsllint_stage: vert
+      layout(location=0) in vec3 aPosition;
+      uniform mat4 uModel;
+      uniform mat4 uLightViewProjection;
+      void main() {
+        gl_Position = uLightViewProjection * uModel * vec4(aPosition, 1.0);
+      }
+    `;
+
+    const fragmentShaderSource = `#version 300 es
+      #pragma vscode_glsllint_stage: frag
+      precision mediump float;
+      void main() {
+        // No color output needed, depth is written automatically
+      }
+    `;
+
+    const vertexShader = gl.createShader(gl.VERTEX_SHADER)!;
+    gl.shaderSource(vertexShader, vertexShaderSource);
+    gl.compileShader(vertexShader);
+    if (!gl.getShaderParameter(vertexShader, gl.COMPILE_STATUS)) {
+      console.error("Shadow vertex shader compilation failed:", gl.getShaderInfoLog(vertexShader));
+    }
+
+    const fragmentShader = gl.createShader(gl.FRAGMENT_SHADER)!;
+    gl.shaderSource(fragmentShader, fragmentShaderSource);
+    gl.compileShader(fragmentShader);
+    if (!gl.getShaderParameter(fragmentShader, gl.COMPILE_STATUS)) {
+      console.error("Shadow fragment shader compilation failed:", gl.getShaderInfoLog(fragmentShader));
+    }
+
+    this.program = gl.createProgram()!;
+    gl.attachShader(this.program, vertexShader);
+    gl.attachShader(this.program, fragmentShader);
+    gl.linkProgram(this.program);
+    if (!gl.getProgramParameter(this.program, gl.LINK_STATUS)) {
+      console.error("Shadow program linking failed:", gl.getProgramInfoLog(this.program));
+    }
+
+    gl.deleteShader(vertexShader);
+    gl.deleteShader(fragmentShader);
+
     this.uniformLocations = {
-      model: this.utils.gl.getUniformLocation(this.program, "u_model")!,
-      lightViewProjection: this.utils.gl.getUniformLocation(this.program, "u_lightViewProjection")!,
+      model: gl.getUniformLocation(this.program, "uModel")!,
+      lightViewProjection: gl.getUniformLocation(this.program, "uLightViewProjection")!,
     };
   }
 
@@ -61,23 +103,19 @@ export class ShadowRenderSystem extends System {
     gl.bindVertexArray(null);
   }
 
-  setLatchedEntity(entity:Entity) {
+  setLatchedEntity(entity: Entity) {
     this.latchedEntity = entity;
   }
 
   update(deltaTime: number): void {
-    
-    
-    if (!this.latchedEntity) return; // Skip if no latched entity
+    if (!this.latchedEntity) return;
 
-    // Determine planet (latched entity or its parent via MoonComponent)
     const moonComp = this.registry.getComponent(this.latchedEntity, MoonComponent);
-    const primeEntity = moonComp ? moonComp.parentEntity: this.latchedEntity;
+    const primeEntity = moonComp ? moonComp.parentEntity : this.latchedEntity;
 
     const primeModel = this.registry.getComponent(primeEntity, ModelComponent);
     if (!primeModel || primeModel.state !== COMPONENT_STATE.READY || !primeModel.isVisible) return;
 
-    // Check for moons
     const moons = this.registry.getEntitiesWith(MoonComponent);
     const groupEntities = moons
       .filter(moon => {
@@ -89,33 +127,27 @@ export class ShadowRenderSystem extends System {
           moonComp?.parentEntity === primeEntity
         );
       })
-      .concat([primeEntity]); // Include planet itself
-    if (groupEntities.length <= 1) return; // Skip if no moons (only planet)
+      .concat([primeEntity]);
 
-    // Scale and translate to planet's position
-    const translation = vec3.negate(vec3.create(), primeModel.position!); // Translate to origin
-    const scaleFactor = 1e-9; // Scale meters to manageable units
-    const projectionSize = 1e9 * scaleFactor; // ±1e9 m → ±1e0 units
+    if (groupEntities.length <= 1) return;
+
+    const projectionSize = 1e9;
     const lightProjection = mat4.ortho(
       mat4.create(),
       -projectionSize,
       projectionSize,
       -projectionSize,
       projectionSize,
-      1e8 * scaleFactor,
-      2e9 * scaleFactor
+      1e8,
+      2e9,
     );
     const lightView = mat4.lookAt(mat4.create(), this.lightPos, primeModel.position!, [0, 1, 0]);
     const lightViewProjection = mat4.multiply(mat4.create(), lightProjection, lightView);
 
-    // Pass scaling parameters to shaders
     this.renderer.setRenderContext({
       lightViewProjection,
-      shadowTranslation: translation,
-      shadowScale: scaleFactor,
     });
 
-    // Render planet and moons to shadow map
     for (const entity of groupEntities) {
       const modelComp = this.registry.getComponent(entity, ModelComponent);
       const command: IRenderCommand = {

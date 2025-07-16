@@ -1,14 +1,15 @@
+import { GLUtils } from "@/grahaEngine/utils/GLUtils";
 import { IRenderSystem } from "../../command/IRenderSystem";
-import { System } from "../System";
-import { AsteroidPointCloudComponent } from "../components/AsteroidPointCloudComponent";
+import { Renderer } from "../../command/Renderer.new";
 import { COMPONENT_STATE } from "../Component";
-import { RenderContext } from "../../command/IRenderCommands";
-import { Renderer } from "../../command/Renderer";
-import { GLUtils } from "../../../utils/GLUtils";
-import { Registry } from "../Registry";
+import { AsteroidPointCloudComponent } from "../components/AsteroidPointCloudComponent";
 import { AsteroidPointCloudRenderComponent } from "../components/RenderComponent";
+import { Registry } from "../Registry";
+import { System } from "../System";
+import { RenderContext } from "../../command/IRenderCommands.new";
+import { RenderPass } from "../../command/Renderer.new";
 
-export class AsteroidPointCloudRenderSystem extends System implements IRenderSystem {
+export class AsteroidPointCloudRenderSystem extends System {
   constructor(
     public renderer: Renderer,
     registry: Registry,
@@ -18,9 +19,7 @@ export class AsteroidPointCloudRenderSystem extends System implements IRenderSys
   }
 
   update(deltaTime: number): void {
-    const entities = this.registry.getEntitiesWith(
-      AsteroidPointCloudComponent,
-    );
+    const entities = this.registry.getEntitiesWith(AsteroidPointCloudComponent);
 
     for (const entity of entities) {
       const cloud = this.registry.getComponent(entity, AsteroidPointCloudComponent);
@@ -34,7 +33,6 @@ export class AsteroidPointCloudRenderSystem extends System implements IRenderSys
 
       if (renderComp.state !== COMPONENT_STATE.READY) continue;
 
-      // Sync latest positions
       const gl = this.utils.gl;
       gl.bindBuffer(gl.ARRAY_BUFFER, renderComp.VBO);
       gl.bufferSubData(gl.ARRAY_BUFFER, 0, cloud.positions);
@@ -57,7 +55,13 @@ export class AsteroidPointCloudRenderSystem extends System implements IRenderSys
           gl.drawArrays(gl.POINTS, 0, cloud.positions.length / 3);
 
           gl.bindVertexArray(null);
-        }
+        },
+        validate: (gl: WebGL2RenderingContext) => {
+          return !!renderComp.program && !!renderComp.VAO && gl.getProgramParameter(renderComp.program!, gl.LINK_STATUS);
+        },
+        priority: RenderPass.OPAQUE,
+        shaderProgram: renderComp.program,
+        persistent: false,
       });
     }
   }

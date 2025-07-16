@@ -1,4 +1,5 @@
 export const aVertexShader = `#version 300 es
+#pragma vscode_glsllint_stage: vert
 precision mediump float;
 
 layout(location = 0)in vec3 a_position;

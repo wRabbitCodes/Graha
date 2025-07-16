@@ -1,20 +1,15 @@
-import { mat4 } from "gl-matrix";
-import { RenderContext } from "../../command/IRenderCommands";
-import { IRenderSystem } from "../../command/IRenderSystem";
-import { Renderer } from "../../command/Renderer";
-import { GLUtils } from "../../../utils/GLUtils";
+import { GLUtils } from "@/grahaEngine/utils/GLUtils";
+import { RenderContext } from "../../command/IRenderCommands.new";
+import { Renderer, RenderPass } from "../../command/Renderer.new";
+import { SelectionGlowStrategy } from "../../strategy/strategies/selectionGlowStrategy";
 import { COMPONENT_STATE } from "../Component";
 import { EntitySelectionComponent } from "../components/EntitySelectionComponent";
-import {
-  PlanetRenderComponent,
-  SelectionGlowRenderComponent,
-} from "../components/RenderComponent";
+import { ModelComponent } from "../components/ModelComponent";
+import { PlanetRenderComponent, SelectionGlowRenderComponent } from "../components/RenderComponent";
 import { Registry } from "../Registry";
 import { System } from "../System";
-import { ModelComponent } from "../components/ModelComponent";
-import { SelectionGlowStrategy } from "../../strategy/strategies/selectionGlowStrategy";
 
-export class SelectionGlowRenderSystem extends System implements IRenderSystem {
+export class SelectionGlowRenderSystem extends System {
   private selectionGlowStrategy: SelectionGlowStrategy;
   constructor(public renderer: Renderer, registry: Registry, utils: GLUtils) {
     super(registry, utils);
@@ -24,7 +19,7 @@ export class SelectionGlowRenderSystem extends System implements IRenderSystem {
 
   update(deltaTime: number) {
     for (const entity of this.registry.getEntitiesWith(
-      EntitySelectionComponent,
+      EntitySelectionComponent
     )) {
       const selectionComp = this.registry.getComponent(
         entity,
@@ -65,23 +60,27 @@ export class SelectionGlowRenderSystem extends System implements IRenderSystem {
         execute: (gl: WebGL2RenderingContext, ctx: RenderContext) => {
           gl.useProgram(renderComp.program);
           gl.bindVertexArray(entityRenderComp.VAO);
-          this.selectionGlowStrategy.setBindings(gl, ctx, {renderComp, entityModelComp});
+          this.selectionGlowStrategy.setBindings(gl, ctx, { renderComp, entityModelComp });
           gl.enable(gl.BLEND);
           gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-
           gl.enable(gl.CULL_FACE);
-          gl.cullFace(gl.FRONT); // Backface only for outline
+          gl.cullFace(gl.FRONT);
           gl.drawElements(
             gl.TRIANGLES,
             entityRenderComp.sphereMesh?.indices.length!,
             gl.UNSIGNED_SHORT,
             0
           );
-
           gl.disable(gl.CULL_FACE);
           gl.disable(gl.BLEND);
           gl.bindVertexArray(null);
         },
+        validate: (gl: WebGL2RenderingContext) => {
+          return !!renderComp.program && !!entityRenderComp.VAO && gl.getProgramParameter(renderComp.program!, gl.LINK_STATUS);
+        },
+        priority: RenderPass.TRANSPARENT,
+        shaderProgram: renderComp.program,
+        persistent: false,
       });
     }
   }

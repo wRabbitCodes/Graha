@@ -11,7 +11,7 @@ export class Canvas {
 
   constructor(canvas: HTMLCanvasElement) {
     const el = canvas;
-    const gl = el.getContext('webgl2', {antialias: true});
+    const gl = el.getContext('webgl2');
     if (!gl) throw new Error("WebGL2 not supported");
     this.gl = gl;
     this.canvas = el;

@@ -1,15 +1,19 @@
 export const shadowVertexShader = `#version 300 es
-precision highp float;
+  #pragma vscode_glsllint_stage: vert
 
-in vec3 a_position;
-uniform mat4 u_model;
-uniform mat4 u_lightViewProjection;
+  layout(location=0) in vec3 aPosition;
 
-void main() {
-  vec4 scaledPos = vec4(a_position * 1e-9, 1.0); // Scale down to avoid precision issues
-  gl_Position = u_lightViewProjection * u_model * scaledPos;
-}`;
+  uniform mat4 u_model;
+  uniform mat4 u_lightViewProjection;
+
+  void main() {
+      gl_Position = u_lightViewProjection * u_model * vec4(aPosition, 1.0);
+  }`;
 
 export const shadowFragmentShader = `#version 300 es
-void main() {}
-`;
+  #pragma vscode_glsllint_stage: frag
+  precision mediump float;
+
+  void main() {
+      // No color output needed, depth is written automatically
+  }`;

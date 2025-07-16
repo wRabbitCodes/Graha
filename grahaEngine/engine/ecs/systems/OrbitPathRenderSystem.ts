@@ -1,9 +1,7 @@
 import { mat4, vec3 } from "gl-matrix";
-import { GLUtils } from "../../../utils/GLUtils";
-import { OrbitAnamolyCalculator } from "../../../utils/OrbitAnamolyCalculator";
-import { RenderContext } from "../../command/IRenderCommands";
-import { IRenderSystem } from "../../command/IRenderSystem";
-import { Renderer } from "../../command/Renderer";
+import { GLUtils } from "@/grahaEngine/utils/GLUtils";
+import { OrbitAnamolyCalculator } from "@/grahaEngine/utils/OrbitAnamolyCalculator";
+import { Renderer } from "../../command/Renderer.new";
 import { COMPONENT_STATE } from "../Component";
 import { ENTITY_TYPE, ModelComponent } from "../components/ModelComponent";
 import { MoonComponent } from "../components/MoonComponent";
@@ -12,8 +10,10 @@ import { OrbitPathRenderComponent } from "../components/RenderComponent";
 import { Entity } from "../Entity";
 import { Registry } from "../Registry";
 import { System } from "../System";
+import { RenderContext } from "../../command/IRenderCommands.new";
+import { RenderPass } from "../../command/Renderer.new";
 
-export class OrbitPathRenderSystem extends System implements IRenderSystem {
+export class OrbitPathRenderSystem extends System {
   constructor(public renderer: Renderer, registry: Registry, utils: GLUtils) {
     super(registry, utils);
   }
@@ -25,10 +25,10 @@ export class OrbitPathRenderSystem extends System implements IRenderSystem {
     )) {
       const orbitComp = this.registry.getComponent(entity, OrbitComponent);
       if (orbitComp?.state !== COMPONENT_STATE.READY) continue;
-      
+
       const modelComp = this.registry.getComponent(entity, ModelComponent);
       if (modelComp.state !== COMPONENT_STATE.READY) continue;
-      
+
       if (orbitComp.scaledPathPoints.length === 0) {
         orbitComp.scaledPathPoints = [...orbitComp.pathPoints];
       }
@@ -36,7 +36,10 @@ export class OrbitPathRenderSystem extends System implements IRenderSystem {
         entity,
         OrbitPathRenderComponent
       );
-      if (!renderComp) renderComp = new OrbitPathRenderComponent();
+      if (!renderComp) {
+        renderComp = new OrbitPathRenderComponent();
+        this.registry.addComponent(entity, renderComp);
+      }
       if (renderComp.state === COMPONENT_STATE.UNINITIALIZED)
         this.initialize(entity, renderComp, orbitComp);
       if (renderComp.state !== COMPONENT_STATE.READY) continue;
@@ -51,16 +54,15 @@ export class OrbitPathRenderSystem extends System implements IRenderSystem {
 
         orbitComp.scaledPathPoints = this.translateOrbitPathPoints(
           orbitComp.pathPoints,
-          parentModel.position!,
+          parentModel.position!
         );
         this.updateVAOForMoon(renderComp, orbitComp);
-      } 
-      
-      
+      }
+
       const now = performance.now() / 1000;
       const totalVerts = orbitComp.scaledPathPoints.length / 3;
-      const speed = 50.0; // <-- 🟢 EDIT THIS TO CONTROL GLOW SPEED (vertices per second)
-      const pulseLength = totalVerts * 0.3; // Length of pulse (50% of orbit)
+      const speed = 50.0;
+      const pulseLength = totalVerts * 0.3;
       const pulseStart = (now * speed) % totalVerts;
       const pulseEnd = (pulseStart + pulseLength) % totalVerts;
 
@@ -69,10 +71,10 @@ export class OrbitPathRenderSystem extends System implements IRenderSystem {
         orbitComp
       );
       const planetProgress = OrbitAnamolyCalculator.orbitProgress(planetTheta);
-      const headIndex =
-        (planetProgress * totalVerts + totalVerts * 0.05) % totalVerts; // ahead of planet
-      const tailIndex = (headIndex + totalVerts * 0.5) % totalVerts; // half orbit ahead
+      const headIndex = (planetProgress * totalVerts + totalVerts * 0.05) % totalVerts;
+      const tailIndex = (headIndex + totalVerts * 0.5) % totalVerts;
 
+      // Glowing pass
       this.renderer.enqueue({
         execute: (gl: WebGL2RenderingContext, ctx: RenderContext) => {
           gl.useProgram(renderComp.program);
@@ -97,20 +99,25 @@ export class OrbitPathRenderSystem extends System implements IRenderSystem {
             gl.getUniformLocation(renderComp.program!, name);
 
           gl.uniform1f(loc("u_totalVerts"), totalVerts);
-          gl.uniform1f(loc("u_pulseStart"), headIndex);
-          gl.uniform1f(loc("u_pulseEnd"), tailIndex);
           gl.uniform1f(loc("u_pulseStart"), pulseStart);
           gl.uniform1f(loc("u_pulseEnd"), pulseEnd);
-          gl.uniform1f(loc("u_totalVerts"), totalVerts);
 
           gl.bindVertexArray(renderComp.VAO);
           gl.enable(gl.BLEND);
           gl.blendFunc(gl.ONE, gl.ONE);
           gl.drawArrays(gl.LINE_STRIP, 0, totalVerts);
           gl.disable(gl.BLEND);
+          gl.bindVertexArray(null);
         },
+        validate: (gl: WebGL2RenderingContext) => {
+          return !!renderComp.program && !!renderComp.VAO && gl.getProgramParameter(renderComp.program!, gl.LINK_STATUS);
+        },
+        priority: RenderPass.TRANSPARENT,
+        shaderProgram: renderComp.program,
+        persistent: false,
       });
 
+      // Base pass
       this.renderer.enqueue({
         execute: (gl: WebGL2RenderingContext, ctx: RenderContext) => {
           gl.useProgram(renderComp.baseProgram!);
@@ -136,7 +143,6 @@ export class OrbitPathRenderSystem extends System implements IRenderSystem {
             totalVerts
           );
 
-          // Get the actual head index based on current true anomaly
           const theta = OrbitAnamolyCalculator.trueAnomalyAtTime(
             performance.now() / 1000,
             orbitComp
@@ -148,8 +154,6 @@ export class OrbitPathRenderSystem extends System implements IRenderSystem {
             gl.getUniformLocation(renderComp.baseProgram!, "u_planetIndex"),
             headIndex
           );
-
-          // Number of segments before/after to fade — you can tweak this
           gl.uniform1f(
             gl.getUniformLocation(renderComp.baseProgram!, "u_fadeSpan"),
             20.0
@@ -157,12 +161,17 @@ export class OrbitPathRenderSystem extends System implements IRenderSystem {
 
           gl.enable(gl.BLEND);
           gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-
           gl.bindVertexArray(renderComp.VAO);
           gl.drawArrays(gl.LINE_STRIP, 0, totalVerts);
-
           gl.disable(gl.BLEND);
+          gl.bindVertexArray(null);
         },
+        validate: (gl: WebGL2RenderingContext) => {
+          return !!renderComp.baseProgram && !!renderComp.VAO && gl.getProgramParameter(renderComp.baseProgram!, gl.LINK_STATUS);
+        },
+        priority: RenderPass.TRANSPARENT,
+        shaderProgram: renderComp.baseProgram!,
+        persistent: false,
       });
     }
   }
@@ -214,10 +223,9 @@ export class OrbitPathRenderSystem extends System implements IRenderSystem {
     renderComp.VBO = vbo;
   }
 
-  private updateVAOForMoon(renderComp:OrbitPathRenderComponent, orbitComp: OrbitComponent) {
+  private updateVAOForMoon(renderComp: OrbitPathRenderComponent, orbitComp: OrbitComponent) {
     const gl = this.utils.gl;
     gl.bindBuffer(gl.ARRAY_BUFFER, renderComp.VBO);
-    // gl.bufferSubData(gl.ARRAY_BUFFER, 0, new Float32Array(orbitComp.scaledPathPoints));
     gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(orbitComp.scaledPathPoints), gl.DYNAMIC_DRAW);
   }
 

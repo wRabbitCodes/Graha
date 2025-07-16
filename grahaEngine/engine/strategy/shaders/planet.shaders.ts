@@ -1,5 +1,5 @@
 export const pVertexShader = `#version 300 es
-#pragma vscode_glsllint_stage : vert
+#pragma vscode_glsllint_stage: vert
 precision mediump float;
 
 in vec3 a_position;
@@ -18,9 +18,9 @@ out vec2 v_uv;
 out mat3 v_TBN;
 
 void main() {
-    vec3 T = normalize(u_normalMatrix * a_tangent);  // Placeholder tangent
-    vec3 N = normalize(u_normalMatrix * a_normal);  // Placeholder bitangent
-    vec3 B = normalize(cross(N,T));
+    vec3 T = normalize(u_normalMatrix * a_tangent);
+    vec3 N = normalize(u_normalMatrix * a_normal);
+    vec3 B = normalize(cross(N, T));
 
     v_TBN = mat3(T, B, N);
     v_uv = a_uv;
@@ -44,9 +44,6 @@ uniform sampler2D u_normalTexture;
 uniform sampler2D u_specularTexture;
 uniform sampler2D u_atmosphereTexture;
 uniform sampler2D u_nightTexture;
-uniform sampler2D u_shadowMap;
-
-uniform mat4 u_lightMatrix;
 
 uniform bool u_useNormal;
 uniform bool u_useSpecular;
@@ -93,22 +90,6 @@ vec3 lightColor = vec3(1.0, 1.0, 0.9);
 vec3 ambient = 0.05 * lightColor;
 vec3 diffuse = diff * lightColor;
 
-// SHADOW
-if (u_isMoon) {
-    vec4 fragPosLightSpace = u_lightMatrix * vec4(v_fragPos, 1.0);
-    vec3 projCoords = fragPosLightSpace.xyz / fragPosLightSpace.w;
-    projCoords = projCoords * 0.5 + 0.5;
-    float shadowFactor = 1.0;
-    if (projCoords.x >= 0.0 && projCoords.x <= 1.0 &&
-    projCoords.y >= 0.0 && projCoords.y <= 1.0 &&
-    projCoords.z >= 0.0 && projCoords.z <= 1.0) {
-        float closestDepth = texture(u_shadowMap, projCoords.xy).r;
-        float bias = 0.001;
-        shadowFactor = projCoords.z - bias > closestDepth ? 0.3 : 1.0;
-    }
-}
-
-
 float spec = 0.0;
 if (u_useSpecular && dayFactor > 0.0) {
     float specStrength = texture(u_specularTexture, v_uv).r;
@@ -122,4 +103,4 @@ vec3 dayLitColor = (ambient + diffuse) * surfaceColor + vec3(spec);
 vec3 finalColor = mix(nightColor, dayLitColor, dayFactor);
 
 fragColor = vec4(finalColor, 1.0);
-}`
+}`;

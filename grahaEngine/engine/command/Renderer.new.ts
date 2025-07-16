@@ -221,7 +221,7 @@ export class Renderer {
     gl.bindVertexArray(null);
     gl.bindBuffer(gl.ARRAY_BUFFER, null);
 
-    // Set texture uniform
+    // Set texture uniforms
     gl.useProgram(this.quadProgram);
     gl.uniform1i(gl.getUniformLocation(this.quadProgram, "colorSampler"), 0);
     gl.useProgram(null);
@@ -242,28 +242,33 @@ export class Renderer {
     console.log("Flushing", this.commands.length, "commands");
     this.commands.sort((a, b) => a.priority - b.priority);
 
-    // Shadow pass (ignored for now)
+    // Shadow pass
     const shadowCommands = this.commands.filter(cmd => cmd.priority === RenderPass.SHADOW);
     if (shadowCommands.length > 0) {
       gl.bindFramebuffer(gl.FRAMEBUFFER, this.shadowFramebuffer);
       gl.viewport(0, 0, this.shadowWidth, this.shadowHeight);
       gl.clear(gl.DEPTH_BUFFER_BIT);
+      gl.enable(gl.DEPTH_TEST);
+      gl.enable(gl.CULL_FACE);
+      gl.cullFace(gl.FRONT);
       for (const cmd of shadowCommands) {
         if (cmd.validate(gl)) {
           console.log(`Executing shadow command with priority ${cmd.priority}`);
-          cmd.execute(gl, this.context as RenderContext);
+          cmd.execute(gl, { ...this.context });
           this.checkGLError(`shadow command execution (priority ${cmd.priority})`);
         } else {
           console.warn(`Shadow command validation failed`);
         }
       }
+      gl.cullFace(gl.BACK);
+      gl.disable(gl.CULL_FACE);
     }
 
-    // Main pass (render to multisampled framebuffer)
+    // Main pass
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.fboMSAA);
     const msaaStatus = gl.checkFramebufferStatus(gl.FRAMEBUFFER);
     if (msaaStatus !== gl.FRAMEBUFFER_COMPLETE) {
-      console.error(`MSAA framebuffer is not complete before rendering: ${this.getFramebufferStatusString(msaaStatus)}`);
+      console.error(`MSAA framebuffer is not complete: ${this.getFramebufferStatusString(msaaStatus)}`);
       gl.bindFramebuffer(gl.FRAMEBUFFER, null);
       return;
     }
@@ -346,10 +351,6 @@ export class Renderer {
 
     this.gl.bindRenderbuffer(this.gl.RENDERBUFFER, null);
     this.gl.bindTexture(this.gl.TEXTURE_2D, null);
-  }
-
-  public getDepthTexture(): WebGLTexture | null {
-    return null; // Multisampled framebuffer doesn't use a depth texture
   }
 
   public getShadowDepthTexture(): WebGLTexture | null {

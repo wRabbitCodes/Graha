@@ -1,4 +1,5 @@
 export const tVertexShader = `#version 300 es
+    #pragma vscode_glsllint_stage: vert
     precision mediump float;
 
     layout(location = 0) in vec2 a_position;
@@ -34,6 +35,8 @@ export const tVertexShader = `#version 300 es
     `;
 
 export const tFragmentShader = `#version 300 es
+    #pragma vscode_glsllint_stage: frag
+
     precision mediump float;
 
     in vec2 v_uv;

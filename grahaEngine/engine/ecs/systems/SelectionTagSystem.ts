@@ -1,19 +1,18 @@
 import { mat4, vec2, vec3 } from "gl-matrix";
-import { GLUtils } from "../../../utils/GLUtils";
-import { IRenderSystem } from "../../command/IRenderSystem";
-import { Renderer } from "../../command/Renderer";
+import { Renderer, RenderPass } from "../../command/Renderer.new";
+import { GLUtils } from "@/grahaEngine/utils/GLUtils";
 import { COMPONENT_STATE } from "../Component";
 import { EntitySelectionComponent } from "../components/EntitySelectionComponent";
 import { ModelComponent } from "../components/ModelComponent";
 import { TagRenderComponent } from "../components/RenderComponent";
 import { Registry } from "../Registry";
 import { System } from "../System";
-import { RenderContext } from "../../command/IRenderCommands";
-import { SETTINGS } from "../../../config/settings";
+import { SETTINGS } from "@/grahaEngine/config/settings";
 import { OrbitComponent } from "../components/OrbitComponent";
 import { TagStrategy } from "../../strategy/strategies/tagStrategy";
+import { RenderContext } from "../../command/IRenderCommands.new";
 
-export class SelectionTagSystem extends System implements IRenderSystem {
+export class SelectionTagSystem extends System {
   private tagStrategy: TagStrategy;
   constructor(public renderer: Renderer, registry: Registry, utils: GLUtils) {
     super(registry, utils);
@@ -24,7 +23,7 @@ export class SelectionTagSystem extends System implements IRenderSystem {
   update(deltaTime: number): void {
     for (const entity of this.registry.getEntitiesWith(
       EntitySelectionComponent,
-      ModelComponent,
+      ModelComponent
     )) {
       const selectionComp = this.registry.getComponent(
         entity,
@@ -54,7 +53,6 @@ export class SelectionTagSystem extends System implements IRenderSystem {
 
       this.renderer.enqueue({
         execute: (gl: WebGL2RenderingContext, ctx: RenderContext) => {
-          debugger;
           this.updateTag(
             entityName,
             deltaTime,
@@ -64,13 +62,13 @@ export class SelectionTagSystem extends System implements IRenderSystem {
             ctx.cameraPos
           );
 
-          this.tagStrategy.setBindings(gl, ctx, {modelComp, renderComp});
+          this.tagStrategy.setBindings(gl, ctx, { modelComp, renderComp });
 
           gl.enable(gl.BLEND);
           gl.blendFunc(gl.SRC_ALPHA, gl.ONE);
           gl.disable(gl.DEPTH_TEST);
           gl.useProgram(renderComp.program);
-          gl.bindVertexArray(renderComp.VAO);    
+          gl.bindVertexArray(renderComp.VAO);
 
           gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
 
@@ -78,6 +76,12 @@ export class SelectionTagSystem extends System implements IRenderSystem {
           gl.disable(gl.BLEND);
           gl.bindVertexArray(null);
         },
+        validate: (gl: WebGL2RenderingContext) => {
+          return !!renderComp.program && !!renderComp.VAO && gl.getProgramParameter(renderComp.program!, gl.LINK_STATUS);
+        },
+        priority: RenderPass.TRANSPARENT,
+        shaderProgram: renderComp.program,
+        persistent: false,
       });
     }
   }
@@ -117,18 +121,16 @@ export class SelectionTagSystem extends System implements IRenderSystem {
     canvas.width = 1024;
     canvas.height = 256;
     component.currentText = name;
-    // Load the local font
     const ctx = canvas.getContext("2d")!;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.font = `120px NeonSans`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.lineWidth = 4; // strokeText outline width
-    ctx.shadowBlur = 0; // Disable blur
-    ctx.fillStyle = "#00ffff"; // Neon cyan color
+    ctx.lineWidth = 4;
+    ctx.shadowBlur = 0;
+    ctx.fillStyle = "#00ffff";
     ctx.fillText(name, canvas.width / 2, canvas.height / 2);
 
-    // === Upload to GPU ===
     const tex = gl.createTexture()!;
     gl.bindTexture(gl.TEXTURE_2D, tex);
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, true);
@@ -145,7 +147,7 @@ export class SelectionTagSystem extends System implements IRenderSystem {
     dt: number,
     renderComp: TagRenderComponent,
     modelComp: ModelComponent,
-    orbitComp: OrbitComponent,
+    orbitComp: OrbitComponent | null,
     cameraPos: vec3
   ) {
     renderComp.time += dt / 500;
@@ -154,41 +156,23 @@ export class SelectionTagSystem extends System implements IRenderSystem {
     mat4.getScaling(scale, modelComp.modelMatrix);
     const radius = Math.max(...scale);
 
-    // Calculate distance from camera to planet center
     const planetPos = modelComp.position!;
     const distToCamera = vec3.distance(cameraPos, planetPos);
 
-    // Decide text content based on distance threshold
     const threshold = orbitComp?.semiMajorAxis
       ? orbitComp.semiMajorAxis / SETTINGS.DISTANCE_SCALE
       : 100 * radius;
     const showFullText = distToCamera <= threshold;
 
-    const textToDraw = showFullText
-      ? name
-      : name.charAt(0);
+    const textToDraw = showFullText ? name : name.charAt(0);
 
-
-    // // Set size of quad roughly proportional to radius + text width
-    // vec2.set(
-    //   renderComp.size,
-    //   radius + (renderComp.textCanvas?.width ?? 0),
-    //   radius + (renderComp.textCanvas?.height ?? 0)
-    // );
-
-    // Position label just above planet surface (no additional offset here)
     const popupPos = vec3.create();
     vec3.set(popupPos, planetPos[0], planetPos[1] + radius, planetPos[2]);
-    // Base scale for tags (tweak as needed)
     const baseScale = 0.003;
-
-    // Scale based on distance (makes tags shrink when far)
     const scaleFactor = distToCamera * baseScale;
     mat4.fromTranslation(renderComp.modelMatrix, popupPos);
     mat4.scale(renderComp.modelMatrix, renderComp.modelMatrix, [scaleFactor, scaleFactor, scaleFactor]);
 
-    
-    // Only update texture if text content changed (optional optimization)
     if (renderComp.currentText !== textToDraw) {
       this.updateTextTexture(renderComp, textToDraw);
       renderComp.currentText = textToDraw;
@@ -201,14 +185,14 @@ export class SelectionTagSystem extends System implements IRenderSystem {
     }
     const canvas = renderComp.textCanvas;
     const ctx = canvas.getContext("2d")!;
-    canvas.width = 1024; // keep size large for quality
+    canvas.width = 1024;
     canvas.height = 256;
 
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.font = `120px NeonSans`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillStyle = "#00ffff"; // neon cyan fill
+    ctx.fillStyle = "#00ffff";
     ctx.shadowColor = "#00ffff";
     ctx.shadowBlur = 10;
     ctx.fillText(text, canvas.width / 2, canvas.height / 2);
