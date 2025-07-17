@@ -61,7 +61,8 @@ export class Scene {
   private skyFactory: SkyFactory;
   private planetaryFactory: PlanetaryFactory;
   private asteroidFactory: AsteroidFactory;
-  private htmlTagger?: HTMLTagSystem;
+  private htmlTagger!: HTMLTagSystem;
+  private cameraLatchSystem!: CameraLatchSystem;
 
   private settings!: SettingsState;
   private paused = false;
@@ -104,10 +105,10 @@ export class Scene {
     this.systemManager.registerSystem(new EntitySelectionSystem(this.rayCaster, this.camera, this.registry, this.utils));
     this.systemManager.registerSystem(new SelectionGlowRenderSystem(this.renderer, this.registry, this.utils));
     this.systemManager.registerSystem(new SelectionTagSystem(this.renderer, this.registry, this.utils));
-    this.systemManager.registerSystem(new CameraLatchSystem(this.camera, this.registry, this.utils));
     this.systemManager.registerSystem(new CCDSystem(this.camera, this.registry, this.utils));
-    this.systemManager.registerSystem(new FrustumCullingSystem(this.camera, this.canvas, this.registry, this.utils));
+    // this.systemManager.registerSystem(new FrustumCullingSystem(this.camera, this.canvas, this.registry, this.utils));
     this.htmlTagger = new HTMLTagSystem(this.renderer, this.registry, this.utils);
+    this.cameraLatchSystem = new CameraLatchSystem(this.camera, this.registry, this.utils)
 
     // Conditional systems
     this.systemManager.registerSystem(
@@ -175,6 +176,15 @@ export class Scene {
       this.camera.state.handleKeyboard!(this.camera, this.input.getKeys());
       this.camera.update(deltaTime / 1000);
       this.systemManager.update(deltaTime, this.settings);
+    }
+
+    if (this.settings.latchedEntityID) {
+      this.cameraLatchSystem.setLatchEntity(
+        this.registry.getEntityByID(this.settings.latchedEntityID)!
+      );
+      this.cameraLatchSystem.update(deltaTime);
+    } else {
+      this.cameraLatchSystem.clearLatch();
     }
 
     const viewMatrix = this.camera.viewMatrix;
