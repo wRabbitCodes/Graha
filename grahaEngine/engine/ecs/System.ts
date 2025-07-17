@@ -1,34 +1,30 @@
-import { Camera } from "@/grahaEngine/core/Camera";
-import { GLUtils } from "../../utils/GLUtils";
-import { Renderer } from "../command/Renderer";
-import { COMPONENT_STATE, IComponent, IState } from "./Component";
-import { Registry } from "./Registry";
 import { SettingsState } from "@/grahaEngine/core/Scene";
-import { AssetsLoader } from "@/grahaEngine/core/AssetsLoader";
+import { GLUtils } from "../../utils/GLUtils";
+import { Registry } from "./Registry";
+
+type SystemType = new (...args: any[]) => System;
 
 export abstract class System {
-  constructor(protected registry: Registry, protected utils: GLUtils) {};
+  constructor(protected registry: Registry, protected utils: GLUtils) { };
   abstract update(deltaTime: number): void;
 }
 
 export class SystemManager {
-  private systems: System[] = [];
+  private managedSystems: System[] = [];
   private conditionalSystems: { system: System; condition: (settings: SettingsState) => boolean }[] = [];
+  private unmanagedSystem: Map<SystemType, System> = new Map();
 
-  constructor(
-    private registry: Registry,
-    private renderer: Renderer,
-    private camera: Camera,
-    private utils: GLUtils,
-    private assetsLoader: AssetsLoader
-  ) {}
-
-  registerSystem(system: System, condition?: (settings: SettingsState) => boolean) {
+  registerSystem(system: System, condition?: (settings: SettingsState) => boolean, isManaged = true) {
     if (condition) {
       this.conditionalSystems.push({ system, condition });
     } else {
-      this.systems.push(system);
+      if (!isManaged) this.unmanagedSystem.set(system.constructor as SystemType, system)
+      else this.managedSystems.push(system);
     }
+  }
+
+  getUnmanagedSystem(system: SystemType) {
+    return this.unmanagedSystem.get(system);
   }
 
   // initialize() {
@@ -37,8 +33,9 @@ export class SystemManager {
   // }
 
   update(deltaTime: number, settings: SettingsState) {
-    debugger;
-    this.systems.forEach((system) => system.update(deltaTime));
+
+    // DO NOT HANDLE UNMANAGED SYSTEMS
+    this.managedSystems.forEach((system) => system.update(deltaTime));
     this.conditionalSystems.forEach(({ system, condition }) => {
       if (condition(settings)) {
         system.update(deltaTime);

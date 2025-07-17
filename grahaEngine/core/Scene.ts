@@ -61,8 +61,6 @@ export class Scene {
   private skyFactory: SkyFactory;
   private planetaryFactory: PlanetaryFactory;
   private asteroidFactory: AsteroidFactory;
-  private htmlTagger!: HTMLTagSystem;
-  private cameraLatchSystem!: CameraLatchSystem;
 
   private settings!: SettingsState;
   private paused = false;
@@ -76,7 +74,7 @@ export class Scene {
     this.assetsLoader = new AssetsLoader(this.utils);
     this.renderer = new Renderer(this.gl);
     this.registry = new Registry();
-    this.systemManager = new SystemManager(this.registry, this.renderer, this.camera, this.utils, this.assetsLoader);
+    this.systemManager = new SystemManager();
     this.rayCaster = new Raycaster();
 
     this.sunFactory = new SunFactory(this.registry);
@@ -102,14 +100,13 @@ export class Scene {
     this.systemManager.registerSystem(new PlanetRenderSystem(this.renderer, this.assetsLoader, this.registry, this.utils));
     this.systemManager.registerSystem(new ModelUpdateSystem(this.camera, this.registry, this.utils));
     this.systemManager.registerSystem(new OrbitSystem(this.registry, this.utils));
-    this.systemManager.registerSystem(new EntitySelectionSystem(this.rayCaster, this.camera, this.registry, this.utils));
     this.systemManager.registerSystem(new SelectionGlowRenderSystem(this.renderer, this.registry, this.utils));
     this.systemManager.registerSystem(new SelectionTagSystem(this.renderer, this.registry, this.utils));
     this.systemManager.registerSystem(new CCDSystem(this.camera, this.registry, this.utils));
-    // this.systemManager.registerSystem(new FrustumCullingSystem(this.camera, this.canvas, this.registry, this.utils));
-    this.htmlTagger = new HTMLTagSystem(this.renderer, this.registry, this.utils);
-    this.cameraLatchSystem = new CameraLatchSystem(this.camera, this.registry, this.utils)
-
+    this.systemManager.registerSystem(new FrustumCullingSystem(this.camera, this.canvas, this.registry, this.utils));
+    this.systemManager.registerSystem(new HTMLTagSystem(this.renderer, this.registry, this.utils), undefined, false);
+    this.systemManager.registerSystem(new CameraLatchSystem(this.camera, this.registry, this.utils), undefined, false);
+    this.systemManager.registerSystem(new EntitySelectionSystem(this.rayCaster, this.camera, this.registry, this.utils), undefined, false);
     // Conditional systems
     this.systemManager.registerSystem(
       new AsteroidPointCloudSystem(this.registry, this.utils),
@@ -138,11 +135,7 @@ export class Scene {
   }
 
   private setupInput() {
-    this.canvas.enablePointerLock(() => {
-      const ess = new EntitySelectionSystem(this.rayCaster, this.camera, this.registry, this.utils);
-      this.systemManager.registerSystem(ess);
-      ess.update(0);
-    });
+    this.canvas.enablePointerLock(() => this.systemManager.getUnmanagedSystem(EntitySelectionSystem)?.update(0));
     this.canvas.onPointerLockChange((locked) => {
       if (!locked) {
         this.input.disableInputs();
@@ -178,14 +171,16 @@ export class Scene {
       this.systemManager.update(deltaTime, this.settings);
     }
 
-    if (this.settings.latchedEntityID) {
-      this.cameraLatchSystem.setLatchEntity(
-        this.registry.getEntityByID(this.settings.latchedEntityID)!
-      );
-      this.cameraLatchSystem.update(deltaTime);
-    } else {
-      this.cameraLatchSystem.clearLatch();
+    const cameraLatchSystem = this.systemManager.getUnmanagedSystem(CameraLatchSystem)! as CameraLatchSystem;
+    if (cameraLatchSystem) {
+      if (this.settings.latchedEntityID) {
+        cameraLatchSystem.setLatchEntity(this.registry.getEntityByID(this.settings.latchedEntityID)!);
+        cameraLatchSystem.update(deltaTime);
+      } else {
+        cameraLatchSystem.clearLatch();
+      }
     }
+    
 
     const viewMatrix = this.camera.viewMatrix;
     const projectionMatrix = this.canvas.getProjectionMatrix();
@@ -199,6 +194,6 @@ export class Scene {
       deltaTime,
     });
     this.renderer.flush();
-    this.htmlTagger?.update(deltaTime);
+    this.systemManager.getUnmanagedSystem(HTMLTagSystem)?.update(deltaTime);
   }
 }

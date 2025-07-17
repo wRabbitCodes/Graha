@@ -26,7 +26,7 @@ export default function Engine() {
       .loadAll({
         textures: TEXTURES,
         fonts: FONTS,
-        models: MODELS,
+        // models: MODELS,
         json: JSON_DATA,
       })
       .then(() => {
