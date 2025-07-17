@@ -138,6 +138,10 @@ export class Scene {
   }
 
   private setupInput() {
+    this.canvas.enableResizeHandler(()=>{
+      this.canvas.resizeToDisplaySize();
+      this.renderer.resize(this.canvas.canvas.width, this.canvas.canvas.height);
+    })
     this.canvas.enablePointerLock(() => (this.systemManager.getUnmanagedSystem(EntitySelectionSystem) as EntitySelectionSystem)?.update(0));
     this.canvas.onPointerLockChange((locked) => {
       if (!locked) {
@@ -164,7 +168,7 @@ export class Scene {
 
   update(deltaTime: number) {
     if (this.assetsLoader.getProgress() < 1) {
-      console.log("Loading assets...", this.assetsLoader.getProgress());
+      // console.log("Loading assets...", this.assetsLoader.getProgress());
       return;
     }
 

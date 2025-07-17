@@ -69,7 +69,7 @@ export class AssetsLoader {
       loadTasks.push(
         this._loadFont(name, url)
           .then((font) => {
-            console.log(`Loaded font: ${name}`);
+            // console.log(`Loaded font: ${name}`);
             this.fonts.set(name, font);
           })
           .catch((err) => {

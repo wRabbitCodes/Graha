@@ -17,7 +17,6 @@ export class CCDSystem extends System {
     for (const entity of this.registry.getEntitiesWith(CCDComponent)) {
       const modelComp = this.registry.getComponent(entity, ModelComponent);
       if (modelComp.state !== COMPONENT_STATE.READY) continue;
-      debugger;
       const ccdComp = this.registry.getComponent(entity, CCDComponent);
       if (ccdComp.state === COMPONENT_STATE.UNINITIALIZED)
         this.initialize(ccdComp);

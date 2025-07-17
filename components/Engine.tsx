@@ -5,6 +5,7 @@ import { Scene } from "@/grahaEngine/core/Scene";
 import { TEXTURES, FONTS, MODELS, JSON_DATA } from "@/grahaEngine/data/urls";
 import Controls from "./Controls";
 import { useSettings } from "@/store/useSettings";
+import { HUD } from "./HUD";
 
 export default function Engine() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -95,6 +96,9 @@ export default function Engine() {
 
   return (
     <div className="relative w-full h-full">
+
+      {/* HUD */}
+      <HUD/>
       {/* Canvas */}
       <canvas
         ref={canvasRef}

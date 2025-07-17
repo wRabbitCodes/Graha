@@ -15,13 +15,12 @@ export class Canvas {
     if (!gl) throw new Error("WebGL2 not supported");
     this.gl = gl;
     this.canvas = el;
-    this.enableResizeHandler();
     this.resizeToDisplaySize();
     this.crosshair = document.getElementById("crosshair");
   }
 
-  private enableResizeHandler() {
-    window.addEventListener("resize", ()=>this.resizeToDisplaySize());
+  enableResizeHandler(callback: Function) {
+    window.addEventListener("resize", () => callback());
   }
 
   enablePointerLock(raycasterCallback: (ndcX: number, ndcY: number) => void) {
