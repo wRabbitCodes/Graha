@@ -21,7 +21,7 @@ import { SelectionTagSystem } from "../engine/ecs/systems/SelectionTagSystem";
 import { SkyRenderSystem } from "../engine/ecs/systems/SkyRenderSystem";
 import { SunRenderSystem } from "../engine/ecs/systems/SunRenderSystem";
 import { AsteroidFactory } from "../factory/AsteroidFactory";
-import { PlanetaryFactory } from "../factory/planetaryFactory";
+import { PlanetaryFactory } from "../factory/PlanetaryFactory";
 import { SkyFactory } from "../factory/SkyFactory";
 import { SunFactory } from "../factory/SunFactory";
 import { GLUtils } from "../utils/GLUtils";
@@ -96,14 +96,13 @@ export class Scene {
 
   private setupSystems() {
     this.systemManager.registerSystem(new SkyRenderSystem(this.renderer, this.assetsLoader, this.registry, this.utils));
-    this.systemManager.registerSystem(new SunRenderSystem(this.renderer, this.assetsLoader, this.registry, this.utils));
     this.systemManager.registerSystem(new PlanetRenderSystem(this.renderer, this.assetsLoader, this.registry, this.utils));
     this.systemManager.registerSystem(new ModelUpdateSystem(this.camera, this.registry, this.utils));
     this.systemManager.registerSystem(new OrbitSystem(this.registry, this.utils));
     this.systemManager.registerSystem(new SelectionGlowRenderSystem(this.renderer, this.registry, this.utils));
-    this.systemManager.registerSystem(new SelectionTagSystem(this.renderer, this.registry, this.utils));
     this.systemManager.registerSystem(new CCDSystem(this.camera, this.registry, this.utils));
-    this.systemManager.registerSystem(new FrustumCullingSystem(this.camera, this.canvas, this.registry, this.utils));
+    // this.systemManager.registerSystem(new FrustumCullingSystem(this.camera, this.canvas, this.registry, this.utils));
+    this.systemManager.registerSystem(new SunRenderSystem(this.renderer, this.assetsLoader, this.registry, this.utils));
     this.systemManager.registerSystem(new HTMLTagSystem(this.renderer, this.registry, this.utils), undefined, false);
     this.systemManager.registerSystem(new CameraLatchSystem(this.camera, this.registry, this.utils), undefined, false);
     this.systemManager.registerSystem(new EntitySelectionSystem(this.rayCaster, this.camera, this.registry, this.utils), undefined, false);
@@ -129,13 +128,17 @@ export class Scene {
       (s) => s.highlightOrbit
     );
     this.systemManager.registerSystem(
+      new SelectionTagSystem(this.renderer, this.registry, this.utils),
+      (s) => !s.showEntityLabel
+    );
+    this.systemManager.registerSystem(
       new BBPlotRenderSystem(this.renderer, this.registry, this.utils),
       (s) => s.boundingBox
     );
   }
 
   private setupInput() {
-    this.canvas.enablePointerLock(() => this.systemManager.getUnmanagedSystem(EntitySelectionSystem)?.update(0));
+    this.canvas.enablePointerLock(() => (this.systemManager.getUnmanagedSystem(EntitySelectionSystem) as EntitySelectionSystem)?.update(0));
     this.canvas.onPointerLockChange((locked) => {
       if (!locked) {
         this.input.disableInputs();
@@ -165,21 +168,19 @@ export class Scene {
       return;
     }
 
-    if (!this.paused) {
-      this.camera.state.handleKeyboard!(this.camera, this.input.getKeys());
-      this.camera.update(deltaTime / 1000);
-      this.systemManager.update(deltaTime, this.settings);
+    this.camera.state.handleKeyboard(this.camera, this.input.getKeys());
+    this.camera.update(deltaTime / 1000);
+    
+    this.systemManager.update(deltaTime, this.settings);
+    const cameraLatchSystem = this.systemManager.getUnmanagedSystem(CameraLatchSystem)! as CameraLatchSystem;
+    if (this.settings.latchedEntityID) {
+      cameraLatchSystem.setLatchEntity(this.registry.getEntityByID(this.settings.latchedEntityID)!);
+      cameraLatchSystem.update(deltaTime);
+    } else {
+      cameraLatchSystem.clearLatch();
     }
 
-    const cameraLatchSystem = this.systemManager.getUnmanagedSystem(CameraLatchSystem)! as CameraLatchSystem;
-    if (cameraLatchSystem) {
-      if (this.settings.latchedEntityID) {
-        cameraLatchSystem.setLatchEntity(this.registry.getEntityByID(this.settings.latchedEntityID)!);
-        cameraLatchSystem.update(deltaTime);
-      } else {
-        cameraLatchSystem.clearLatch();
-      }
-    }
+  
     
 
     const viewMatrix = this.camera.viewMatrix;
@@ -194,6 +195,14 @@ export class Scene {
       deltaTime,
     });
     this.renderer.flush();
-    this.systemManager.getUnmanagedSystem(HTMLTagSystem)?.update(deltaTime);
+    if (this.settings.showEntityLabel)
+    {
+      const htmlTagSystem = this.systemManager.getUnmanagedSystem(HTMLTagSystem) as HTMLTagSystem;
+      htmlTagSystem?.enableTags();
+      htmlTagSystem?.update(deltaTime);
+    } else {
+      (this.systemManager.getUnmanagedSystem(HTMLTagSystem) as HTMLTagSystem)?.disableTags();
+    }
+
   }
 }

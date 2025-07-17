@@ -5,6 +5,7 @@ import { Shaders } from "../shaders/shaders";
 import { BaseShaderStrategy } from "../shaderStrategy";
 import { ModelComponent } from "../../ecs/components/ModelComponent";
 import { TagRenderComponent } from "../../ecs/components/RenderComponent";
+import { OrbitComponent } from "../../ecs/components/OrbitComponent";
 
 export class TagStrategy extends BaseShaderStrategy {
     initialize(): void {

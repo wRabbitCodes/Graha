@@ -49,7 +49,7 @@ export class OrbitSystem extends System {
       orbit.epochTime = OrbitAnamolyCalculator.calculateEpochTime(simStart);
       orbit.meanAnomalyAtEpoch = orbit.meanAnomalyAtEpoch * this.DEG2RAD;
       orbit.elapsedDays = 0;
-      orbit.pathPoints = this.generateOrbitPathPoints(orbit, 180);
+      orbit.pathPoints = this.generateOrbitPathPoints(orbit, orbit.pathSegmentCount);
       orbit.state = COMPONENT_STATE.READY;
     }
 

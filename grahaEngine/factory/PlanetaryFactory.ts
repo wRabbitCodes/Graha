@@ -8,6 +8,8 @@ import { Entity } from "../engine/ecs/Entity";
 import { IFactory } from "./IFactory";
 import { SETTINGS } from "../config/settings";
 import { PlanetRenderComponent } from "../engine/ecs/components/RenderComponent";
+import { CCDComponent } from "../engine/ecs/components/CCDComponent";
+import { EntitySelectionComponent } from "../engine/ecs/components/EntitySelectionComponent";
 
 interface PlanetaryConfig {
   type: ENTITY_TYPE;
@@ -73,6 +75,15 @@ export class PlanetaryFactory implements IFactory {
       moon.parentEntity = config.parent;
       this.registry.addComponent(entity, moon);
     }
+
+    //Selectable
+    const selectionComp = new EntitySelectionComponent();
+    this.registry.addComponent(entity, selectionComp);
+
+    // CCD
+    const ccdComp = new CCDComponent();
+    this.registry.addComponent(entity, ccdComp);
+
 
     this.registry.addComponent(entity, new PlanetRenderComponent());
 

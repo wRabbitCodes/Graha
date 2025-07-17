@@ -98,9 +98,8 @@ export class Camera {
   }
 
   updateViewMatrix() {
-    const cameraFront = this.front;
-    const center = vec3.add(vec3.create(), vec3.fromValues(0, 0, 0), cameraFront); // [0,0,0] + front
-    mat4.lookAt(this.viewMatrix, vec3.fromValues(0, 0, 0), center, this.up);
+    const center = vec3.add(vec3.create(), this.position, this.front);
+    mat4.lookAt(this.viewMatrix, this.position, center, this.up);
   }
 
   lookInDirection(direction: vec3) {

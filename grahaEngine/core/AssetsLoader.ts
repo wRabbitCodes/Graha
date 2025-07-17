@@ -96,7 +96,6 @@ export class AssetsLoader {
       );
     }
 
-    debugger;
     const jsonEntries = Object.entries(config.json ?? {});
     this.totalAssets += jsonEntries.length;
     for (const [name, url] of jsonEntries) {

@@ -19,6 +19,6 @@ in vec2 v_uv;
 out vec4 outColor;
 uniform sampler2D u_texture;
 void main() {
-    vec3 skyColor = texture(u_texture, v_uv).rgb * 0.3; // REDUCE SKYSPHERE BRIGHTNESS
+    vec3 skyColor = texture(u_texture, v_uv).rgb * 0.2; // REDUCE SKYSPHERE BRIGHTNESS
     outColor = vec4(skyColor, 1.0);
 }`

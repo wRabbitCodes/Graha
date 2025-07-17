@@ -66,14 +66,6 @@ export class OrbitPathRenderSystem extends System {
       const pulseStart = (now * speed) % totalVerts;
       const pulseEnd = (pulseStart + pulseLength) % totalVerts;
 
-      const planetTheta = OrbitAnamolyCalculator.trueAnomalyAtTime(
-        now,
-        orbitComp
-      );
-      const planetProgress = OrbitAnamolyCalculator.orbitProgress(planetTheta);
-      const headIndex = (planetProgress * totalVerts + totalVerts * 0.05) % totalVerts;
-      const tailIndex = (headIndex + totalVerts * 0.5) % totalVerts;
-
       // Glowing pass
       this.renderer.enqueue({
         execute: (gl: WebGL2RenderingContext, ctx: RenderContext) => {

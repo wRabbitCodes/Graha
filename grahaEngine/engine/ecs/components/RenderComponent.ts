@@ -75,7 +75,6 @@ export class BBPlotRenderComponent extends RenderComponent {
 }
 
 export class OrbitPathRenderComponent extends RenderComponent {
-  pathSegmentCount = 180;
   orbitColor?: vec3;
 
   vertSrc = `#version 300 es
