@@ -30,6 +30,7 @@ import { AssetsLoader } from "./AssetsLoader";
 import { Camera } from "./Camera";
 import { Canvas } from "./Canvas";
 import { IO } from "./IO";
+import grahaEvents, { GRAHA_ENGINE_EVENTS } from "../utils/EventManager";
 
 export interface SettingsState {
   globalSceneScale: number;
@@ -178,7 +179,8 @@ export class Scene {
     this.systemManager.update(deltaTime, this.settings);
     const cameraLatchSystem = this.systemManager.getUnmanagedSystem(CameraLatchSystem)! as CameraLatchSystem;
     if (this.settings.latchedEntityID) {
-      cameraLatchSystem.setLatchEntity(this.registry.getEntityByID(this.settings.latchedEntityID)!);
+      const entity = this.registry.getEntityByID(this.settings.latchedEntityID)!
+      cameraLatchSystem.setLatchEntity(entity);
       cameraLatchSystem.update(deltaTime);
     } else {
       cameraLatchSystem.clearLatch();

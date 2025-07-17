@@ -8,8 +8,10 @@ import { Registry } from "../Registry";
 import { System } from "../System";
 import { Entity } from "../Entity";
 import { Camera } from "../../../core/Camera"
+import grahaEvents, { GRAHA_ENGINE_EVENTS } from "@/grahaEngine/utils/EventManager";
 
 export class EntitySelectionSystem extends System {
+  private selectedEntities: Set<string> = new Set();
   constructor(
     private rayCaster: Raycaster,
     private camera: Camera,
@@ -49,6 +51,10 @@ export class EntitySelectionSystem extends System {
       EntitySelectionComponent
     );
     selectableComp.isSelected = !selectableComp.isSelected;
+    const model = this.registry.getComponent(selectedEntity, ModelComponent);
+    selectableComp.isSelected ? this.selectedEntities.add(model.name!) : this.selectedEntities.delete(model.name!);
     selectableComp.state = COMPONENT_STATE.READY;
+
+    grahaEvents.emit(GRAHA_ENGINE_EVENTS.SELECTED_ENTITIES, { names: Array.from(this.selectedEntities)});
   }
 }

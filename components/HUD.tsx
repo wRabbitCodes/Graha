@@ -1,8 +1,9 @@
-// components/HUD.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
+import { clsx } from "clsx";
+import grahaEvents, { GRAHA_ENGINE_EVENTS } from "@/grahaEngine/utils/EventManager"; // Adjust path
 
 const hudItems = [
   {
@@ -20,8 +21,8 @@ const hudItems = [
   {
     id: "selected",
     title: "Selected",
-    content: (value: string) => <p>🌍 {value}</p>,
-    defaultValue: "Earth",
+    content: (values: string[]) => <div>{values.map(value => <p>🌍 {value}</p>)}</div>,
+    defaultValue: ["--"],
   },
   {
     id: "system",
@@ -34,8 +35,27 @@ const hudItems = [
 export function HUD() {
   const [order, setOrder] = useState(hudItems.map((item) => item.id));
   const [dragging, setDragging] = useState<string | null>(null);
+  const [hudValues, setHudValues] = useState<Record<string, any>>(
+    Object.fromEntries(hudItems.map((item) => [item.id, item.defaultValue]))
+  );
+
+  // Handle engine events → update only selected HUD fields
+  useEffect(() => {
+    const handleLatchedEntity = (data: { names: string[] }) => {
+      setHudValues((prev) => ({
+        ...prev,
+        selected: data.names,
+      }));
+    };
+
+    grahaEvents.on(GRAHA_ENGINE_EVENTS.SELECTED_ENTITIES, handleLatchedEntity);
+    return () => {
+      grahaEvents.off(GRAHA_ENGINE_EVENTS.SELECTED_ENTITIES, handleLatchedEntity);
+    };
+  }, []);
 
   const onDragStart = (id: string) => setDragging(id);
+
   const onDrop = (id: string) => {
     if (!dragging || dragging === id) return;
     const newOrder = [...order];
@@ -55,14 +75,10 @@ export function HUD() {
           <motion.div
             key={item.id}
             layout
-            transition={{
-              type: "spring",
-              stiffness: 400,
-              damping: 30,
-            }}
-            className={`cursor-move bg-black/70 rounded-xl px-4 py-2 w-36 text-white text-sm font-mono shadow-lg border border-white/10 ${
-              dragging === item.id ? "opacity-40" : ""
-            }`}
+            className={clsx(
+              "cursor-move bg-black/70 rounded-xl px-4 py-2 w-36 text-white text-sm font-mono shadow-lg border border-white/10",
+              dragging === item.id && "opacity-40"
+            )}
             draggable
             onDragStart={() => onDragStart(item.id)}
             onDragOver={(e) => e.preventDefault()}
@@ -71,7 +87,7 @@ export function HUD() {
             <p className="font-bold text-xs mb-1 text-white/70 uppercase tracking-wide">
               {item.title}
             </p>
-            <div>{item.content(item.defaultValue)}</div>
+            <div>{item.content(hudValues[item.id])}</div>
           </motion.div>
         );
       })}
