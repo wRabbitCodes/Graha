@@ -60,14 +60,7 @@ export class AsteroidFactory implements IFactory {
 
     positions.set([x, y, z], i * 3);
     rotationSpeeds[i] = 0.00005 + Math.random() * 0.00003;
-
-    // rotations.push(quat.create());
-    // rotationAxes.push(vec3.normalize(vec3.create(), [
-    //   Math.random() - 0.5,
-    //   Math.random() - 0.5,
-    //   Math.random() - 0.5
-    // ]));
-    scales[i] = 1.5 + Math.random() * 10.0;
+    scales[i] = 1.5 + Math.random() * 50.0;
   }
 
   return [positions, rotationSpeeds, scales];

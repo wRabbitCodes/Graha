@@ -24,3 +24,7 @@ export const MODELS = {
   // asteroid1: "models/asteroid_1.glb",
   // asteroid2: "models/asteroid_2.glb"
 }
+
+export const JSON_DATA = {
+  planetaryData: "./data/planetary_data.json",
+}

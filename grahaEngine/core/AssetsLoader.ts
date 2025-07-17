@@ -18,6 +18,7 @@ type LoadConfig = {
   textures?: Record<string, string>;
   fonts?: FontConfig[];
   models?: Record<string, string>;
+  json?: Record<string, string>;
 };
 
 export class AssetsLoader {
@@ -27,6 +28,7 @@ export class AssetsLoader {
   private textures: Map<string, WebGLTexture> = new Map();
   private fonts: Map<string, FontFace> = new Map();
   private modelCache: Map<string, MeshData> = new Map();
+  private jsonData: Map<string, any> = new Map();
 
   private totalAssets = 0;
   private loadedAssets = 0;
@@ -94,6 +96,29 @@ export class AssetsLoader {
       );
     }
 
+    debugger;
+    const jsonEntries = Object.entries(config.json ?? {});
+    this.totalAssets += jsonEntries.length;
+    for (const [name, url] of jsonEntries) {
+      loadTasks.push(
+        fetch(url)
+          .then((res) => {
+            if (!res.ok) throw new Error(`Failed to fetch JSON: ${url}`);
+            return res.json();
+          })
+          .then((data) => {
+            this.jsonData.set(name, data);
+          })
+          .catch((err) => {
+            console.error(`❌ Failed to load JSON: ${name} (${url})`, err);
+          })
+          .finally(() => {
+            this.loadedAssets++;
+          })
+      );
+    }
+
+
     await Promise.allSettled(loadTasks);
   }
 
@@ -148,6 +173,9 @@ export class AssetsLoader {
     return this.fonts.get(name);
   }
 
+  getJSON<T = any>(name: string): T | undefined {
+    return this.jsonData.get(name);
+  }
   getModel(name: string): MeshData | undefined {
     return this.modelCache.get(name);
   }

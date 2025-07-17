@@ -36,7 +36,6 @@ export class SkyRenderSystem extends System {
       }
 
       if (renderComp.state !== COMPONENT_STATE.READY) continue;
-      debugger;
       this.renderer.enqueue({
         execute: (gl: WebGL2RenderingContext, ctx: Partial<RenderContext>) => {
           gl.useProgram(renderComp.program);

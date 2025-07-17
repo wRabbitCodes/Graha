@@ -37,7 +37,7 @@ export class CCDSystem extends System {
     const pos = this.camera.position;
     const alpha = 0.2;
 
-    const radius = Math.max(...modelComp.scale!) * modelComp.boundingBoxScale;
+    const radius = modelComp.radius! * modelComp.boundingBoxScale;
 
     const translator = vec3.create();
     mat4.getTranslation(translator, modelComp.modelMatrix);

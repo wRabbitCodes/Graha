@@ -11,6 +11,7 @@ export class ModelUpdateSystem extends System {
     super(registry, utils);
   }
   update(deltaTime: number) {
+    debugger;
     for (const entity of this.registry.getEntitiesWith(ModelComponent)) {
       const coreComp = this.registry.getComponent(entity, ModelComponent);
       if (coreComp.state === COMPONENT_STATE.UNINITIALIZED) {
@@ -52,7 +53,7 @@ export class ModelUpdateSystem extends System {
           coreComp.modelMatrix,
           coreComp.rotationQuat,
           coreComp.position!,
-          coreComp.scale!
+          vec3.fromValues(coreComp.radius!, coreComp.radius!,coreComp.radius!)
         );
 
         

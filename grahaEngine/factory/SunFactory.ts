@@ -6,10 +6,9 @@ import { IFactory } from "./IFactory";
 
 export class SunFactory implements IFactory {
   constructor(
-    private utils: GLUtils,
     private registry: Registry
   ) {}
-
+  
   create(
   ): Entity {
     const entity = this.registry.createEntity();

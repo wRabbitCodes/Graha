@@ -3,7 +3,6 @@ import { COMPONENT_STATE, IComponent, IState } from "../Component";
 
 export class OrbitComponent implements IComponent, IState {
   state = COMPONENT_STATE.UNINITIALIZED;
-  radius?: number;
   semiMajorAxis?: number; // a (in scene units e.g. scaled km)
   eccentricity?: number; // e
   inclination?: number; // i (degrees)

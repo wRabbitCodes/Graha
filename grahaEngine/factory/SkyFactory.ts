@@ -7,7 +7,6 @@ import { IFactory } from "./IFactory";
 
 export class SkyFactory implements IFactory{
   constructor(
-    private utils: GLUtils,
     private registry: Registry
   ) {}
 
