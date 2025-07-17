@@ -7,6 +7,7 @@ import { MoonComponent } from "../engine/ecs/components/MoonComponent";
 import { Entity } from "../engine/ecs/Entity";
 import { IFactory } from "./IFactory";
 import { SETTINGS } from "../config/settings";
+import { PlanetRenderComponent } from "../engine/ecs/components/RenderComponent";
 
 interface PlanetaryConfig {
   type: ENTITY_TYPE;
@@ -73,6 +74,8 @@ export class PlanetaryFactory implements IFactory {
       this.registry.addComponent(entity, moon);
     }
 
+    this.registry.addComponent(entity, new PlanetRenderComponent());
+
     return entity;
   }
 
@@ -81,19 +84,8 @@ export class PlanetaryFactory implements IFactory {
       console.warn("No planetary data provided. Skipping reinitialization.");
       return;
     }
-
-    // Remove existing planetary entities (except Sun and Sky)
-    this.registry.getEntitiesWith(ModelComponent).forEach((entity) => {
-      const model = this.registry.getComponent(entity, ModelComponent);
-      if (model?.name !== "Sun" && model?.name !== "Sky") {
-        this.registry.removeEntity(entity);
-      }
-    });
-
     // Create new entities based on JSON data
     for (const body of data.bodies) {
-      if (body.name === "Sun") continue;
-
       const isMoon = body.type === ENTITY_TYPE.MOON;
       const parent = isMoon && body.parent
         ? this.registry.getEntityByID(this.registry.getEntityIdFromName(body.parent))
