@@ -76,7 +76,7 @@ export function HUD() {
             key={item.id}
             layout
             className={clsx(
-              "cursor-move bg-black/70 rounded-xl px-4 py-2 w-36 text-white text-sm font-mono shadow-lg border border-white/10",
+              "cursor-click items-center bg-black/70 rounded-xl px-4 py-2 w-36 gap-2 px-3 text-white text-sm font-mono shadow-lg border border-white/10 hover:bg-gray-700",
               dragging === item.id && "opacity-40"
             )}
             draggable

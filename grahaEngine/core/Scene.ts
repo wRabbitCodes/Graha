@@ -30,7 +30,6 @@ import { AssetsLoader } from "./AssetsLoader";
 import { Camera } from "./Camera";
 import { Canvas } from "./Canvas";
 import { IO } from "./IO";
-import grahaEvents, { GRAHA_ENGINE_EVENTS } from "../utils/EventManager";
 
 export interface SettingsState {
   globalSceneScale: number;

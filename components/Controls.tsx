@@ -39,7 +39,7 @@ export default function Controls() {
       <div className="absolute bottom-4 left-4 z-50">
           <button
             ref={buttonRef}
-            className="drag-handle p-2 bg-black/60 text-white rounded-full hover:bg-black/80 transition"
+            className="drag-handle p-2 bg-black/60 text-white rounded-full transition border border-gray-700 hover:bg-gray-700"
             onClick={() => setOpen(!open)}
             aria-label="Settings"
           >
@@ -51,7 +51,7 @@ export default function Controls() {
               ref={popupRef}
               className={`absolute ${
                 popupAbove ? "bottom-full mb-2" : "top-full mt-2"
-              } w-72 p-4 bg-black/80 text-white rounded-xl shadow-xl backdrop-blur-md space-y-4`}
+              } w-72 p-4 bg-black/80 text-white rounded-xl shadow-xl backdrop-blur-md space-y-4 border border-gray-700`}
             >
               {/* === All Controls Here === */}
               <div>
