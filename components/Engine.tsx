@@ -5,8 +5,9 @@ import { Scene } from "@/grahaEngine/core/Scene";
 import { TEXTURES, FONTS, MODELS, JSON_DATA } from "@/grahaEngine/data/urls";
 import Controls from "./Controls";
 import { useSettings } from "@/store/useSettings";
-import { HUD } from "./HUD";
+import HUD from "./HUD";
 import Datepicker from "./Datepicker";
+import Draggable from "./Draggable";
 
 export default function Engine() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -17,87 +18,87 @@ export default function Engine() {
 
   const settings = useSettings();
 
-  // Initialize scene and load assets
-  useEffect(() => {
-    if (!canvasRef.current) return;
-    const sceneInstance = new Scene(canvasRef.current);
-    sceneRef.current = sceneInstance;
-    const loader = sceneInstance.assetsLoader;
+  // // Initialize scene and load assets
+  // useEffect(() => {
+  //   if (!canvasRef.current) return;
+  //   const sceneInstance = new Scene(canvasRef.current);
+  //   sceneRef.current = sceneInstance;
+  //   const loader = sceneInstance.assetsLoader;
 
-    loader
-      .loadAll({
-        textures: TEXTURES,
-        fonts: FONTS,
-        // models: MODELS,
-        json: JSON_DATA,
-      })
-      .then(() => {
-        sceneInstance.initialize();
-        setLoadingDone(true);
-        requestAnimationFrame(animate);
-        settings.set("entityMap", sceneRef.current!.getNamedEntities());
-      });
+  //   loader
+  //     .loadAll({
+  //       textures: TEXTURES,
+  //       fonts: FONTS,
+  //       // models: MODELS,
+  //       json: JSON_DATA,
+  //     })
+  //     .then(() => {
+  //       sceneInstance.initialize();
+  //       setLoadingDone(true);
+  //       requestAnimationFrame(animate);
+  //       settings.set("entityMap", sceneRef.current!.getNamedEntities());
+  //     });
 
-    const animate = () => {
-      requestAnimationFrame(animate);
-      sceneInstance.update(16); // replace with actual deltaTime if needed
-    };
+  //   const animate = () => {
+  //     requestAnimationFrame(animate);
+  //     sceneInstance.update(16); // replace with actual deltaTime if needed
+  //   };
 
-    // Poll for loading progress
-    const interval = setInterval(() => {
-      const progress = loader.getProgress();
-      setLoadingProgress(progress);
-      if (progress >= 1) clearInterval(interval);
-    }, 100);
+  //   // Poll for loading progress
+  //   const interval = setInterval(() => {
+  //     const progress = loader.getProgress();
+  //     setLoadingProgress(progress);
+  //     if (progress >= 1) clearInterval(interval);
+  //   }, 100);
 
-    const handlePointerLockChange = () => {
-      const locked = document.pointerLockElement === canvasRef.current;
-      setShowCrosshair(locked);
-    };
+  //   const handlePointerLockChange = () => {
+  //     const locked = document.pointerLockElement === canvasRef.current;
+  //     setShowCrosshair(locked);
+  //   };
 
-    document.addEventListener("pointerlockchange", handlePointerLockChange);
+  //   document.addEventListener("pointerlockchange", handlePointerLockChange);
 
-    return () => {
-      clearInterval(interval);
-      document.removeEventListener(
-        "pointerlockchange",
-        handlePointerLockChange
-      );
-    };
-  }, []);
+  //   return () => {
+  //     clearInterval(interval);
+  //     document.removeEventListener(
+  //       "pointerlockchange",
+  //       handlePointerLockChange
+  //     );
+  //   };
+  // }, []);
 
   // Update scene settings reactively
-  useEffect(() => {
-    const scene = sceneRef.current;
-    if (!scene) return;
-    scene.updateSettings({
-      globalSceneScale: settings.globalSceneScale,
-      cameraSpeed: settings.cameraSpeed,
-      mouseSensitivity: settings.mouseSensitivity,
-      boundingBox: settings.boundingBox,
-      highlightOrbit: settings.highlightOrbit,
-      latchedEntityID: settings.latchedEntityID,
-      enableAsteroidDustCloud: settings.enableAsteroidDustCloud,
-      enableAsteroidModels: settings.enableAsteroidModels,
-      showEntityLabel: settings.showEntityLabel,
-      set: settings.set,
-      // Add more settings if needed
-    });
-  }, [
-    settings.boundingBox,
-    settings.cameraSpeed,
-    settings.mouseSensitivity,
-    settings.boundingBox,
-    settings.highlightOrbit,
-    settings.latchedEntityID,
-    settings.enableAsteroidDustCloud,
-    settings.enableAsteroidModels,
-    settings.showEntityLabel,
-  ]);
+  // useEffect(() => {
+  //   const scene = sceneRef.current;
+  //   if (!scene) return;
+  //   scene.updateSettings({
+  //     globalSceneScale: settings.globalSceneScale,
+  //     cameraSpeed: settings.cameraSpeed,
+  //     mouseSensitivity: settings.mouseSensitivity,
+  //     boundingBox: settings.boundingBox,
+  //     highlightOrbit: settings.highlightOrbit,
+  //     latchedEntityID: settings.latchedEntityID,
+  //     enableAsteroidDustCloud: settings.enableAsteroidDustCloud,
+  //     enableAsteroidModels: settings.enableAsteroidModels,
+  //     showEntityLabel: settings.showEntityLabel,
+  //     set: settings.set,
+  //     // Add more settings if needed
+  //   });
+  // }, [
+  //   settings.boundingBox,
+  //   settings.cameraSpeed,
+  //   settings.mouseSensitivity,
+  //   settings.boundingBox,
+  //   settings.highlightOrbit,
+  //   settings.latchedEntityID,
+  //   settings.enableAsteroidDustCloud,
+  //   settings.enableAsteroidModels,
+  //   settings.showEntityLabel,
+  // ]);
 
   return (
-    <div className="absolute w-full h-full">
-      <Datepicker/>
+    
+    <div className="relative w-full h-full">
       {/* HUD */}
       <HUD/>
       {/* Canvas */}
@@ -134,8 +135,12 @@ export default function Engine() {
           />
         </div>
       )} */}
-
-      <Controls />
+      <Draggable defaultPosition={{ x: 50, y: 500 }}>
+        <Controls />
+      </Draggable>
+      <Draggable defaultPosition={{ x: 500, y: 500 }}>
+        <Datepicker/>
+      </Draggable>
     </div>
   );
 }

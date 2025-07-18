@@ -1,15 +1,14 @@
 "use client";
 
-import { useRef, useState, useLayoutEffect } from "react";
 import { useSettings } from "@/store/useSettings";
+import clsx from "clsx";
+import { AnimatePresence, motion } from "framer-motion";
 import { Settings2 } from "lucide-react";
-import Draggable from "./Draggable";
+import { useState } from "react";
+import { PopupBinder } from "./PopupBinder";
 
 export default function Controls() {
   const [open, setOpen] = useState(false);
-  const [popupAbove, setPopupAbove] = useState(false);
-  const popupRef = useRef<HTMLDivElement>(null);
-  const buttonRef = useRef<HTMLButtonElement>(null);
 
   const {
     globalSceneScale,
@@ -25,33 +24,33 @@ export default function Controls() {
     set,
   } = useSettings();
 
-  useLayoutEffect(() => {
-    if (open && popupRef.current && buttonRef.current) {
-      const popupRect = popupRef.current.getBoundingClientRect();
-      const buttonRect = buttonRef.current.getBoundingClientRect();
-      const willOverflowTop = buttonRect.top - popupRect.height - 8 < 0;
-      setPopupAbove(!willOverflowTop);
-    }
-  }, [open]);
-
   return (
-    <Draggable defaultPosition={{x:50,y:500}}>
-      <div className="absolute bottom-4 left-4 z-50">
-          <button
-            ref={buttonRef}
-            className="drag-handle p-2 bg-black/60 text-white rounded-full transition border border-gray-700 hover:bg-gray-700"
-            onClick={() => setOpen(!open)}
-            aria-label="Settings"
-          >
-            <Settings2 className="w-6 h-6" />
-          </button>
-
+    <PopupBinder
+      open={open}
+      toggle={({ ref }) => (
+        <button
+          ref={ref}
+          className="drag-handle p-2 bg-black/60 text-white rounded-full backdrop-blur-md transition border border-gray-700 hover:bg-gray-700"
+          onClick={() => setOpen(!open)}
+          aria-label="Settings"
+        >
+          <Settings2 className="w-6 h-6" />
+        </button>
+      )}
+      popup={({ ref, flipped, alignedRight }) => (
+        <AnimatePresence>
           {open && (
-            <div
-              ref={popupRef}
-              className={`absolute ${
-                popupAbove ? "bottom-full mb-2" : "top-full mt-2"
-              } w-72 p-4 bg-black/80 text-white rounded-xl shadow-xl backdrop-blur-md space-y-4 border border-gray-700`}
+            <motion.div
+              ref={ref}
+              initial={{ opacity: 0, scale: 0.95, y: -5 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: -5 }}
+              transition={{ duration: 0.2 }}
+              className={clsx(
+                `absolute mt-1 w-72 p-4 rounded-xl bg-black/80 text-white shadow-lg backdrop-blur-md space-y-2 border border-gray-700`,
+                flipped ? "bottom-full mb-2" : "top-full mt-2",
+                alignedRight ? "right-0" : "left-0"
+              )}
             >
               {/* === All Controls Here === */}
               <div>
@@ -76,9 +75,7 @@ export default function Controls() {
                   type="number"
                   value={cameraSpeed}
                   step={0.1}
-                  onChange={(e) =>
-                    set("cameraSpeed", Number(e.target.value))
-                  }
+                  onChange={(e) => set("cameraSpeed", Number(e.target.value))}
                   className="w-full bg-gray-800 p-1 rounded"
                 />
               </div>
@@ -104,10 +101,7 @@ export default function Controls() {
                   onChange={(e) => set("boundingBox", e.target.checked)}
                   className="w-4 h-4 accent-cyan-400"
                 />
-                <label
-                  htmlFor="boundingBox"
-                  className="text-sm select-none"
-                >
+                <label htmlFor="boundingBox" className="text-sm select-none">
                   Show Bounding Boxes
                 </label>
               </div>
@@ -122,7 +116,10 @@ export default function Controls() {
                   }
                   className="w-4 h-4 accent-cyan-400"
                 />
-                <label htmlFor="enableAsteroidDustCloud" className="text-sm select-none">
+                <label
+                  htmlFor="enableAsteroidDustCloud"
+                  className="text-sm select-none"
+                >
                   Show Asteroid Dust
                 </label>
               </div>
@@ -137,7 +134,10 @@ export default function Controls() {
                   }
                   className="w-4 h-4 accent-cyan-400"
                 />
-                <label htmlFor="enableAsteroidModels" className="text-sm select-none">
+                <label
+                  htmlFor="enableAsteroidModels"
+                  className="text-sm select-none"
+                >
                   Show Asteroid Models
                 </label>
               </div>
@@ -147,9 +147,7 @@ export default function Controls() {
                   type="checkbox"
                   id="highlightOrbit"
                   checked={highlightOrbit}
-                  onChange={(e) =>
-                    set("highlightOrbit", e.target.checked)
-                  }
+                  onChange={(e) => set("highlightOrbit", e.target.checked)}
                   className="w-4 h-4 accent-cyan-400"
                 />
                 <label htmlFor="highlightOrbit" className="text-sm select-none">
@@ -162,12 +160,13 @@ export default function Controls() {
                   type="checkbox"
                   id="showEntityLabel"
                   checked={showEntityLabel}
-                  onChange={(e) =>
-                    set("showEntityLabel", e.target.checked)
-                  }
+                  onChange={(e) => set("showEntityLabel", e.target.checked)}
                   className="w-4 h-4 accent-cyan-400"
                 />
-                <label htmlFor="showEntityLabel" className="text-sm select-none">
+                <label
+                  htmlFor="showEntityLabel"
+                  className="text-sm select-none"
+                >
                   Show Label
                 </label>
               </div>
@@ -196,9 +195,10 @@ export default function Controls() {
                   </select>
                 </div>
               )}
-            </div>
+            </motion.div>
           )}
-      </div>
-    </Draggable>
+        </AnimatePresence>
+      )}
+    />
   );
 }

@@ -20,24 +20,37 @@ export default function Draggable({
 
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
-      if (!draggingRef.current) return;
+      if (!draggingRef.current || !selfRef.current) return;
+
+      const elem = selfRef.current;
+      const elemRect = elem.getBoundingClientRect();
+      const viewportWidth = window.innerWidth;
+      const viewportHeight = window.innerHeight;
+
       const newX = e.clientX - offset.current.x;
       const newY = e.clientY - offset.current.y;
-      setPosition({ x: newX, y: newY })
+
+      // Clamp to viewport
+      const maxX = viewportWidth - elemRect.width;
+      const maxY = viewportHeight - elemRect.height;
+
+      const clampedX = Math.max(0, Math.min(newX, maxX));
+      const clampedY = Math.max(0, Math.min(newY, maxY));
+
+      setPosition({ x: clampedX, y: clampedY });
       hasMoved.current = true;
     };
 
-    const stopDrag = (e: MouseEvent) => {
+    const stopDrag = () => {
       draggingRef.current = false;
     };
 
     const handleClick = (e: MouseEvent) => {
       if (hasMoved.current) {
-        // Prevent click event after dragging
         e.preventDefault();
         e.stopPropagation();
         e.stopImmediatePropagation();
-        hasMoved.current = false; // Reset for next interaction
+        hasMoved.current = false;
       }
     };
 
