@@ -1,7 +1,7 @@
 "use client";
 
-import React, { JSX, useState } from "react";
-import { Reorder, motion } from "framer-motion";
+import React, { JSX, useState, useEffect } from "react";
+import { Reorder } from "framer-motion";
 import clsx from "clsx";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
@@ -12,10 +12,26 @@ interface Widget {
 }
 
 const allWidgets: Widget[] = [
-  { id: "speed", title: "Speed", content: (v: string) => <p>🚀 {v}</p> },
-  { id: "distance", title: "Distance", content: (v: string) => <p>🛰️ {v}</p> },
-  { id: "selected", title: "Selected", content: (v: string[]) => <p>{v.join(", ")}</p> },
-  { id: "system", title: "System", content: (v: string) => <p>☀️ {v}</p> },
+  {
+    id: "speed",
+    title: "Speed",
+    content: (value: string) => <p>🚀 {value}</p>,
+  },
+  {
+    id: "distance",
+    title: "Distance",
+    content: (value: string) => <p>🛰️ {value}</p>,
+  },
+  {
+    id: "selected",
+    title: "Selected",
+    content: (values: string[]) => <p>{values.join(", ")}</p>,
+  },
+  {
+    id: "system",
+    title: "System",
+    content: (value: string) => <p>☀️ {value}</p>,
+  },
 ];
 
 const defaultHudValues: Record<string, any> = {
@@ -28,17 +44,34 @@ const defaultHudValues: Record<string, any> = {
 export default function HUD() {
   const [dockWidgets, setDockWidgets] = useState<string[]>(["speed", "distance"]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [draggingWidget, setDraggingWidget] = useState<Widget | null>(null);
+  const [ghostPosition, setGhostPosition] = useState({ x: 0, y: 0 });
 
   const sidebarWidgets = allWidgets.filter((w) => !dockWidgets.includes(w.id));
 
   const onDragStartSidebar = (e: React.DragEvent<HTMLDivElement>, id: string) => {
     e.dataTransfer.setData("widgetId", id);
     e.dataTransfer.effectAllowed = "move";
+    const widget = allWidgets.find((w) => w.id === id);
+    if (widget) {
+      setDraggingWidget(widget);
+      e.dataTransfer.setDragImage(new Image(), 0, 0); // Hide native drag ghost
+    }
   };
 
   const onDragStartRemoveHandle = (e: React.DragEvent<HTMLDivElement>, id: string) => {
     e.dataTransfer.setData("widgetId", id);
     e.dataTransfer.effectAllowed = "move";
+    const widget = allWidgets.find((w) => w.id === id);
+    if (widget) {
+      setDraggingWidget(widget);
+      e.dataTransfer.setDragImage(new Image(), 0, 0);
+    }
+  };
+
+  const onDragOver = (e: React.DragEvent<HTMLDivElement>) => {
+    e.preventDefault();
+    setGhostPosition({ x: e.clientX + 10, y: e.clientY + 10 });
   };
 
   const onDropToDock = (e: React.DragEvent<HTMLDivElement>) => {
@@ -47,6 +80,7 @@ export default function HUD() {
     if (id && !dockWidgets.includes(id)) {
       setDockWidgets([...dockWidgets, id]);
     }
+    setDraggingWidget(null);
   };
 
   const onDropToSidebar = (e: React.DragEvent<HTMLDivElement>) => {
@@ -55,19 +89,38 @@ export default function HUD() {
     if (id && dockWidgets.includes(id)) {
       setDockWidgets(dockWidgets.filter((w) => w !== id));
     }
+    setDraggingWidget(null);
   };
 
-  const onDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
+  const onDragEnd = () => {
+    setDraggingWidget(null);
   };
+
+  useEffect(() => {
+    window.addEventListener("dragend", onDragEnd);
+    return () => window.removeEventListener("dragend", onDragEnd);
+  }, []);
 
   return (
     <>
-      {/* Sidebar panel with Framer Motion */}
-      <motion.div
-        animate={{ x: sidebarOpen ? 0 : -240 }}
-        transition={{ type: "tween", duration: 0.3 }}
-        className="fixed top-0 left-0 bottom-0 w-60 p-4 bg-black/80 backdrop-blur-md border-r border-gray-700 overflow-y-auto select-none z-50"
+      {/* Sidebar toggle button */}
+      <button
+        onClick={() => setSidebarOpen((v) => !v)}
+        aria-label={sidebarOpen ? "Close widgets sidebar" : "Open widgets sidebar"}
+        className={clsx(
+          "fixed top-1/2 -translate-y-1/2 z-60 p-2 bg-black/60 text-white rounded-full backdrop-blur-md border border-gray-700 hover:bg-gray-700 flex items-center justify-center",
+          sidebarOpen ? "left-60 ml-1" : "left-0"
+        )}
+      >
+        {sidebarOpen ? <ChevronLeft className="w-6 h-6" /> : <ChevronRight className="w-6 h-6" />}
+      </button>
+
+      {/* Side panel */}
+      <div
+        className={clsx(
+          "fixed top-0 left-0 bottom-0 w-60 p-4 bg-black/80 backdrop-blur-md border-r border-gray-700 overflow-y-auto select-none transition-transform duration-300",
+          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        )}
         onDrop={onDropToSidebar}
         onDragOver={onDragOver}
       >
@@ -86,21 +139,7 @@ export default function HUD() {
             <div>{widget.content(defaultHudValues[widget.id])}</div>
           </div>
         ))}
-      </motion.div>
-
-      {/* Toggle button with motion */}
-      <motion.button
-        initial={false}
-        animate={{ x: sidebarOpen ? 240 : 0 }}
-        transition={{ type: "tween", duration: 0.3 }}
-        onClick={() => setSidebarOpen((v) => !v)}
-        aria-label={sidebarOpen ? "Close widgets sidebar" : "Open widgets sidebar"}
-        className={clsx(
-          "fixed top-1/2 -translate-y-1/2 z-60 p-2 bg-black/60 text-white rounded-full backdrop-blur-md border border-gray-700 hover:bg-gray-700 flex items-center justify-center"
-        )}
-      >
-        {sidebarOpen ? <ChevronLeft className="w-6 h-6" /> : <ChevronRight className="w-6 h-6" />}
-      </motion.button>
+      </div>
 
       {/* Dock */}
       <div
@@ -115,12 +154,10 @@ export default function HUD() {
               <Reorder.Item
                 key={widget.id}
                 value={widget.id}
-                dragListener={true} // enable reorder drag inside dock
                 className={clsx(
                   "drag-handle cursor-grab items-center bg-black/70 rounded-xl px-4 py-2 w-36 gap-2 text-white text-sm font-mono shadow-lg border border-white/10 hover:bg-gray-700 flex flex-col select-none relative"
                 )}
               >
-                {/* Remove handle: small icon area for native drag to sidebar */}
                 <div
                   draggable
                   onDragStart={(e) => onDragStartRemoveHandle(e, widget.id)}
@@ -129,13 +166,29 @@ export default function HUD() {
                 >
                   ×
                 </div>
-                <p className="font-bold text-xs mb-1 text-white/70 uppercase tracking-wide">{widget.title}</p>
+
+                <p className="font-bold text-xs mb-1 text-white/70 uppercase tracking-wide">
+                  {widget.title}
+                </p>
                 <div>{widget.content(defaultHudValues[widget.id])}</div>
               </Reorder.Item>
             );
           })}
         </Reorder.Group>
       </div>
+
+      {/* Floating draggable ghost widget */}
+      {draggingWidget && (
+        <div
+          className="pointer-events-none fixed z-[999] w-40 bg-black/70 text-white text-sm font-mono rounded-xl px-4 py-2 border border-white/10 shadow-xl"
+          style={{ left: ghostPosition.x, top: ghostPosition.y }}
+        >
+          <p className="font-bold text-xs mb-1 text-white/70 uppercase tracking-wide">
+            {draggingWidget.title}
+          </p>
+          <div>{draggingWidget.content(defaultHudValues[draggingWidget.id])}</div>
+        </div>
+      )}
     </>
   );
 }
