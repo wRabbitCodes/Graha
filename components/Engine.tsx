@@ -6,6 +6,7 @@ import { TEXTURES, FONTS, MODELS, JSON_DATA } from "@/grahaEngine/data/urls";
 import Controls from "./Controls";
 import { useSettings } from "@/store/useSettings";
 import { HUD } from "./HUD";
+import Datepicker from "./Datepicker";
 
 export default function Engine() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -96,28 +97,28 @@ export default function Engine() {
 
   return (
     <div className="relative w-full h-full">
-
+      <Datepicker/>
       {/* HUD */}
       <HUD/>
       {/* Canvas */}
-      <canvas
+      {/* <canvas
         ref={canvasRef}
         id="glCanvas"
         className="absolute inset-0 w-full h-full block z-0 bg-black"
-      />
+      /> */}
 
       {/* Crosshair */}
-      {showCrosshair && (
+      {/* {showCrosshair && (
         <div
           id="crosshair"
           className="fixed left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 text-cyan-400 text-2xl font-orbitron z-50 pointer-events-none"
         >
           ⌖
         </div>
-      )}
+      )} */}
 
       {/* Loading Screen */}
-      {!loadingDone && (
+      {/* {!loadingDone && (
         <div
           id="loading-screen"
           className="fixed top-0 left-0 w-screen h-screen bg-black text-white flex flex-col items-center justify-center z-[9999]"
@@ -132,7 +133,7 @@ export default function Engine() {
             className="w-4/5 h-4"
           />
         </div>
-      )}
+      )} */}
 
       <Controls />
     </div>
