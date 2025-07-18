@@ -1,37 +1,21 @@
 "use client";
 
 import React, { JSX, useState } from "react";
-import { Reorder } from "framer-motion";
+import { Reorder, motion } from "framer-motion";
 import clsx from "clsx";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 
 interface Widget {
   id: string;
   title: string;
-  content:(...args:any[])=>JSX.Element;
+  content: (...args: any[]) => JSX.Element;
 }
 
 const allWidgets: Widget[] = [
-  {
-    id: "speed",
-    title: "Speed",
-    content: (value: string) => <p>🚀 {value}</p>,
-  },
-  {
-    id: "distance",
-    title: "Distance",
-    content: (value: string) => <p>🛰️ {value}</p>,
-  },
-  {
-    id: "selected",
-    title: "Selected",
-    content: (values: string[]) => <p> {values.join(", ")}</p>,
-  },
-  {
-    id: "system",
-    title: "System",
-    content: (value: string) => <p>☀️ {value}</p>,
-  },
+  { id: "speed", title: "Speed", content: (v: string) => <p>🚀 {v}</p> },
+  { id: "distance", title: "Distance", content: (v: string) => <p>🛰️ {v}</p> },
+  { id: "selected", title: "Selected", content: (v: string[]) => <p>{v.join(", ")}</p> },
+  { id: "system", title: "System", content: (v: string) => <p>☀️ {v}</p> },
 ];
 
 const defaultHudValues: Record<string, any> = {
@@ -45,22 +29,18 @@ export default function HUD() {
   const [dockWidgets, setDockWidgets] = useState<string[]>(["speed", "distance"]);
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
-  // Sidebar widgets that are not in dock
   const sidebarWidgets = allWidgets.filter((w) => !dockWidgets.includes(w.id));
 
-  // Native drag start on sidebar widgets (to add)
   const onDragStartSidebar = (e: React.DragEvent<HTMLDivElement>, id: string) => {
     e.dataTransfer.setData("widgetId", id);
     e.dataTransfer.effectAllowed = "move";
   };
 
-  // Native drag start on dock widget remove handle (to remove from dock)
   const onDragStartRemoveHandle = (e: React.DragEvent<HTMLDivElement>, id: string) => {
     e.dataTransfer.setData("widgetId", id);
     e.dataTransfer.effectAllowed = "move";
   };
 
-  // Drop on dock to add widget
   const onDropToDock = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     const id = e.dataTransfer.getData("widgetId");
@@ -69,7 +49,6 @@ export default function HUD() {
     }
   };
 
-  // Drop on sidebar to remove widget from dock
   const onDropToSidebar = (e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     const id = e.dataTransfer.getData("widgetId");
@@ -84,24 +63,11 @@ export default function HUD() {
 
   return (
     <>
-      {/* Sidebar toggle button */}
-      <button
-        onClick={() => setSidebarOpen((v) => !v)}
-        aria-label={sidebarOpen ? "Close widgets sidebar" : "Open widgets sidebar"}
-        className={clsx(
-          "fixed top-1/2 -translate-y-1/2 z-60 p-2 bg-black/60 text-white rounded-full backdrop-blur-md border border-gray-700 hover:bg-gray-700 flex items-center justify-center",
-          sidebarOpen ? "left-60 ml-1" : "left-0"
-        )}
-      >
-        {sidebarOpen ? <ChevronLeft className="w-6 h-6" /> : <ChevronRight className="w-6 h-6" />}
-      </button>
-
-      {/* Side panel */}
-      <div
-        className={clsx(
-          "fixed top-0 left-0 bottom-0 w-60 p-4 bg-black/80 backdrop-blur-md border-r border-gray-700 overflow-y-auto select-none transition-transform duration-300",
-          sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        )}
+      {/* Sidebar panel with Framer Motion */}
+      <motion.div
+        animate={{ x: sidebarOpen ? 0 : -240 }}
+        transition={{ type: "tween", duration: 0.3 }}
+        className="fixed top-0 left-0 bottom-0 w-60 p-4 bg-black/80 backdrop-blur-md border-r border-gray-700 overflow-y-auto select-none z-50"
         onDrop={onDropToSidebar}
         onDragOver={onDragOver}
       >
@@ -120,7 +86,21 @@ export default function HUD() {
             <div>{widget.content(defaultHudValues[widget.id])}</div>
           </div>
         ))}
-      </div>
+      </motion.div>
+
+      {/* Toggle button with motion */}
+      <motion.button
+        initial={false}
+        animate={{ x: sidebarOpen ? 240 : 0 }}
+        transition={{ type: "tween", duration: 0.3 }}
+        onClick={() => setSidebarOpen((v) => !v)}
+        aria-label={sidebarOpen ? "Close widgets sidebar" : "Open widgets sidebar"}
+        className={clsx(
+          "fixed top-1/2 -translate-y-1/2 z-60 p-2 bg-black/60 text-white rounded-full backdrop-blur-md border border-gray-700 hover:bg-gray-700 flex items-center justify-center"
+        )}
+      >
+        {sidebarOpen ? <ChevronLeft className="w-6 h-6" /> : <ChevronRight className="w-6 h-6" />}
+      </motion.button>
 
       {/* Dock */}
       <div
@@ -149,7 +129,6 @@ export default function HUD() {
                 >
                   ×
                 </div>
-
                 <p className="font-bold text-xs mb-1 text-white/70 uppercase tracking-wide">{widget.title}</p>
                 <div>{widget.content(defaultHudValues[widget.id])}</div>
               </Reorder.Item>
