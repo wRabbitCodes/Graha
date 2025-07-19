@@ -1,5 +1,3 @@
-"use client";
-
 import React, { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
@@ -62,7 +60,6 @@ export default function HUD() {
       setSidebarWidgets((prev) => prev.filter((w) => w.id !== id));
       setDockWidgets((prev) => [...prev, widget]);
     } else if (source === "dock") {
-      // Reordering within dock
       const dockRect = dockRef.current?.getBoundingClientRect();
       if (!dockRect) return;
 
@@ -146,7 +143,9 @@ export default function HUD() {
               <motion.div
                 key={widget.id}
                 draggable
-                onDragStart={(e: any) => onDragStart(e, widget.id, "sidebar")}
+                onDragStart={(e: any) =>
+                  onDragStart(e, widget.id, "sidebar")
+                }
                 className={clsx(
                   "mb-2 cursor-grab rounded-xl px-3 py-2 text-sm font-mono shadow-lg border border-white/10 flex flex-col gap-1",
                   isDragging
@@ -171,20 +170,28 @@ export default function HUD() {
       {/* Dock */}
       <motion.div
         ref={dockRef}
-        className="fixed bottom-4 left-1/2 -translate-x-1/2 p-2 bg-black/80 backdrop-blur-md border border-gray-700 rounded-xl flex gap-2 select-none z-50"
+        className={clsx(
+          "fixed bottom-4 left-1/2 -translate-x-1/2 p-2 bg-black/80 backdrop-blur-md border border-gray-700 flex gap-2 select-none z-50",
+          dockWidgets.length === 0 ? "rounded-full" : "rounded-xl"
+        )}
         onDrop={onDropToDock}
         onDragOver={onDragOver}
         layout
-        transition={{ type: "spring", stiffness: 400, damping: 20 }}
+        layoutDependency={dockWidgets.length}
+        transition={{ type: "spring", stiffness: 600, damping: 25, mass: 0.5 }}
+        initial={{ opacity: 0, scale: 0.8 }}
+        animate={{ opacity: 1, scale: 1 }}
       >
-        <AnimatePresence>
+        <AnimatePresence mode="popLayout">
           {dockWidgets.map((widget) => {
             const isDragging = draggingWidget?.id === widget.id;
             return (
               <motion.div
                 key={widget.id}
                 draggable
-                onDragStart={(e: any) => onDragStart(e, widget.id, "dock")}
+                onDragStart={(e: any) =>
+                  onDragStart(e, widget.id, "dock")
+                }
                 className={clsx(
                   "cursor-grab rounded-xl px-3 py-2 text-sm font-mono shadow-lg border border-white/10 flex flex-col gap-1",
                   isDragging
@@ -194,7 +201,7 @@ export default function HUD() {
                 layout
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
-                exit={{ opacity: 0, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.8 }}
                 transition={{ type: "spring", stiffness: 400, damping: 20 }}
                 whileDrag={{ scale: 1.05, opacity: 0.8, rotate: 2 }}
               >
