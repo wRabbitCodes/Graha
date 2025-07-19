@@ -108,7 +108,7 @@ export default function HUD() {
           sidebarOpen ? "Close widgets sidebar" : "Open widgets sidebar"
         }
         className={clsx(
-          "fixed top-1/2 -translate-y-1/2 z-60 p-2 bg-black/60 text-white rounded-full backdrop-blur-md border border-gray-700 hover:bg-gray-700 flex items-center justify-center",
+          "fixed top-1/2 -translate-y-1/2 z-60 p-2 text-white rounded-full hover:bg-gray-700 flex items-center justify-center",
           sidebarOpen ? "left-60 ml-1" : "left-0"
         )}
         transition={{ type: "spring", stiffness: 300, damping: 25 }}
