@@ -1,4 +1,3 @@
-// HUD.tsx
 "use client";
 
 import { useEffect, useState, useRef } from "react";
@@ -33,6 +32,7 @@ export default function HUD() {
   const [sidebarWidgets, setSidebarWidgets] = useState<Widget[]>(availableWidgets);
   const [draggingWidget, setDraggingWidget] = useState<DragData | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(true);
+  const dockRef = useRef<HTMLDivElement>(null);
 
   const onDragStart = (
     e: React.DragEvent,
@@ -62,7 +62,25 @@ export default function HUD() {
       setSidebarWidgets((prev) => prev.filter((w) => w.id !== id));
       setDockWidgets((prev) => [...prev, widget]);
     } else if (source === "dock") {
-      // Rearranging within dock (optional)
+      // Reordering within dock
+      const dockRect = dockRef.current?.getBoundingClientRect();
+      if (!dockRect) return;
+
+      const mouseX = e.clientX;
+      const relativeX = mouseX - dockRect.left;
+      const dockWidth = dockRect.width;
+      const widgetCount = dockWidgets.length;
+      const widgetWidth = dockWidth / Math.max(widgetCount, 1);
+      const dropIndex = Math.min(
+        Math.max(Math.floor(relativeX / widgetWidth), 0),
+        widgetCount - 1
+      );
+
+      setDockWidgets((prev) => {
+        const newWidgets = prev.filter((w) => w.id !== id);
+        newWidgets.splice(dropIndex, 0, widget);
+        return newWidgets;
+      });
     }
     setDraggingWidget(null);
   };
@@ -141,6 +159,7 @@ export default function HUD() {
 
       {/* Dock */}
       <div
+        ref={dockRef}
         className="fixed bottom-4 left-1/2 -translate-x-1/2 p-2 bg-black/80 backdrop-blur-md border border-gray-700 rounded-xl flex gap-2 select-none z-50"
         onDrop={onDropToDock}
         onDragOver={onDragOver}
