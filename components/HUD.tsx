@@ -56,9 +56,51 @@ export default function HUD() {
 
   const [hoverDockIndex, setHoverDockIndex] = useState<number | null>(null);
 
-  const onDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
+  const [isDockHovered, setIsDockHovered] = useState(false);
+  const [isSidebarHovered, setIsSidebarHovered] = useState(false);
+  const sidebarHoverTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const dockHoverTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  
 
+  const onSidebarDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    if (!isSidebarHovered) setIsSidebarHovered(true);
+    if (sidebarHoverTimeout.current) {
+      clearTimeout(sidebarHoverTimeout.current);
+      sidebarHoverTimeout.current = null;
+    }
+  };
+
+  useEffect(() => {
+    const handleDragEnd = () => {
+      setIsSidebarHovered(false);
+      setIsDockHovered(false);
+      setHoverDockIndex(null);
+    };
+
+    window.addEventListener("dragend", handleDragEnd);
+    window.addEventListener("drop", handleDragEnd); // just in case
+
+    return () => {
+      window.removeEventListener("dragend", handleDragEnd);
+      window.removeEventListener("drop", handleDragEnd);
+    };
+  }, []);
+
+
+  const onSidebarDragLeave = () => {
+    sidebarHoverTimeout.current = setTimeout(() => {
+      setIsSidebarHovered(false);
+    }, 50); // Delay helps avoid flicker
+  };
+
+  const onDockDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    if (!isDockHovered) setIsDockHovered(true);
+    if (dockHoverTimeout.current) {
+      clearTimeout(dockHoverTimeout.current);
+      dockHoverTimeout.current = null;
+    }
     if (!dockRef.current || draggingWidget?.source !== "dock") return;
 
     const dockRect = dockRef.current.getBoundingClientRect();
@@ -117,6 +159,15 @@ export default function HUD() {
     setDraggingWidget(null);
   };
 
+  const onSidebarDragEnter = () => setIsSidebarHovered(true);
+
+
+  const onDockDragEnter = () => setIsDockHovered(true);
+  const onDockDragLeave = () => {
+    setIsDockHovered(false);
+    setHoverDockIndex(null);
+  };
+
   const onDropToSidebar = (e: React.DragEvent) => {
     e.preventDefault();
     const id = e.dataTransfer.getData("application/widget-id");
@@ -163,9 +214,13 @@ export default function HUD() {
         initial={false}
         animate={{ x: sidebarOpen ? 0 : -240 }}
         transition={{ type: "spring", stiffness: 300, damping: 25 }}
-        className="scrollbar-thin scrollbar-thumb-gray-800 scrollbar-track-transparent fixed top-0 left-0 bottom-0 w-60 p-4 bg-black/40 backdrop-blur-md border-r border-gray-700 overflow-y-auto select-none z-50"
+        className={clsx("scrollbar-thin scrollbar-thumb-gray-800 scrollbar-track-transparent fixed top-0 left-0 bottom-0 w-60 p-4 bg-black/40 backdrop-blur-md border-r border-gray-700 overflow-y-auto select-none z-50",
+          isSidebarHovered ? "ring-2 ring-pink-500/60 shadow-[0_0_10px_2px_rgba(255,0,200,0.4)]" : ""
+        )}
         onDrop={onDropToSidebar}
-        onDragOver={onDragOver}
+        onDragOver={onSidebarDragOver}
+        onDragEnter={onSidebarDragEnter}
+        onDragLeave={onSidebarDragLeave}
       >
         <h3 className="mb-3 text-white text-lg font-semibold">Widgets</h3>
         {sidebarWidgets.length === 0 && (
@@ -210,10 +265,13 @@ export default function HUD() {
           className={clsx(
             "p-2 bg-black/40 backdrop-blur-md border border-gray-700 flex flex-row gap-2 select-none",
             dockWidgets.length === 0 ? "rounded-full" : "rounded-xl",
-            "max-w-[50vw] overflow-x-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-transparent pointer-events-auto px-2"
+            "max-w-[50vw] overflow-x-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-transparent pointer-events-auto px-2",
+            isDockHovered ? "ring-2 ring-pink-500/60 shadow-[0_0_10px_2px_rgba(255,0,200,0.4)]" : ""
           )}
           onDrop={onDropToDock}
-          onDragOver={onDragOver}
+          onDragOver={onDockDragOver}
+          onDragEnter={onDockDragEnter}
+          onDragLeave={onDockDragLeave}
           layout
           layoutDependency={dockWidgets.length}
           transition={{
