@@ -13,7 +13,6 @@ export type Widget = {
     title: string;
     props: any[];
   }>;
-  props?: { entities: string[] };
 };
 // Example widgets
 const availableWidgets: Widget[] = [
@@ -24,7 +23,6 @@ const availableWidgets: Widget[] = [
     title: "Selected Entities",
     preview: (v: string[]) => v.join(", "),
     component: SelectedEntitiesWidget,
-    props: { entities: [] },
   },
 ];
 
@@ -206,7 +204,7 @@ export default function HUD() {
                 draggable
                 onDragStart={(e: any) => onDragStart(e, widget.id, "dock")}
                 className={clsx(
-                  "cursor-grab rounded-xl px-3 py-2 text-sm font-mono shadow-lg border border-white/10 flex flex-col gap-1 w-[144px] h-[60px]",
+                  "cursor-grab rounded-xl px-3 py-2 text-sm font-mono shadow-lg border border-white/10 flex flex-col gap-1 w-[170px] h-[60px]",
                   isDragging
                     ? "bg-black/40 text-white"
                     : "bg-black/40 text-white hover:bg-gray-700"
