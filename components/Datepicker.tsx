@@ -47,7 +47,7 @@ export default function DatePicker() {
         <button
           ref={ref}
           onClick={toggleOpen}
-          className="drag-handle flex items-center gap-2 px-3 text-white text-sm py-2 rounded-md shadow-lg border border-white/10 font-mon text-white bg-black/70 hover:bg-gray-700"
+          className="drag-handle flex items-center gap-2 px-3 text-white text-sm py-2 rounded-md shadow-lg border border-white/10 font-mon text-white bg-black/40 hover:bg-gray-700"
         >
           <CalendarIcon className="w-4 h-4" />
           {selectedDate ? selectedDate.format("DD MMM YYYY") : "Pick a date"}
@@ -63,7 +63,7 @@ export default function DatePicker() {
               exit={{ opacity: 0, scale: 0.95, y: -5 }}
               transition={{ duration: 0.2 }}
               className={clsx(
-                "absolute mt-2 w-72 p-4 rounded-xl bg-black/80 text-white shadow-lg backdrop-blur-md space-y-2 border border-gray-700",
+                "absolute mt-2 w-72 p-4 rounded-xl bg-black/40 text-white shadow-lg backdrop-blur-md space-y-2 border border-gray-700",
                 flipped ? "bottom-full mb-2" : "top-full mt-2",
                 alignedRight ? "right-0" : "left-0"
               )}

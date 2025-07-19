@@ -30,7 +30,7 @@ export default function Controls() {
       toggle={({ ref }) => (
         <button
           ref={ref}
-          className="drag-handle p-2 bg-black/60 text-white rounded-full backdrop-blur-md transition border border-gray-700 hover:bg-gray-700"
+          className="drag-handle p-2 bg-black/40 text-white rounded-full backdrop-blur-md transition border border-gray-700 hover:bg-gray-700"
           onClick={() => setOpen(!open)}
           aria-label="Settings"
         >
@@ -47,7 +47,7 @@ export default function Controls() {
               exit={{ opacity: 0, scale: 0.95, y: -5 }}
               transition={{ duration: 0.2 }}
               className={clsx(
-                `absolute mt-1 w-72 p-4 rounded-xl bg-black/80 text-white shadow-lg backdrop-blur-md space-y-2 border border-gray-700`,
+                `absolute mt-1 w-72 p-4 rounded-xl bg-black/40 text-white shadow-lg backdrop-blur-md space-y-2 border border-gray-700`,
                 flipped ? "bottom-full mb-2" : "top-full mt-2",
                 alignedRight ? "right-0" : "left-0"
               )}

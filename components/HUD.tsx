@@ -2,22 +2,36 @@ import React, { useEffect, useState, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { clsx } from "clsx";
+import SelectedEntitiesWidget from "./HUDWidets/SelectedEntitiesWidget";
 
-// Example widgets
-const availableWidgets = [
-  { id: "speed", title: "Speed", content: (v: any) => `${v} km/s` },
-  { id: "distance", title: "Distance", content: (v: any) => `${v} km` },
-];
-
-const defaultHudValues: Record<string, number> = {
-  speed: 42,
-  distance: 384400,
-};
-
-type Widget = {
+export type Widget = {
   id: string;
   title: string;
-  content: (value: any) => React.ReactNode;
+  preview: (value: any) => React.ReactNode;
+  component?: React.ComponentType<{
+    id: string;
+    title: string;
+    props: any[];
+  }>;
+  props?: { entities: string[] };
+};
+// Example widgets
+const availableWidgets: Widget[] = [
+  { id: "speed", title: "Speed", preview: (v: any) => `${v} km/s` },
+  { id: "distance", title: "Distance", preview: (v: any) => `${v} km` },
+  {
+    id: "selectedEntities",
+    title: "Selected Entities",
+    preview: (v: string[]) => v.join(", "),
+    component: SelectedEntitiesWidget,
+    props: { entities: [] },
+  },
+];
+
+const widgetPreviewValues: Record<string, any> = {
+  speed: 42,
+  distance: 384400,
+  selectedEntities: ["Shows Selected Entities"],
 };
 
 type DragData = {
@@ -27,9 +41,10 @@ type DragData = {
 
 export default function HUD() {
   const [dockWidgets, setDockWidgets] = useState<Widget[]>([]);
-  const [sidebarWidgets, setSidebarWidgets] = useState<Widget[]>(availableWidgets);
+  const [sidebarWidgets, setSidebarWidgets] =
+    useState<Widget[]>(availableWidgets);
   const [draggingWidget, setDraggingWidget] = useState<DragData | null>(null);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const dockRef = useRef<HTMLDivElement>(null);
 
   const onDragStart = (
@@ -108,7 +123,7 @@ export default function HUD() {
           sidebarOpen ? "Close widgets sidebar" : "Open widgets sidebar"
         }
         className={clsx(
-          "fixed top-1/2 -translate-y-1/2 z-60 p-2 text-white rounded-full hover:bg-gray-700 flex items-center justify-center",
+          "fixed top-1/2 -translate-y-1/2 z-50 rounded-full p-2 text-white hover:bg-gray-600 flex items-center justify-center",
           sidebarOpen ? "left-60 ml-1" : "left-0"
         )}
         transition={{ type: "spring", stiffness: 300, damping: 25 }}
@@ -128,7 +143,7 @@ export default function HUD() {
         initial={false}
         animate={{ x: sidebarOpen ? 0 : -240 }}
         transition={{ type: "spring", stiffness: 300, damping: 25 }}
-        className="fixed top-0 left-0 bottom-0 w-60 p-4 bg-black/80 backdrop-blur-md border-r border-gray-700 overflow-y-auto select-none z-50"
+        className="fixed top-0 left-0 bottom-0 w-60 p-4 bg-black/40 backdrop-blur-md border-r border-gray-700 overflow-y-auto select-none z-50"
         onDrop={onDropToSidebar}
         onDragOver={onDragOver}
       >
@@ -143,11 +158,9 @@ export default function HUD() {
               <motion.div
                 key={widget.id}
                 draggable
-                onDragStart={(e: any) =>
-                  onDragStart(e, widget.id, "sidebar")
-                }
+                onDragStart={(e: any) => onDragStart(e, widget.id, "sidebar")}
                 className={clsx(
-                  "mb-2 cursor-grab rounded-xl px-3 py-2 text-sm font-mono shadow-lg border border-white/10 flex flex-col gap-1",
+                  "mb-2 cursor-grab rounded-xl px-3 py-2 text-sm font-mono shadow-lg border border-white/10 gap-1",
                   isDragging
                     ? "bg-gray-600/50 text-white/30"
                     : "bg-black/70 text-white hover:bg-gray-700"
@@ -160,7 +173,9 @@ export default function HUD() {
                 whileDrag={{ scale: 1.05, opacity: 0.8, rotate: 2 }}
               >
                 <div className="font-bold">{widget.title}</div>
-                <div>{widget.content(defaultHudValues[widget.id])}</div>
+                <div className="font-thin text-white/40">
+                  {widget.preview(widgetPreviewValues[widget.id])}
+                </div>
               </motion.div>
             );
           })}
@@ -171,7 +186,7 @@ export default function HUD() {
       <motion.div
         ref={dockRef}
         className={clsx(
-          "fixed bottom-4 left-1/2 -translate-x-1/2 p-2 bg-black/80 backdrop-blur-md border border-gray-700 flex gap-2 select-none z-50",
+          "fixed bottom-4 left-1/2 -translate-x-1/2 p-2 bg-black/40 backdrop-blur-md border border-gray-700 flex flex-row gap-2 select-none z-50",
           dockWidgets.length === 0 ? "rounded-full" : "rounded-xl"
         )}
         onDrop={onDropToDock}
@@ -189,14 +204,12 @@ export default function HUD() {
               <motion.div
                 key={widget.id}
                 draggable
-                onDragStart={(e: any) =>
-                  onDragStart(e, widget.id, "dock")
-                }
+                onDragStart={(e: any) => onDragStart(e, widget.id, "dock")}
                 className={clsx(
-                  "cursor-grab rounded-xl px-3 py-2 text-sm font-mono shadow-lg border border-white/10 flex flex-col gap-1",
+                  "cursor-grab rounded-xl px-3 py-2 text-sm font-mono shadow-lg border border-white/10 flex flex-col gap-1 w-[144px] h-[60px]",
                   isDragging
-                    ? "bg-gray-600/50 text-white/30"
-                    : "bg-black/70 text-white hover:bg-gray-700"
+                    ? "bg-black/40 text-white"
+                    : "bg-black/40 text-white hover:bg-gray-700"
                 )}
                 layout
                 initial={{ opacity: 0, scale: 0.8 }}
@@ -205,8 +218,18 @@ export default function HUD() {
                 transition={{ type: "spring", stiffness: 400, damping: 20 }}
                 whileDrag={{ scale: 1.05, opacity: 0.8, rotate: 2 }}
               >
-                <div className="font-bold">{widget.title}</div>
-                <div>{widget.content(defaultHudValues[widget.id])}</div>
+                {widget.component ? (
+                  <widget.component
+                    id={widget.id}
+                    title={widget.title}
+                    props={widgetPreviewValues[widget.id] as string[]}
+                  />
+                ) : (
+                  <div className="flex flex-col">
+                    <div className="font-bold">{widget.title}</div>
+                    {widget.preview(widgetPreviewValues[widget.id])}
+                  </div>
+                )}
               </motion.div>
             );
           })}

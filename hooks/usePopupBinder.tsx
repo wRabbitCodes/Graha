@@ -10,7 +10,6 @@ export function usePopupBinder(
   const [popupAlignedRight, setPopupAlignedRight] = useState(false);
 
   useLayoutEffect(() => {
-    debugger;
     if (!open) {
       setPopupFlipped(false);
       setPopupAlignedRight(false);

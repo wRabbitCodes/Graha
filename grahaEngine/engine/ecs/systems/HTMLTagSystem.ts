@@ -26,7 +26,7 @@ export class HTMLTagSystem extends System {
             height: "100%",
             pointerEvents: "none",
             overflow: "hidden",
-            zIndex: "1000",
+            zIndex: "5", // CANVAS IS 0 ...so render it above canvas but below everything else
         });
         document.body.appendChild(this.container);
 

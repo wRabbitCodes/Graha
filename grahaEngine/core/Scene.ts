@@ -116,14 +116,6 @@ export class Scene {
       (s) => s.enableAsteroidDustCloud
     );
     this.systemManager.registerSystem(
-      new AsteroidModelSystem(this.registry, this.utils),
-      (s) => s.enableAsteroidModels
-    );
-    this.systemManager.registerSystem(
-      new AsteroidModelRenderSystem(this.assetsLoader, this.renderer, this.registry, this.utils),
-      (s) => s.enableAsteroidModels
-    );
-    this.systemManager.registerSystem(
       new OrbitPathRenderSystem(this.renderer, this.registry, this.utils),
       (s) => s.highlightOrbit
     );
