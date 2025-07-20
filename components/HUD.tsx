@@ -7,7 +7,7 @@ import SelectedEntitiesWidget from "./HUDWidets/SelectedEntitiesWidget";
 enum HUD_ELEMENTS {
   DOCK = "DOCK",
   SIDEBAR = "SIDEBAR",
-  DASH = "DASH"
+  DASH = "DASH",
 }
 
 export type Widget = {
@@ -72,13 +72,12 @@ export default function HUD() {
   );
   const dockHoverTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-
-  // DRAG START 
+  // DRAG START
 
   const onDragStart = (
     e: React.DragEvent,
     id: string,
-    source: HUD_ELEMENTS,
+    source: HUD_ELEMENTS
   ) => {
     setDraggingWidget({ id, source });
     e.dataTransfer.setData("application/widget-id", id);
@@ -107,14 +106,14 @@ export default function HUD() {
     setHoverSidebarIndex(Math.min(index, sidebarWidgets.length));
   };
 
-    const onDockDragOver = (e: React.DragEvent) => {
+  const onDockDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     if (!isDockHovered) setIsDockHovered(true);
     if (dockHoverTimeout.current) {
       clearTimeout(dockHoverTimeout.current);
       dockHoverTimeout.current = null;
     }
-   
+
     const dockRect = e.currentTarget.getBoundingClientRect();
     const mouseX = e.clientX;
     const relativeX = mouseX - dockRect.left;
@@ -158,11 +157,13 @@ export default function HUD() {
   const onDropToDock = (e: React.DragEvent) => {
     e.preventDefault();
     const id = e.dataTransfer.getData("application/widget-id");
-    const source = e.dataTransfer.getData("application/widget-source") as HUD_ELEMENTS;
+    const source = e.dataTransfer.getData(
+      "application/widget-source"
+    ) as HUD_ELEMENTS;
     const widget = availableWidgets.find((w) => w.id === id);
     if (!widget) return;
 
-    switch(source) {
+    switch (source) {
       case HUD_ELEMENTS.SIDEBAR:
         setSidebarWidgets((prev) => prev.filter((w) => w.id !== id));
         setDockWidgets((prev) => [...prev, widget]);
@@ -175,21 +176,23 @@ export default function HUD() {
           return newWidgets;
         });
         break;
-      }
+    }
     setDraggingWidget(null);
   };
 
   const onDropToSidebar = (e: React.DragEvent) => {
     e.preventDefault();
     const id = e.dataTransfer.getData("application/widget-id");
-    const source = e.dataTransfer.getData("application/widget-source") as HUD_ELEMENTS;
+    const source = e.dataTransfer.getData(
+      "application/widget-source"
+    ) as HUD_ELEMENTS;
     const widget = availableWidgets.find((w) => w.id === id);
     if (!widget) return;
 
-    switch(source) {
+    switch (source) {
       case HUD_ELEMENTS.DOCK:
         setDockWidgets((prev) => prev.filter((w) => w.id !== id));
-        setSidebarWidgets(((prev) => [...prev, widget]));
+        setSidebarWidgets((prev) => [...prev, widget]);
         break;
       case HUD_ELEMENTS.SIDEBAR:
         setSidebarWidgets((prev) => {
@@ -276,7 +279,9 @@ export default function HUD() {
               <motion.div
                 key={widget.id}
                 draggable
-                onDragStart={(e: any) => onDragStart(e, widget.id, HUD_ELEMENTS.SIDEBAR)}
+                onDragStart={(e: any) =>
+                  onDragStart(e, widget.id, HUD_ELEMENTS.SIDEBAR)
+                }
                 className={clsx(
                   "mb-2 cursor-grab rounded-xl px-3 py-2 text-sm font-mono shadow-lg border border-white/10 gap-1",
                   isDragging
@@ -333,12 +338,15 @@ export default function HUD() {
             {dockWidgets.map((widget, index) => {
               const isDragging = draggingWidget?.id === widget.id;
               const isHovered =
-                hoverDockIndex === index && draggingWidget?.source === HUD_ELEMENTS.DOCK;
+                hoverDockIndex === index &&
+                draggingWidget?.source === HUD_ELEMENTS.DOCK;
               return (
                 <motion.div
                   key={widget.id}
                   draggable
-                  onDragStart={(e: any) => onDragStart(e, widget.id, HUD_ELEMENTS.DOCK)}
+                  onDragStart={(e: any) =>
+                    onDragStart(e, widget.id, HUD_ELEMENTS.DOCK)
+                  }
                   className={clsx(
                     "flex-shrink-0 cursor-grab rounded-xl px-3 py-2 text-sm font-mono shadow-lg border border-white/10 flex flex-col gap-1 w-[170px] h-[60px]",
                     isDragging
