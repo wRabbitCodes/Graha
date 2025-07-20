@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { clsx } from "clsx";
@@ -74,7 +74,7 @@ export default function HUD() {
 
   // DRAG START
 
-  const onDragStart = (
+  const onDragStart = useCallback((
     e: React.DragEvent,
     id: string,
     source: HUD_ELEMENTS
@@ -83,7 +83,7 @@ export default function HUD() {
     e.dataTransfer.setData("application/widget-id", id);
     e.dataTransfer.setData("application/widget-source", source);
     e.dataTransfer.effectAllowed = "move";
-  };
+  }, []);
 
   // ---
 
