@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useCallback } from "react";
+import React, { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { clsx } from "clsx";
@@ -88,8 +88,10 @@ export default function HUD() {
   // ---
 
   // DRAG OVER HANDLERS
+  const widgetHeight = 60; // Approx height per sidebar item
+  const widgetWidth = 170; // same as your widget width
 
-  const onSidebarDragOver = (e: React.DragEvent) => {
+  const onSidebarDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     if (!isSidebarHovered) setIsSidebarHovered(true);
     if (sidebarHoverTimeout.current) {
@@ -101,12 +103,11 @@ export default function HUD() {
     const mouseY = e.clientY;
     const relativeY = mouseY - sidebarRect.top;
 
-    const widgetHeight = 60; // Approx height per sidebar item
     const index = Math.floor(relativeY / widgetHeight) - 1;
     setHoverSidebarIndex(Math.min(index, sidebarWidgets.length));
-  };
+  }, [widgetHeight]);
 
-  const onDockDragOver = (e: React.DragEvent) => {
+  const onDockDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     if (!isDockHovered) setIsDockHovered(true);
     if (dockHoverTimeout.current) {
@@ -118,11 +119,10 @@ export default function HUD() {
     const mouseX = e.clientX;
     const relativeX = mouseX - dockRect.left;
 
-    const widgetWidth = 170; // same as your widget width
     const index = Math.floor(relativeX / widgetWidth);
 
     setHoverDockIndex(Math.min(index, dockWidgets.length - 1));
-  };
+  }, [widgetWidth]);
 
   // ---
 
@@ -154,7 +154,7 @@ export default function HUD() {
 
   // DROP TO ELEMENTS
 
-  const onDropToDock = (e: React.DragEvent) => {
+  const onDropToDock = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     const id = e.dataTransfer.getData("application/widget-id");
     const source = e.dataTransfer.getData(
@@ -178,9 +178,9 @@ export default function HUD() {
         break;
     }
     setDraggingWidget(null);
-  };
+  }, [hoverDockIndex, availableWidgets])
 
-  const onDropToSidebar = (e: React.DragEvent) => {
+  const onDropToSidebar = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     const id = e.dataTransfer.getData("application/widget-id");
     const source = e.dataTransfer.getData(
@@ -203,7 +203,7 @@ export default function HUD() {
         break;
     }
     setDraggingWidget(null);
-  };
+  }, [hoverSidebarIndex, availableWidgets]);
 
   // ---
 

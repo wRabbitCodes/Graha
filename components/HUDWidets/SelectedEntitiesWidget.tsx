@@ -3,6 +3,7 @@
 import grahaEvents, { GRAHA_ENGINE_EVENTS } from "@/grahaEngine/utils/EventManager";
 import { useEffect, useState } from "react";
 import { clsx } from "clsx";
+import React from "react";
 
 type SelectedEntitiesWidgetProps = {
   id: string;
@@ -10,7 +11,7 @@ type SelectedEntitiesWidgetProps = {
   props: string[];
 };
 
-export default function SelectedEntitiesWidget({
+export default React.memo(function SelectedEntitiesWidget({
   id,
   title,
   props: initialEntities,
@@ -64,4 +65,4 @@ export default function SelectedEntitiesWidget({
       `}</style>
     </div>
   );
-}
+});
