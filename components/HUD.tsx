@@ -4,6 +4,12 @@ import { ChevronLeft, ChevronRight } from "lucide-react";
 import { clsx } from "clsx";
 import SelectedEntitiesWidget from "./HUDWidets/SelectedEntitiesWidget";
 
+enum HUD_ELEMENTS {
+  DOCK = "DOCK",
+  SIDEBAR = "SIDEBAR",
+  DASH = "DASH"
+}
+
 export type Widget = {
   id: string;
   title: string;
@@ -43,7 +49,7 @@ const widgetPreviewValues: Record<string, any> = {
 
 type DragData = {
   id: string;
-  source: "dock" | "sidebar";
+  source: HUD_ELEMENTS;
 };
 
 export default function HUD() {
@@ -66,6 +72,24 @@ export default function HUD() {
   );
   const dockHoverTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+
+  // DRAG START 
+
+  const onDragStart = (
+    e: React.DragEvent,
+    id: string,
+    source: HUD_ELEMENTS,
+  ) => {
+    setDraggingWidget({ id, source });
+    e.dataTransfer.setData("application/widget-id", id);
+    e.dataTransfer.setData("application/widget-source", source);
+    e.dataTransfer.effectAllowed = "move";
+  };
+
+  // ---
+
+  // DRAG OVER HANDLERS
+
   const onSidebarDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     if (!isSidebarHovered) setIsSidebarHovered(true);
@@ -83,6 +107,103 @@ export default function HUD() {
     setHoverSidebarIndex(Math.min(index, sidebarWidgets.length));
   };
 
+    const onDockDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    if (!isDockHovered) setIsDockHovered(true);
+    if (dockHoverTimeout.current) {
+      clearTimeout(dockHoverTimeout.current);
+      dockHoverTimeout.current = null;
+    }
+   
+    const dockRect = e.currentTarget.getBoundingClientRect();
+    const mouseX = e.clientX;
+    const relativeX = mouseX - dockRect.left;
+
+    const widgetWidth = 170; // same as your widget width
+    const index = Math.floor(relativeX / widgetWidth);
+
+    setHoverDockIndex(Math.min(index, dockWidgets.length - 1));
+  };
+
+  // ---
+
+  // DRAG ENTER HANDLER
+
+  const onSidebarDragEnter = () => setIsSidebarHovered(true);
+
+  const onDockDragEnter = () => setIsDockHovered(true);
+
+  // ---
+
+  // DRAG LEAVE HANDLER
+
+  const onSidebarDragLeave = () => {
+    sidebarHoverTimeout.current = setTimeout(() => {
+      setIsSidebarHovered(false);
+    }, 50); // Delay helps avoid flicker
+    setHoverSidebarIndex(null);
+  };
+
+  const onDockDragLeave = () => {
+    dockHoverTimeout.current = setTimeout(() => {
+      setIsDockHovered(false);
+    }, 50);
+    setHoverDockIndex(null);
+  };
+
+  // ---
+
+  // DROP TO ELEMENTS
+
+  const onDropToDock = (e: React.DragEvent) => {
+    e.preventDefault();
+    const id = e.dataTransfer.getData("application/widget-id");
+    const source = e.dataTransfer.getData("application/widget-source") as HUD_ELEMENTS;
+    const widget = availableWidgets.find((w) => w.id === id);
+    if (!widget) return;
+
+    switch(source) {
+      case HUD_ELEMENTS.SIDEBAR:
+        setSidebarWidgets((prev) => prev.filter((w) => w.id !== id));
+        setDockWidgets((prev) => [...prev, widget]);
+        break;
+
+      case HUD_ELEMENTS.DOCK:
+        setDockWidgets((prev) => {
+          const newWidgets = prev.filter((w) => w.id !== id);
+          newWidgets.splice(hoverDockIndex ?? newWidgets.length, 0, widget);
+          return newWidgets;
+        });
+        break;
+      }
+    setDraggingWidget(null);
+  };
+
+  const onDropToSidebar = (e: React.DragEvent) => {
+    e.preventDefault();
+    const id = e.dataTransfer.getData("application/widget-id");
+    const source = e.dataTransfer.getData("application/widget-source") as HUD_ELEMENTS;
+    const widget = availableWidgets.find((w) => w.id === id);
+    if (!widget) return;
+
+    switch(source) {
+      case HUD_ELEMENTS.DOCK:
+        setDockWidgets((prev) => prev.filter((w) => w.id !== id));
+        setSidebarWidgets(((prev) => [...prev, widget]));
+        break;
+      case HUD_ELEMENTS.SIDEBAR:
+        setSidebarWidgets((prev) => {
+          const newWidgets = prev.filter((w) => w.id !== id);
+          newWidgets.splice(hoverSidebarIndex ?? newWidgets.length, 0, widget);
+          return newWidgets;
+        });
+        break;
+    }
+    setDraggingWidget(null);
+  };
+
+  // ---
+
   useEffect(() => {
     const handleDragEnd = () => {
       setIsSidebarHovered(false);
@@ -99,115 +220,6 @@ export default function HUD() {
       window.removeEventListener("drop", handleDragEnd);
     };
   }, []);
-
-  const onSidebarDragLeave = () => {
-    sidebarHoverTimeout.current = setTimeout(() => {
-      setIsSidebarHovered(false);
-    }, 50); // Delay helps avoid flicker
-    setHoverSidebarIndex(null);
-  };
-
-  const onDockDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    if (!isDockHovered) setIsDockHovered(true);
-    if (dockHoverTimeout.current) {
-      clearTimeout(dockHoverTimeout.current);
-      dockHoverTimeout.current = null;
-    }
-    if (!dockRef.current || draggingWidget?.source !== "dock") return;
-
-    const dockRect = dockRef.current.getBoundingClientRect();
-    const mouseX = e.clientX;
-    const relativeX = mouseX - dockRect.left;
-
-    const widgetWidth = 170; // same as your widget width
-    const index = Math.floor(relativeX / widgetWidth);
-
-    setHoverDockIndex(Math.min(index, dockWidgets.length - 1));
-  };
-
-  const onDragStart = (
-    e: React.DragEvent,
-    id: string,
-    source: "dock" | "sidebar"
-  ) => {
-    setDraggingWidget({ id, source });
-    e.dataTransfer.setData("application/widget-id", id);
-    e.dataTransfer.setData("application/widget-source", source);
-    e.dataTransfer.effectAllowed = "move";
-  };
-
-  const onDropToDock = (e: React.DragEvent) => {
-    e.preventDefault();
-    const id = e.dataTransfer.getData("application/widget-id");
-    const source = e.dataTransfer.getData("application/widget-source") as
-      | "dock"
-      | "sidebar";
-    const widget = availableWidgets.find((w) => w.id === id);
-    if (!widget) return;
-
-    if (source === "sidebar") {
-      setSidebarWidgets((prev) => prev.filter((w) => w.id !== id));
-      setDockWidgets((prev) => [...prev, widget]);
-    } else if (source === "dock") {
-      const dockRect = dockRef.current?.getBoundingClientRect();
-      if (!dockRect) return;
-
-      const mouseX = e.clientX;
-      const relativeX = mouseX - dockRect.left;
-      const dockWidth = dockRect.width;
-      const widgetCount = dockWidgets.length;
-      const widgetWidth = dockWidth / Math.max(widgetCount, 1);
-      const dropIndex = Math.min(
-        Math.max(Math.floor(relativeX / widgetWidth), 0),
-        widgetCount - 1
-      );
-
-      setDockWidgets((prev) => {
-        const newWidgets = prev.filter((w) => w.id !== id);
-        newWidgets.splice(dropIndex, 0, widget);
-        return newWidgets;
-      });
-    }
-    setDraggingWidget(null);
-  };
-
-  const onSidebarDragEnter = () => setIsSidebarHovered(true);
-
-  const onDockDragEnter = () => setIsDockHovered(true);
-  const onDockDragLeave = () => {
-    sidebarHoverTimeout.current = setTimeout(() => {
-      setIsDockHovered(false);
-    }, 50);
-    setHoverDockIndex(null);
-  };
-
-  const onDropToSidebar = (e: React.DragEvent) => {
-    e.preventDefault();
-    const id = e.dataTransfer.getData("application/widget-id");
-    const source = e.dataTransfer.getData("application/widget-source") as
-      | "dock"
-      | "sidebar";
-    const widget = availableWidgets.find((w) => w.id === id);
-    if (!widget) return;
-
-    if (source === "dock") {
-      setDockWidgets((prev) => prev.filter((w) => w.id !== id));
-      setSidebarWidgets((prev) => {
-        const newWidgets = [...prev];
-        newWidgets.splice(hoverSidebarIndex ?? prev.length, 0, widget);
-        return newWidgets;
-      });
-    } else if (source === "sidebar") {
-      // Reordering
-      setSidebarWidgets((prev) => {
-        const newWidgets = prev.filter((w) => w.id !== id);
-        newWidgets.splice(hoverSidebarIndex ?? newWidgets.length, 0, widget);
-        return newWidgets;
-      });
-    }
-    setDraggingWidget(null);
-  };
 
   return (
     <>
@@ -259,12 +271,12 @@ export default function HUD() {
             const isDragging = draggingWidget?.id === widget.id;
             const isHovered =
               hoverSidebarIndex === index &&
-              draggingWidget?.source === "sidebar";
+              draggingWidget?.source === HUD_ELEMENTS.SIDEBAR;
             return (
               <motion.div
                 key={widget.id}
                 draggable
-                onDragStart={(e: any) => onDragStart(e, widget.id, "sidebar")}
+                onDragStart={(e: any) => onDragStart(e, widget.id, HUD_ELEMENTS.SIDEBAR)}
                 className={clsx(
                   "mb-2 cursor-grab rounded-xl px-3 py-2 text-sm font-mono shadow-lg border border-white/10 gap-1",
                   isDragging
@@ -321,18 +333,18 @@ export default function HUD() {
             {dockWidgets.map((widget, index) => {
               const isDragging = draggingWidget?.id === widget.id;
               const isHovered =
-                hoverDockIndex === index && draggingWidget?.source === "dock";
+                hoverDockIndex === index && draggingWidget?.source === HUD_ELEMENTS.DOCK;
               return (
                 <motion.div
                   key={widget.id}
                   draggable
-                  onDragStart={(e: any) => onDragStart(e, widget.id, "dock")}
+                  onDragStart={(e: any) => onDragStart(e, widget.id, HUD_ELEMENTS.DOCK)}
                   className={clsx(
                     "flex-shrink-0 cursor-grab rounded-xl px-3 py-2 text-sm font-mono shadow-lg border border-white/10 flex flex-col gap-1 w-[170px] h-[60px]",
                     isDragging
                       ? "bg-black/40 text-white"
                       : "bg-black/40 text-white hover:bg-gray-700",
-                    isHovered && draggingWidget?.source === "dock"
+                    isHovered && draggingWidget?.source === HUD_ELEMENTS.DOCK
                       ? "ring-2 ring-gray-400"
                       : ""
                   )}
