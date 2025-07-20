@@ -18,13 +18,13 @@ export type Widget = {
 const availableWidgets: Widget[] = [
   { id: "speed", title: "Speed", preview: (v: any) => `${v} km/s` },
   { id: "distance", title: "Distance", preview: (v: any) => `${v} km` },
-  { id: "chak", title: "Distance", preview: (v: any) => `${v} km` },
-  { id: "kando", title: "Distance", preview: (v: any) => `${v} km` },
-  { id: "puti", title: "Distance", preview: (v: any) => `${v} km` },
+  { id: "3asef", title: "Distance", preview: (v: any) => `${v} km` },
+  { id: "asdf", title: "Distance", preview: (v: any) => `${v} km` },
+  { id: "sdf", title: "Distance", preview: (v: any) => `${v} km` },
   { id: "mc", title: "Distance", preview: (v: any) => `${v} km` },
-  { id: "sdf", title: "Distance", preview: (v: any) => `${v} km` },
+  { id: "sd3f", title: "Distance", preview: (v: any) => `${v} km` },
   { id: "msdfsdc", title: "Distance", preview: (v: any) => `${v} km` },
-  { id: "sdf", title: "Distance", preview: (v: any) => `${v} km` },
+  { id: "sdszf", title: "Distance", preview: (v: any) => `${v} km` },
   { id: "sddf", title: "Distance", preview: (v: any) => `${v} km` },
 
   {
@@ -55,12 +55,16 @@ export default function HUD() {
   const dockRef = useRef<HTMLDivElement>(null);
 
   const [hoverDockIndex, setHoverDockIndex] = useState<number | null>(null);
+  const [hoverSidebarIndex, setHoverSidebarIndex] = useState<number | null>(
+    null
+  );
 
   const [isDockHovered, setIsDockHovered] = useState(false);
   const [isSidebarHovered, setIsSidebarHovered] = useState(false);
-  const sidebarHoverTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const sidebarHoverTimeout = useRef<ReturnType<typeof setTimeout> | null>(
+    null
+  );
   const dockHoverTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
-  
 
   const onSidebarDragOver = (e: React.DragEvent) => {
     e.preventDefault();
@@ -69,6 +73,14 @@ export default function HUD() {
       clearTimeout(sidebarHoverTimeout.current);
       sidebarHoverTimeout.current = null;
     }
+
+    const sidebarRect = e.currentTarget.getBoundingClientRect();
+    const mouseY = e.clientY;
+    const relativeY = mouseY - sidebarRect.top;
+
+    const widgetHeight = 60; // Approx height per sidebar item
+    const index = Math.floor(relativeY / widgetHeight) - 1;
+    setHoverSidebarIndex(Math.min(index, sidebarWidgets.length));
   };
 
   useEffect(() => {
@@ -76,6 +88,7 @@ export default function HUD() {
       setIsSidebarHovered(false);
       setIsDockHovered(false);
       setHoverDockIndex(null);
+      setHoverSidebarIndex(null);
     };
 
     window.addEventListener("dragend", handleDragEnd);
@@ -87,11 +100,11 @@ export default function HUD() {
     };
   }, []);
 
-
   const onSidebarDragLeave = () => {
     sidebarHoverTimeout.current = setTimeout(() => {
       setIsSidebarHovered(false);
     }, 50); // Delay helps avoid flicker
+    setHoverSidebarIndex(null);
   };
 
   const onDockDragOver = (e: React.DragEvent) => {
@@ -161,10 +174,11 @@ export default function HUD() {
 
   const onSidebarDragEnter = () => setIsSidebarHovered(true);
 
-
   const onDockDragEnter = () => setIsDockHovered(true);
   const onDockDragLeave = () => {
-    setIsDockHovered(false);
+    sidebarHoverTimeout.current = setTimeout(() => {
+      setIsDockHovered(false);
+    }, 50);
     setHoverDockIndex(null);
   };
 
@@ -179,7 +193,18 @@ export default function HUD() {
 
     if (source === "dock") {
       setDockWidgets((prev) => prev.filter((w) => w.id !== id));
-      setSidebarWidgets((prev) => [...prev, widget]);
+      setSidebarWidgets((prev) => {
+        const newWidgets = [...prev];
+        newWidgets.splice(hoverSidebarIndex ?? prev.length, 0, widget);
+        return newWidgets;
+      });
+    } else if (source === "sidebar") {
+      // Reordering
+      setSidebarWidgets((prev) => {
+        const newWidgets = prev.filter((w) => w.id !== id);
+        newWidgets.splice(hoverSidebarIndex ?? newWidgets.length, 0, widget);
+        return newWidgets;
+      });
     }
     setDraggingWidget(null);
   };
@@ -214,8 +239,11 @@ export default function HUD() {
         initial={false}
         animate={{ x: sidebarOpen ? 0 : -240 }}
         transition={{ type: "spring", stiffness: 300, damping: 25 }}
-        className={clsx("scrollbar-thin scrollbar-thumb-gray-800 scrollbar-track-transparent fixed top-0 left-0 bottom-0 w-60 p-4 bg-black/40 backdrop-blur-md border-r border-gray-700 overflow-y-auto select-none z-50",
-          isSidebarHovered ? "ring-2 ring-pink-500/60 shadow-[0_0_10px_2px_rgba(255,0,200,0.4)]" : ""
+        className={clsx(
+          "scrollbar-thin scrollbar-thumb-gray-800 scrollbar-track-transparent fixed top-0 left-0 bottom-0 w-60 p-4 bg-black/40 backdrop-blur-md border-r border-gray-700 overflow-y-auto select-none z-50",
+          isSidebarHovered
+            ? "ring-2 ring-pink-500/60 shadow-[0_0_10px_2px_rgba(255,0,200,0.4)]"
+            : ""
         )}
         onDrop={onDropToSidebar}
         onDragOver={onSidebarDragOver}
@@ -227,8 +255,11 @@ export default function HUD() {
           <p className="text-gray-400 text-sm">No available widgets</p>
         )}
         <AnimatePresence>
-          {sidebarWidgets.map((widget) => {
+          {sidebarWidgets.map((widget, index) => {
             const isDragging = draggingWidget?.id === widget.id;
+            const isHovered =
+              hoverSidebarIndex === index &&
+              draggingWidget?.source === "sidebar";
             return (
               <motion.div
                 key={widget.id}
@@ -238,7 +269,8 @@ export default function HUD() {
                   "mb-2 cursor-grab rounded-xl px-3 py-2 text-sm font-mono shadow-lg border border-white/10 gap-1",
                   isDragging
                     ? "bg-gray-600/50 text-white/30"
-                    : "bg-black/70 text-white hover:bg-gray-700"
+                    : "bg-black/70 text-white hover:bg-gray-700",
+                  isHovered ? "ring-2 ring-gray-400" : ""
                 )}
                 layout
                 initial={{ opacity: 0, y: 20 }}
@@ -266,7 +298,9 @@ export default function HUD() {
             "p-2 bg-black/40 backdrop-blur-md border border-gray-700 flex flex-row gap-2 select-none",
             dockWidgets.length === 0 ? "rounded-full" : "rounded-xl",
             "max-w-[50vw] overflow-x-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-transparent pointer-events-auto px-2",
-            isDockHovered ? "ring-2 ring-pink-500/60 shadow-[0_0_10px_2px_rgba(255,0,200,0.4)]" : ""
+            isDockHovered
+              ? "ring-2 ring-pink-500/60 shadow-[0_0_10px_2px_rgba(255,0,200,0.4)]"
+              : ""
           )}
           onDrop={onDropToDock}
           onDragOver={onDockDragOver}
@@ -286,7 +320,8 @@ export default function HUD() {
           <AnimatePresence mode="popLayout">
             {dockWidgets.map((widget, index) => {
               const isDragging = draggingWidget?.id === widget.id;
-              const isHovered = hoverDockIndex === index && draggingWidget?.source === "dock";
+              const isHovered =
+                hoverDockIndex === index && draggingWidget?.source === "dock";
               return (
                 <motion.div
                   key={widget.id}
@@ -297,7 +332,9 @@ export default function HUD() {
                     isDragging
                       ? "bg-black/40 text-white"
                       : "bg-black/40 text-white hover:bg-gray-700",
-                      isHovered && draggingWidget?.source === "dock" ? "ring-2 ring-gray-400" : ""
+                    isHovered && draggingWidget?.source === "dock"
+                      ? "ring-2 ring-gray-400"
+                      : ""
                   )}
                   layout
                   initial={{ opacity: 0, scale: 0.8 }}
