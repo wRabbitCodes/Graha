@@ -1,9 +1,4 @@
-import React, {
-  useEffect,
-  useState,
-  useRef,
-  useCallback,
-} from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { clsx } from "clsx";
@@ -64,11 +59,15 @@ export default function HUD() {
     useState<Widget[]>(availableWidgets);
   const [draggingWidget, setDraggingWidget] = useState<DragData | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [detailsOpen, setDetailsOpen] = useState(false);
   const [detailsWidget, setDetailsWidget] = useState<Widget | null>(null);
   const [hoverDockIndex, setHoverDockIndex] = useState<number | null>(null);
   const [hoverSidebarIndex, setHoverSidebarIndex] = useState<number | null>(
     null
   );
+
+  const detailsPanelRef = useRef<HTMLDivElement | null>(null);
+  const [detailsPanelWidth, setDetailsPanelWidth] = useState(0);
 
   const [isDockHovered, setIsDockHovered] = useState(false);
   const [isSidebarHovered, setIsSidebarHovered] = useState(false);
@@ -78,7 +77,9 @@ export default function HUD() {
     null
   );
   const dockHoverTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const detailsHoverTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const detailsHoverTimeout = useRef<ReturnType<typeof setTimeout> | null>(
+    null
+  );
 
   // DRAG START
 
@@ -98,53 +99,47 @@ export default function HUD() {
   const widgetHeight = 68; // Approx height per sidebar item
   const widgetWidth = 178; // same as your widget width
 
-  const onSidebarDragOver = useCallback(
-    (e: React.DragEvent) => {
-      e.preventDefault();
-      if (!isSidebarHovered) setIsSidebarHovered(true);
-      if (sidebarHoverTimeout.current) {
-        clearTimeout(sidebarHoverTimeout.current);
-        sidebarHoverTimeout.current = null;
-      }
+  const onSidebarDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    if (!isSidebarHovered) setIsSidebarHovered(true);
+    if (sidebarHoverTimeout.current) {
+      clearTimeout(sidebarHoverTimeout.current);
+      sidebarHoverTimeout.current = null;
+    }
 
-      const sidebarRect = e.currentTarget.getBoundingClientRect();
-      const mouseY = e.clientY;
-      const relativeY = mouseY - sidebarRect.top;
+    const sidebarRect = e.currentTarget.getBoundingClientRect();
+    const mouseY = e.clientY;
+    const relativeY = mouseY - sidebarRect.top;
 
-      const index = Math.floor(relativeY / widgetHeight) - 1;
-      setHoverSidebarIndex(Math.min(Math.max(index, 0), sidebarWidgets.length));
-    },
-    [widgetHeight]
-  );
+    const index = Math.floor(relativeY / widgetHeight) - 1;
+    setHoverSidebarIndex(Math.min(Math.max(index, 0), sidebarWidgets.length));
+  };
 
-  const onDockDragOver = useCallback(
-    (e: React.DragEvent) => {
-      e.preventDefault();
-      if (!isDockHovered) setIsDockHovered(true);
-      if (dockHoverTimeout.current) {
-        clearTimeout(dockHoverTimeout.current);
-        dockHoverTimeout.current = null;
-      }
+  const onDockDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    if (!isDockHovered) setIsDockHovered(true);
+    if (dockHoverTimeout.current) {
+      clearTimeout(dockHoverTimeout.current);
+      dockHoverTimeout.current = null;
+    }
 
-      const dockRect = e.currentTarget.getBoundingClientRect();
-      const mouseX = e.clientX;
-      const relativeX = mouseX - dockRect.left;
+    const dockRect = e.currentTarget.getBoundingClientRect();
+    const mouseX = e.clientX;
+    const relativeX = mouseX - dockRect.left;
 
-      const index = Math.floor(relativeX / widgetWidth);
+    const index = Math.floor(relativeX / widgetWidth);
 
-      setHoverDockIndex(Math.min(Math.max(index, 0), dockWidgets.length));
-    },
-    [widgetWidth]
-  );
+    setHoverDockIndex(Math.min(Math.max(index, 0), dockWidgets.length));
+  };
 
-  const onDetailsDragOver = useCallback((e: React.DragEvent) => {
+  const onDetailsDragOver = (e: React.DragEvent) => {
     e.preventDefault();
     if (!isDetailsHovered) setIsDetailsHovered(true);
     if (detailsHoverTimeout.current) {
-        clearTimeout(detailsHoverTimeout.current);
-        detailsHoverTimeout.current = null;
+      clearTimeout(detailsHoverTimeout.current);
+      detailsHoverTimeout.current = null;
     }
-  }, []);
+  };
   // ---
 
   // DRAG ENTER HANDLER
@@ -152,7 +147,7 @@ export default function HUD() {
   const onSidebarDragEnter = () => setIsSidebarHovered(true);
 
   const onDockDragEnter = () => setIsDockHovered(true);
-  
+
   const onDetailsDragEnter = () => setIsDetailsHovered(true);
   // ---
 
@@ -176,7 +171,7 @@ export default function HUD() {
     detailsHoverTimeout.current = setTimeout(() => {
       setIsDetailsHovered(false);
     }, 50);
-  }
+  };
 
   // ---
 
@@ -260,7 +255,7 @@ export default function HUD() {
         setDockWidgets((prev) => prev.filter((w) => w.id !== id));
       } else if (source === HUD_ELEMENTS.SIDEBAR) {
         setSidebarWidgets((prev) => prev.filter((w) => w.id !== id));
-      } 
+      }
       setDetailsWidget(widget);
       setDraggingWidget(null);
       if (detailsHoverTimeout.current) {
@@ -273,10 +268,17 @@ export default function HUD() {
   // ---
 
   useEffect(() => {
+    if (detailsOpen && detailsPanelRef.current) {
+      const rect = detailsPanelRef.current.getBoundingClientRect();
+      setDetailsPanelWidth(rect.width);
+    }
+  }, [detailsOpen]);
+
+  useEffect(() => {
     const handleDragEnd = () => {
       setIsSidebarHovered(false);
       setIsDockHovered(false);
-      setIsDetailsHovered(false)
+      setIsDetailsHovered(false);
       setHoverDockIndex(null);
       setHoverSidebarIndex(null);
     };
@@ -370,14 +372,37 @@ export default function HUD() {
       </motion.div>
       {/* -------------------- */}
 
+      {/* Details Toggle button */}
+      <motion.button
+        layout
+        onClick={() => setDetailsOpen((v) => !v)}
+        aria-label={detailsOpen ? "Close details panel" : "Open details panel"}
+        className={clsx(
+          "fixed top-1/2 -translate-y-1/2 z-50 rounded-full p-2 text-white hover:bg-gray-600 flex items-center justify-center"
+        )}
+        style={{
+          right: detailsOpen ? `${detailsPanelWidth}px` : "0px",
+        }}
+        transition={{ type: "spring", stiffness: 300, damping: 25 }}
+        whileHover={{ scale: 1.1 }}
+        whileTap={{ scale: 0.95 }}
+      >
+        {detailsOpen ? (
+          <ChevronRight className="w-6 h-6" />
+        ) : (
+          <ChevronLeft className="w-6 h-6" />
+        )}
+      </motion.button>
+
       {/* Details Panel */}
       <motion.div
+        ref={detailsPanelRef}
         layout
         initial={false}
-        animate={{ x: 0 }}
+        animate={{ x: detailsOpen ? 0 : 350 }}
         transition={{ type: "spring", stiffness: 300, damping: 25 }}
         className={clsx(
-          "scrollbar-thin scrollbar-thumb-gray-800 scrollbar-track-transparent fixed top-0 right-0 bottom-0 w-60 bg-black/40 backdrop-blur-md border-l border-gray-700 overflow-y-auto select-none z-50",
+          "fixed top-0 right-0 bottom-0 w-80 bg-black/40 backdrop-blur-md border-l border-gray-700 z-50 flex flex-col",
           isDetailsHovered || detailsWidget
             ? "ring-2 ring-blue-500/60 shadow-[0_0_10px_2px_rgba(0,0,255,0.4)]"
             : ""
@@ -393,7 +418,7 @@ export default function HUD() {
             <motion.div
               key={detailsWidget.id}
               className={clsx(
-                "relative mb-2 rounded-xl py-2 text-sm font-mono shadow-lg border border-white/10",
+                "relative h-full w-full mb-2 rounded-xl py-2 text-sm font-mono shadow-lg border border-white/10",
                 "bg-black/80 text-white"
               )}
               layout
@@ -406,29 +431,27 @@ export default function HUD() {
               <button
                 onClick={() => {
                   setSidebarWidgets((prev) => [...prev, detailsWidget]);
-                  setDetailsWidget(null)
+                  setDetailsWidget(null);
                 }}
                 className="absolute top-1 right-1 text-xs text-white bg-gray-700 hover:bg-gray-600 rounded px-2 py-1"
               >
                 ×
               </button>
               <div className="font-bold">{detailsWidget.title}</div>
-              <div className="font-thin text-white/40">
-                 {detailsWidget.component ? (
-                    <detailsWidget.component
-                      id={detailsWidget.id}
-                      title={detailsWidget.title}
-                      props={widgetPreviewValues[detailsWidget.id] as string[]}
-                      location={HUD_ELEMENTS.DETAILS}
-                      key={detailsWidget.id} // Ensure unique key for component
-                    />
-                  ) : (
-                    <div className="flex flex-col">
-                      <div className="font-bold">{detailsWidget.title}</div>
-                      {detailsWidget.preview(widgetPreviewValues[detailsWidget.id])}
-                    </div>
-                  )}
-              </div>
+              {detailsWidget.component ? (
+                <detailsWidget.component
+                  id={detailsWidget.id}
+                  title={detailsWidget.title}
+                  props={widgetPreviewValues[detailsWidget.id] as string[]}
+                  location={HUD_ELEMENTS.DETAILS}
+                  key={detailsWidget.id} // Ensure unique key for component
+                />
+              ) : (
+                <div className="flex flex-col">
+                  <div className="font-bold">{detailsWidget.title}</div>
+                  {detailsWidget.preview(widgetPreviewValues[detailsWidget.id])}
+                </div>
+              )}
             </motion.div>
           ) : (
             <p className="text-gray-400 text-sm">Drop a widget here</p>
