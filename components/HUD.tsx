@@ -329,7 +329,7 @@ export default function HUD() {
       <motion.div
         layout
         initial={false}
-        animate={{ x: sidebarOpen ? 0 : -240 }}
+        animate={{ x: sidebarOpen ? 0 : "-100%" }}
         transition={{ type: "spring", stiffness: 300, damping: 25 }}
         className={clsx(
           "scrollbar-thin scrollbar-thumb-gray-800 scrollbar-track-transparent fixed top-0 left-0 bottom-0 w-60 p-4 bg-black/40 backdrop-blur-md border-r border-gray-700 overflow-y-auto select-none z-50",
@@ -408,10 +408,10 @@ export default function HUD() {
         ref={detailsPanelRef}
         layout
         initial={false}
-        animate={{ x: detailsOpen ? 0 : 350 }}
+        animate={{ x: detailsOpen ? 0 : "100%" }}
         transition={{ type: "spring", stiffness: 300, damping: 25 }}
         className={clsx(
-          "fixed top-0 p-2 right-0 bottom-0 w-80 bg-black/40 backdrop-blur-md border-l border-gray-700 z-50 flex flex-col",
+          "fixed top-0 p-2 right-0 bottom-0 w-1/3  bg-black/40 backdrop-blur-md border-l border-gray-700 z-50 flex flex-col",
           isDetailsHovered || detailsWidget
             ? "ring-2 ring-blue-500/60 shadow-[0_0_10px_2px_rgba(0,0,255,0.4)]"
             : ""
@@ -473,7 +473,9 @@ export default function HUD() {
       {/* -------------------- */}
 
       {/* Dock Container (centered container) */}
-      <div className="fixed  bottom-4 left-0 right-0 flex justify-center pointer-events-none z-50">
+      <div className={clsx("fixed  bottom-4 left-0 right-0 flex justify-center pointer-events-none z-50",
+        detailsOpen && "-translate-x-[10vw]",
+      )}>
         {/* Actual Dock */}
         <motion.div
           className={clsx(
