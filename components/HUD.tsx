@@ -65,8 +65,6 @@ export default function HUD() {
   const [draggingWidget, setDraggingWidget] = useState<DragData | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [detailsWidget, setDetailsWidget] = useState<Widget | null>(null);
-  const [isDetailsHovered, setIsDetailsHovered] = useState(false);
-
   const [hoverDockIndex, setHoverDockIndex] = useState<number | null>(null);
   const [hoverSidebarIndex, setHoverSidebarIndex] = useState<number | null>(
     null
@@ -74,6 +72,8 @@ export default function HUD() {
 
   const [isDockHovered, setIsDockHovered] = useState(false);
   const [isSidebarHovered, setIsSidebarHovered] = useState(false);
+  const [isDetailsHovered, setIsDetailsHovered] = useState(false);
+
   const sidebarHoverTimeout = useRef<ReturnType<typeof setTimeout> | null>(
     null
   );
@@ -140,6 +140,10 @@ export default function HUD() {
   const onDetailsDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
     if (!isDetailsHovered) setIsDetailsHovered(true);
+    if (detailsHoverTimeout.current) {
+        clearTimeout(detailsHoverTimeout.current);
+        detailsHoverTimeout.current = null;
+    }
   }, []);
   // ---
 
@@ -172,7 +176,6 @@ export default function HUD() {
     detailsHoverTimeout.current = setTimeout(() => {
       setIsDetailsHovered(false);
     }, 50);
-    setHoverDockIndex(null);
   }
 
   // ---
@@ -257,13 +260,13 @@ export default function HUD() {
         setDockWidgets((prev) => prev.filter((w) => w.id !== id));
       } else if (source === HUD_ELEMENTS.SIDEBAR) {
         setSidebarWidgets((prev) => prev.filter((w) => w.id !== id));
-      } else if (source === HUD_ELEMENTS.DETAILS) {
-        setDetailsWidget(null);
-        return;
-      }
-
+      } 
       setDetailsWidget(widget);
       setDraggingWidget(null);
+      if (detailsHoverTimeout.current) {
+        clearTimeout(detailsHoverTimeout.current);
+        detailsHoverTimeout.current = null;
+      }
     },
     [detailsWidget]
   );
@@ -273,6 +276,7 @@ export default function HUD() {
     const handleDragEnd = () => {
       setIsSidebarHovered(false);
       setIsDockHovered(false);
+      setIsDetailsHovered(false)
       setHoverDockIndex(null);
       setHoverSidebarIndex(null);
     };
@@ -373,8 +377,8 @@ export default function HUD() {
         animate={{ x: 0 }}
         transition={{ type: "spring", stiffness: 300, damping: 25 }}
         className={clsx(
-          "scrollbar-thin scrollbar-thumb-gray-800 scrollbar-track-transparent fixed top-0 right-0 bottom-0 w-60 p-4 bg-black/40 backdrop-blur-md border-l border-gray-700 overflow-y-auto select-none z-50",
-          isDetailsHovered
+          "scrollbar-thin scrollbar-thumb-gray-800 scrollbar-track-transparent fixed top-0 right-0 bottom-0 w-60 bg-black/40 backdrop-blur-md border-l border-gray-700 overflow-y-auto select-none z-50",
+          isDetailsHovered || detailsWidget
             ? "ring-2 ring-blue-500/60 shadow-[0_0_10px_2px_rgba(0,0,255,0.4)]"
             : ""
         )}
@@ -388,12 +392,8 @@ export default function HUD() {
           {detailsWidget ? (
             <motion.div
               key={detailsWidget.id}
-              draggable
-              onDragStart={(e: any) =>
-                onDragStart(e, detailsWidget.id, HUD_ELEMENTS.DETAILS)
-              }
               className={clsx(
-                "relative mb-2 rounded-xl px-3 py-2 text-sm font-mono shadow-lg border border-white/10",
+                "relative mb-2 rounded-xl py-2 text-sm font-mono shadow-lg border border-white/10",
                 "bg-black/80 text-white"
               )}
               layout
@@ -404,7 +404,10 @@ export default function HUD() {
               whileDrag={{ scale: 1.05, opacity: 0.8, rotate: 2 }}
             >
               <button
-                onClick={() => setDetailsWidget(null)}
+                onClick={() => {
+                  setSidebarWidgets((prev) => [...prev, detailsWidget]);
+                  setDetailsWidget(null)
+                }}
                 className="absolute top-1 right-1 text-xs text-white bg-gray-700 hover:bg-gray-600 rounded px-2 py-1"
               >
                 ×

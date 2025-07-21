@@ -80,10 +80,6 @@ export default React.memo(function SelectedEntities({
     case HUD_ELEMENTS.DETAILS:
       return (
         <div className="flex flex-col w-full h-full p-2">
-          <div className="text-lg font-bold mb-2">{title}</div>
-          <div className="text-sm mb-2 text-gray-700">
-            Selected Entities: {displayText}
-          </div>
           <PlanetChatbox />
         </div>
       );

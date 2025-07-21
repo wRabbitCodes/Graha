@@ -32,7 +32,7 @@ export function useLangChain() {
         SystemMessagePromptTemplate.fromTemplate(
           `You are a planetary assistant. Only answer concisely about: ${ALLOWED.join(
             ", "
-          )}. Politely decline unrelated questions.`
+          )}. Politely decline unrelated questions no matter what.`
         ),
         HumanMessagePromptTemplate.fromTemplate("{input}"),
       ]);
