@@ -73,7 +73,7 @@ export function PlanetChatbox() {
       <div className="flex items-center gap-2 border border-gray-600 rounded-xl px-4 py-3 focus-within:ring-2 ring-blue-500 transition-all">
         <input
           className="bg-transparent outline-none text-white flex-1 placeholder-gray-500"
-          placeholder="Type your question here..."
+          placeholder="Ask Me!"
           value={q}
           onChange={(e) => setQ(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && send()}

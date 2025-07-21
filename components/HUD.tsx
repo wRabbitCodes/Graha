@@ -101,17 +101,26 @@ export default function HUD() {
 
   const onSidebarDragOver = (e: React.DragEvent) => {
     e.preventDefault();
+
+    // keep highlight logic exactly as before …
     if (!isSidebarHovered) setIsSidebarHovered(true);
     if (sidebarHoverTimeout.current) {
       clearTimeout(sidebarHoverTimeout.current);
       sidebarHoverTimeout.current = null;
     }
 
-    const sidebarRect = e.currentTarget.getBoundingClientRect();
-    const mouseY = e.clientY;
-    const relativeY = mouseY - sidebarRect.top;
+    const sidebarEl = e.currentTarget as HTMLElement;
+    const sidebarRect = sidebarEl.getBoundingClientRect();
+    const scrollTop = sidebarEl.scrollTop; // 🆕
 
-    const index = Math.floor(relativeY / widgetHeight) - 1;
+    // If you have a static heading, measure its height once; ~44 px works here
+    const headerOffset = 44; // 🆕
+
+    const mouseY = e.clientY;
+    const relativeY = mouseY - sidebarRect.top + scrollTop - headerOffset; // 🆕
+
+    const index = Math.floor(relativeY / widgetHeight);
+
     setHoverSidebarIndex(Math.min(Math.max(index, 0), sidebarWidgets.length));
   };
 
@@ -402,7 +411,7 @@ export default function HUD() {
         animate={{ x: detailsOpen ? 0 : 350 }}
         transition={{ type: "spring", stiffness: 300, damping: 25 }}
         className={clsx(
-          "fixed top-0 right-0 bottom-0 w-80 bg-black/40 backdrop-blur-md border-l border-gray-700 z-50 flex flex-col",
+          "fixed top-0 p-2 right-0 bottom-0 w-80 bg-black/40 backdrop-blur-md border-l border-gray-700 z-50 flex flex-col",
           isDetailsHovered || detailsWidget
             ? "ring-2 ring-blue-500/60 shadow-[0_0_10px_2px_rgba(0,0,255,0.4)]"
             : ""
@@ -415,46 +424,49 @@ export default function HUD() {
         <h3 className="mb-3 text-white text-lg font-semibold">Details</h3>
         <AnimatePresence>
           {detailsWidget ? (
-            <motion.div
-              key={detailsWidget.id}
-              className={clsx(
-                "relative h-full w-full mb-2 rounded-xl py-2 text-sm font-mono shadow-lg border border-white/10",
-                "bg-black/80 text-white"
-              )}
-              layout
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -20 }}
-              transition={{ type: "spring", stiffness: 400, damping: 20 }}
-              whileDrag={{ scale: 1.05, opacity: 0.8, rotate: 2 }}
-            >
+            <>
               <button
                 onClick={() => {
                   setSidebarWidgets((prev) => [...prev, detailsWidget]);
                   setDetailsWidget(null);
                 }}
-                className="absolute top-1 right-1 text-xs text-white bg-gray-700 hover:bg-gray-600 rounded px-2 py-1"
+                className="absolute top-0 right-0 text-xs text-white hover:bg-gray-600 rounded-full p-4"
               >
                 ×
               </button>
-              <div className="font-bold">{detailsWidget.title}</div>
-              {detailsWidget.component ? (
-                <detailsWidget.component
-                  id={detailsWidget.id}
-                  title={detailsWidget.title}
-                  props={widgetPreviewValues[detailsWidget.id] as string[]}
-                  location={HUD_ELEMENTS.DETAILS}
-                  key={detailsWidget.id} // Ensure unique key for component
-                />
-              ) : (
-                <div className="flex flex-col">
-                  <div className="font-bold">{detailsWidget.title}</div>
-                  {detailsWidget.preview(widgetPreviewValues[detailsWidget.id])}
-                </div>
-              )}
-            </motion.div>
+              <motion.div
+                key={detailsWidget.id}
+                className={clsx(
+                  "relative h-full w-full",
+                  "bg-black/80 text-sm shadow-lg text-white"
+                )}
+                layout
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -20 }}
+                transition={{ type: "spring", stiffness: 400, damping: 20 }}
+                whileDrag={{ scale: 1.05, opacity: 0.8, rotate: 2 }}
+              >
+                {detailsWidget.component ? (
+                  <detailsWidget.component
+                    id={detailsWidget.id}
+                    title={detailsWidget.title}
+                    props={widgetPreviewValues[detailsWidget.id] as string[]}
+                    location={HUD_ELEMENTS.DETAILS}
+                    key={detailsWidget.id} // Ensure unique key for component
+                  />
+                ) : (
+                  <div className="flex flex-col">
+                    <div className="font-bold">{detailsWidget.title}</div>
+                    {detailsWidget.preview(
+                      widgetPreviewValues[detailsWidget.id]
+                    )}
+                  </div>
+                )}
+              </motion.div>
+            </>
           ) : (
-            <p className="text-gray-400 text-sm">Drop a widget here</p>
+            <p className="text-gray-400 p-2 text-sm">Drop a widget here</p>
           )}
         </AnimatePresence>
       </motion.div>
