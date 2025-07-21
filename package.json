@@ -14,9 +14,12 @@
     "@gltf-transform/core": "^4.2.0",
     "@gltf-transform/extensions": "^4.2.0",
     "@heroicons/react": "^2.2.0",
+    "@langchain/core": "^0.3.66",
+    "@langchain/ollama": "^0.2.3",
     "@radix-ui/react-dialog": "^1.1.14",
     "@tailwindcss/forms": "^0.5.10",
     "autoprefixer": "10.4.20",
+    "axios": "^1.10.0",
     "bcrypt": "^5.1.1",
     "clsx": "^2.1.1",
     "dayjs": "^1.11.13",
@@ -47,6 +50,7 @@
   "pnpm": {
     "onlyBuiltDependencies": [
       "bcrypt",
+      "protobufjs",
       "sharp"
     ]
   }

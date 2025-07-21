@@ -1,13 +1,18 @@
-import React, { useEffect, useState, useRef, useCallback, useMemo } from "react";
+import React, {
+  useEffect,
+  useState,
+  useRef,
+  useCallback,
+} from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { clsx } from "clsx";
-import SelectedEntitiesWidget from "./HUDWidets/SelectedEntitiesWidget";
+import SelectedEntitiesWidget from "./HUDWidets/SelectedEntities";
 
-enum HUD_ELEMENTS {
+export enum HUD_ELEMENTS {
   DOCK = "DOCK",
   SIDEBAR = "SIDEBAR",
-  DASH = "DASH",
+  DETAILS = "DETAILS",
 }
 
 export type Widget = {
@@ -18,6 +23,7 @@ export type Widget = {
     id: string;
     title: string;
     props: any[];
+    location: HUD_ELEMENTS;
   }>;
 };
 // Example widgets
@@ -58,7 +64,8 @@ export default function HUD() {
     useState<Widget[]>(availableWidgets);
   const [draggingWidget, setDraggingWidget] = useState<DragData | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const dockRef = useRef<HTMLDivElement>(null);
+  const [detailsWidget, setDetailsWidget] = useState<Widget | null>(null);
+  const [isDetailsHovered, setIsDetailsHovered] = useState(false);
 
   const [hoverDockIndex, setHoverDockIndex] = useState<number | null>(null);
   const [hoverSidebarIndex, setHoverSidebarIndex] = useState<number | null>(
@@ -71,59 +78,69 @@ export default function HUD() {
     null
   );
   const dockHoverTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const detailsHoverTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // DRAG START
 
-  const onDragStart = useCallback((
-    e: React.DragEvent,
-    id: string,
-    source: HUD_ELEMENTS
-  ) => {
-    setDraggingWidget({ id, source });
-    e.dataTransfer.setData("application/widget-id", id);
-    e.dataTransfer.setData("application/widget-source", source);
-    e.dataTransfer.effectAllowed = "move";
-  }, []);
+  const onDragStart = useCallback(
+    (e: React.DragEvent, id: string, source: HUD_ELEMENTS) => {
+      setDraggingWidget({ id, source });
+      e.dataTransfer.setData("application/widget-id", id);
+      e.dataTransfer.setData("application/widget-source", source);
+      e.dataTransfer.effectAllowed = "move";
+    },
+    []
+  );
 
   // ---
 
   // DRAG OVER HANDLERS
-  const widgetHeight = 60; // Approx height per sidebar item
-  const widgetWidth = 170; // same as your widget width
+  const widgetHeight = 68; // Approx height per sidebar item
+  const widgetWidth = 178; // same as your widget width
 
-  const onSidebarDragOver = useCallback((e: React.DragEvent) => {
+  const onSidebarDragOver = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      if (!isSidebarHovered) setIsSidebarHovered(true);
+      if (sidebarHoverTimeout.current) {
+        clearTimeout(sidebarHoverTimeout.current);
+        sidebarHoverTimeout.current = null;
+      }
+
+      const sidebarRect = e.currentTarget.getBoundingClientRect();
+      const mouseY = e.clientY;
+      const relativeY = mouseY - sidebarRect.top;
+
+      const index = Math.floor(relativeY / widgetHeight) - 1;
+      setHoverSidebarIndex(Math.min(Math.max(index, 0), sidebarWidgets.length));
+    },
+    [widgetHeight]
+  );
+
+  const onDockDragOver = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      if (!isDockHovered) setIsDockHovered(true);
+      if (dockHoverTimeout.current) {
+        clearTimeout(dockHoverTimeout.current);
+        dockHoverTimeout.current = null;
+      }
+
+      const dockRect = e.currentTarget.getBoundingClientRect();
+      const mouseX = e.clientX;
+      const relativeX = mouseX - dockRect.left;
+
+      const index = Math.floor(relativeX / widgetWidth);
+
+      setHoverDockIndex(Math.min(Math.max(index, 0), dockWidgets.length));
+    },
+    [widgetWidth]
+  );
+
+  const onDetailsDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
-    if (!isSidebarHovered) setIsSidebarHovered(true);
-    if (sidebarHoverTimeout.current) {
-      clearTimeout(sidebarHoverTimeout.current);
-      sidebarHoverTimeout.current = null;
-    }
-
-    const sidebarRect = e.currentTarget.getBoundingClientRect();
-    const mouseY = e.clientY;
-    const relativeY = mouseY - sidebarRect.top;
-
-    const index = Math.floor(relativeY / widgetHeight) - 1;
-    setHoverSidebarIndex(Math.min(index, sidebarWidgets.length));
-  }, [widgetHeight]);
-
-  const onDockDragOver = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    if (!isDockHovered) setIsDockHovered(true);
-    if (dockHoverTimeout.current) {
-      clearTimeout(dockHoverTimeout.current);
-      dockHoverTimeout.current = null;
-    }
-
-    const dockRect = e.currentTarget.getBoundingClientRect();
-    const mouseX = e.clientX;
-    const relativeX = mouseX - dockRect.left;
-
-    const index = Math.floor(relativeX / widgetWidth);
-
-    setHoverDockIndex(Math.min(index, dockWidgets.length - 1));
-  }, [widgetWidth]);
-
+    if (!isDetailsHovered) setIsDetailsHovered(true);
+  }, []);
   // ---
 
   // DRAG ENTER HANDLER
@@ -131,7 +148,8 @@ export default function HUD() {
   const onSidebarDragEnter = () => setIsSidebarHovered(true);
 
   const onDockDragEnter = () => setIsDockHovered(true);
-
+  
+  const onDetailsDragEnter = () => setIsDetailsHovered(true);
   // ---
 
   // DRAG LEAVE HANDLER
@@ -150,61 +168,105 @@ export default function HUD() {
     setHoverDockIndex(null);
   };
 
+  const onDetailsDragLeave = () => {
+    detailsHoverTimeout.current = setTimeout(() => {
+      setIsDetailsHovered(false);
+    }, 50);
+    setHoverDockIndex(null);
+  }
+
   // ---
 
   // DROP TO ELEMENTS
 
-  const onDropToDock = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    const id = e.dataTransfer.getData("application/widget-id");
-    const source = e.dataTransfer.getData(
-      "application/widget-source"
-    ) as HUD_ELEMENTS;
-    const widget = availableWidgets.find((w) => w.id === id);
-    if (!widget) return;
+  const onDropToDock = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      const id = e.dataTransfer.getData("application/widget-id");
+      const source = e.dataTransfer.getData(
+        "application/widget-source"
+      ) as HUD_ELEMENTS;
+      const widget = availableWidgets.find((w) => w.id === id);
+      if (!widget) return;
 
-    switch (source) {
-      case HUD_ELEMENTS.SIDEBAR:
-        setSidebarWidgets((prev) => prev.filter((w) => w.id !== id));
-        setDockWidgets((prev) => [...prev, widget]);
-        break;
+      switch (source) {
+        case HUD_ELEMENTS.SIDEBAR:
+          setSidebarWidgets((prev) => prev.filter((w) => w.id !== id));
+          setDockWidgets((prev) => [...prev, widget]);
+          break;
 
-      case HUD_ELEMENTS.DOCK:
-        setDockWidgets((prev) => {
-          const newWidgets = prev.filter((w) => w.id !== id);
-          newWidgets.splice(hoverDockIndex ?? newWidgets.length, 0, widget);
-          return newWidgets;
-        });
-        break;
-    }
-    setDraggingWidget(null);
-  }, [hoverDockIndex, availableWidgets])
+        case HUD_ELEMENTS.DOCK:
+          setDockWidgets((prev) => {
+            const newWidgets = prev.filter((w) => w.id !== id);
+            newWidgets.splice(hoverDockIndex ?? newWidgets.length, 0, widget);
+            return newWidgets;
+          });
+          break;
+      }
+      setDraggingWidget(null);
+    },
+    [hoverDockIndex, availableWidgets]
+  );
 
-  const onDropToSidebar = useCallback((e: React.DragEvent) => {
-    e.preventDefault();
-    const id = e.dataTransfer.getData("application/widget-id");
-    const source = e.dataTransfer.getData(
-      "application/widget-source"
-    ) as HUD_ELEMENTS;
-    const widget = availableWidgets.find((w) => w.id === id);
-    if (!widget) return;
+  const onDropToSidebar = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      const id = e.dataTransfer.getData("application/widget-id");
+      const source = e.dataTransfer.getData(
+        "application/widget-source"
+      ) as HUD_ELEMENTS;
+      const widget = availableWidgets.find((w) => w.id === id);
+      if (!widget) return;
 
-    switch (source) {
-      case HUD_ELEMENTS.DOCK:
+      switch (source) {
+        case HUD_ELEMENTS.DOCK:
+          setDockWidgets((prev) => prev.filter((w) => w.id !== id));
+          setSidebarWidgets((prev) => [...prev, widget]);
+          break;
+        case HUD_ELEMENTS.SIDEBAR:
+          setSidebarWidgets((prev) => {
+            const newWidgets = prev.filter((w) => w.id !== id);
+            newWidgets.splice(
+              hoverSidebarIndex ?? newWidgets.length,
+              0,
+              widget
+            );
+            return newWidgets;
+          });
+          break;
+      }
+      setDraggingWidget(null);
+    },
+    [hoverSidebarIndex, availableWidgets]
+  );
+
+  const onDropToDetails = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      if (detailsWidget) return; // prevent multiple widgets
+
+      const id = e.dataTransfer.getData("application/widget-id");
+      const source = e.dataTransfer.getData(
+        "application/widget-source"
+      ) as HUD_ELEMENTS;
+      const widget = availableWidgets.find((w) => w.id === id);
+      if (!widget) return;
+
+      // remove from source panel
+      if (source === HUD_ELEMENTS.DOCK) {
         setDockWidgets((prev) => prev.filter((w) => w.id !== id));
-        setSidebarWidgets((prev) => [...prev, widget]);
-        break;
-      case HUD_ELEMENTS.SIDEBAR:
-        setSidebarWidgets((prev) => {
-          const newWidgets = prev.filter((w) => w.id !== id);
-          newWidgets.splice(hoverSidebarIndex ?? newWidgets.length, 0, widget);
-          return newWidgets;
-        });
-        break;
-    }
-    setDraggingWidget(null);
-  }, [hoverSidebarIndex, availableWidgets]);
+      } else if (source === HUD_ELEMENTS.SIDEBAR) {
+        setSidebarWidgets((prev) => prev.filter((w) => w.id !== id));
+      } else if (source === HUD_ELEMENTS.DETAILS) {
+        setDetailsWidget(null);
+        return;
+      }
 
+      setDetailsWidget(widget);
+      setDraggingWidget(null);
+    },
+    [detailsWidget]
+  );
   // ---
 
   useEffect(() => {
@@ -272,9 +334,6 @@ export default function HUD() {
         <AnimatePresence>
           {sidebarWidgets.map((widget, index) => {
             const isDragging = draggingWidget?.id === widget.id;
-            const isHovered =
-              hoverSidebarIndex === index &&
-              draggingWidget?.source === HUD_ELEMENTS.SIDEBAR;
             return (
               <motion.div
                 key={widget.id}
@@ -287,7 +346,7 @@ export default function HUD() {
                   isDragging
                     ? "bg-gray-600/50 text-white/30"
                     : "bg-black/70 text-white hover:bg-gray-700",
-                  isHovered ? "ring-2 ring-gray-400" : ""
+                  hoverSidebarIndex === index ? "ring-2 ring-gray-400" : ""
                 )}
                 layout
                 initial={{ opacity: 0, y: 20 }}
@@ -305,18 +364,86 @@ export default function HUD() {
           })}
         </AnimatePresence>
       </motion.div>
+      {/* -------------------- */}
+
+      {/* Details Panel */}
+      <motion.div
+        layout
+        initial={false}
+        animate={{ x: 0 }}
+        transition={{ type: "spring", stiffness: 300, damping: 25 }}
+        className={clsx(
+          "scrollbar-thin scrollbar-thumb-gray-800 scrollbar-track-transparent fixed top-0 right-0 bottom-0 w-60 p-4 bg-black/40 backdrop-blur-md border-l border-gray-700 overflow-y-auto select-none z-50",
+          isDetailsHovered
+            ? "ring-2 ring-blue-500/60 shadow-[0_0_10px_2px_rgba(0,0,255,0.4)]"
+            : ""
+        )}
+        onDrop={onDropToDetails}
+        onDragOver={onDetailsDragOver}
+        onDragEnter={onDetailsDragEnter}
+        onDragLeave={onDetailsDragLeave}
+      >
+        <h3 className="mb-3 text-white text-lg font-semibold">Details</h3>
+        <AnimatePresence>
+          {detailsWidget ? (
+            <motion.div
+              key={detailsWidget.id}
+              draggable
+              onDragStart={(e: any) =>
+                onDragStart(e, detailsWidget.id, HUD_ELEMENTS.DETAILS)
+              }
+              className={clsx(
+                "relative mb-2 rounded-xl px-3 py-2 text-sm font-mono shadow-lg border border-white/10",
+                "bg-black/80 text-white"
+              )}
+              layout
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              transition={{ type: "spring", stiffness: 400, damping: 20 }}
+              whileDrag={{ scale: 1.05, opacity: 0.8, rotate: 2 }}
+            >
+              <button
+                onClick={() => setDetailsWidget(null)}
+                className="absolute top-1 right-1 text-xs text-white bg-gray-700 hover:bg-gray-600 rounded px-2 py-1"
+              >
+                ×
+              </button>
+              <div className="font-bold">{detailsWidget.title}</div>
+              <div className="font-thin text-white/40">
+                 {detailsWidget.component ? (
+                    <detailsWidget.component
+                      id={detailsWidget.id}
+                      title={detailsWidget.title}
+                      props={widgetPreviewValues[detailsWidget.id] as string[]}
+                      location={HUD_ELEMENTS.DETAILS}
+                      key={detailsWidget.id} // Ensure unique key for component
+                    />
+                  ) : (
+                    <div className="flex flex-col">
+                      <div className="font-bold">{detailsWidget.title}</div>
+                      {detailsWidget.preview(widgetPreviewValues[detailsWidget.id])}
+                    </div>
+                  )}
+              </div>
+            </motion.div>
+          ) : (
+            <p className="text-gray-400 text-sm">Drop a widget here</p>
+          )}
+        </AnimatePresence>
+      </motion.div>
+      {/* -------------------- */}
 
       {/* Dock Container (centered container) */}
       <div className="fixed  bottom-4 left-0 right-0 flex justify-center pointer-events-none z-50">
         {/* Actual Dock */}
         <motion.div
-          ref={dockRef}
           className={clsx(
             "p-2 bg-black/40 backdrop-blur-md border border-gray-700 flex flex-row gap-2 select-none",
             dockWidgets.length === 0 ? "rounded-full" : "rounded-xl",
-            "max-w-[50vw] overflow-x-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-transparent pointer-events-auto px-2",
+            "max-w-[40vw] overflow-x-auto scrollbar-thin scrollbar-thumb-gray-600 scrollbar-track-transparent pointer-events-auto px-2",
             isDockHovered
-              ? "ring-2 ring-pink-500/60 shadow-[0_0_10px_2px_rgba(255,0,200,0.4)]"
+              ? "ring-2 ring-green-500/60 shadow-[0_0_10px_2px_rgba(0,255,0,0.4)]"
               : ""
           )}
           onDrop={onDropToDock}
@@ -337,9 +464,6 @@ export default function HUD() {
           <AnimatePresence mode="popLayout">
             {dockWidgets.map((widget, index) => {
               const isDragging = draggingWidget?.id === widget.id;
-              const isHovered =
-                hoverDockIndex === index &&
-                draggingWidget?.source === HUD_ELEMENTS.DOCK;
               return (
                 <motion.div
                   key={widget.id}
@@ -352,9 +476,7 @@ export default function HUD() {
                     isDragging
                       ? "bg-black/40 text-white"
                       : "bg-black/40 text-white hover:bg-gray-700",
-                    isHovered && draggingWidget?.source === HUD_ELEMENTS.DOCK
-                      ? "ring-2 ring-gray-400"
-                      : ""
+                    hoverDockIndex === index ? "ring-2 ring-gray-400" : ""
                   )}
                   layout
                   initial={{ opacity: 0, scale: 0.8 }}
@@ -368,6 +490,8 @@ export default function HUD() {
                       id={widget.id}
                       title={widget.title}
                       props={widgetPreviewValues[widget.id] as string[]}
+                      location={HUD_ELEMENTS.DOCK}
+                      key={widget.id} // Ensure unique key for component
                     />
                   ) : (
                     <div className="flex flex-col">
