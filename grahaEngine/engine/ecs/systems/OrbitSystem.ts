@@ -7,13 +7,50 @@ import { ModelComponent } from "../components/ModelComponent";
 import { OrbitComponent } from "../components/OrbitComponent";
 import { MoonComponent } from "../components/MoonComponent";
 import { Entity } from "../Entity";
+import dayjs from "dayjs";
 
 // ECS-based OrbitSystem to drive ModelComponent.position from Keplerian elements
 export class OrbitSystem extends System {
   private readonly DEG2RAD = Math.PI / 180;
   private readonly rotX = mat4.fromXRotation(mat4.create(), -Math.PI / 2);
 
+  private simStart = dayjs();
+  private epoch = dayjs("2000-01-01T12:00:00Z");
+
+  // Accumulated simulation time in days since simStart
+  private simulationDays = 0;
+  private resetOrbit = false;
+
+  resetOrbitParams() {
+    this.resetOrbit = true;
+    this.update(0); // Force immediate update to apply new orbit parameters
+  }
+
+  resetSimulationDays() {
+    this.simulationDays = 0;
+  }
+
+  setSimStart(date: dayjs.Dayjs) {
+    this.simStart = date;
+  }
+
+  getSimStart() {
+    return this.simStart;
+  }
+
+  setEpoch(epoch: dayjs.Dayjs) {
+    this.epoch = epoch;
+  }
+
+  getEpoch() {
+    return this.epoch;
+  }
+
   update(deltaTime: number): void {
+    // Convert deltaTime (ms) to days
+    const deltaDays = (deltaTime / 1000 / 86400);
+    this.simulationDays += deltaDays;
+
     const allEntities = this.registry.getEntitiesWith(OrbitComponent, ModelComponent);
     const nonMoonEntities: Entity[] = [];
     const moonEntities: Entity[] = [];
@@ -43,13 +80,20 @@ export class OrbitSystem extends System {
     const model = this.registry.getComponent(entity, ModelComponent)!;
     if (model.state !== COMPONENT_STATE.READY) return;
 
+    if (this.resetOrbit) {
+      this.resetOrbit = false;
+      orbit.state = COMPONENT_STATE.UNINITIALIZED;
+    }
     // Initialize if needed
     if (orbit.state === COMPONENT_STATE.UNINITIALIZED) {
-      const simStart = "2025-06-30T00:00:00Z";
-      orbit.epochTime = OrbitAnamolyCalculator.calculateEpochTime(simStart);
-      orbit.meanAnomalyAtEpoch = orbit.meanAnomalyAtEpoch * this.DEG2RAD;
-      orbit.elapsedDays = 0;
-      orbit.pathPoints = this.generateOrbitPathPoints(orbit, orbit.pathSegmentCount);
+      // Calculate adjusted mean anomaly for new simStart in degrees
+      const elapsedDays = this.simStart.diff(this.epoch, 'day');
+      const meanMotion = 360 / orbit.orbitalPeriod!;
+      const adjustedMeanAnomaly = orbit.meanAnomalyAtEpoch + (meanMotion * elapsedDays);
+      
+      orbit.epochTime = OrbitAnamolyCalculator.calculateEpochTime(this.simStart);
+      orbit.pathPoints = this.generateOrbitPathPoints(orbit, orbit.pathSegmentCount, adjustedMeanAnomaly);
+      orbit.scaledPathPoints = [];
       orbit.state = COMPONENT_STATE.READY;
     }
 
@@ -67,8 +111,10 @@ export class OrbitSystem extends System {
   }
 
   private calculatePositionFromTime(orbit: OrbitComponent): vec3 {
-    const now = performance.now() / 1000; // seconds
-    const theta = OrbitAnamolyCalculator.trueAnomalyAtTime(now, orbit);
+    // Convert meanAnomalyAtEpoch to radians for OrbitAnomalyCalculator
+    const meanAnomalyAtEpochRad = orbit.meanAnomalyAtEpoch * this.DEG2RAD;
+    const orbitWithRad = { ...orbit, meanAnomalyAtEpoch: meanAnomalyAtEpochRad };
+    const theta = OrbitAnamolyCalculator.trueAnomalyAtTime(this.simulationDays, orbitWithRad);
     return this.positionFromTrueAnomaly(theta, orbit);
   }
 

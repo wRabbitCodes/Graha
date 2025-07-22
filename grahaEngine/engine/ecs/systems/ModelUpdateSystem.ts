@@ -21,16 +21,18 @@ export class ModelUpdateSystem extends System {
           (coreComp.tiltAngle * Math.PI) / 180
         );
         coreComp.tiltQuat = tiltQuat;
+        coreComp.spinQuat = quat.create();
         coreComp.state = COMPONENT_STATE.READY;
       }
       if (coreComp.state === COMPONENT_STATE.READY) {
-        const siderealDayMs = coreComp.siderealDay * 3600 * 1000 * 24;
+        const siderealDay = coreComp.siderealDay * 3600 * 1000; // Convert hours to ms
 
         // Rotation speed in radians/ms, scaled
-        const rotationSpeedRadPerMs = (2 * Math.PI) / siderealDayMs;
+        const rotationSpeedRadPerMs = (2 * Math.PI) / siderealDay;
 
         // Rotation angle this frame
-        const angleRad = rotationSpeedRadPerMs * deltaTime * 86400;
+        const angleRad = (rotationSpeedRadPerMs * deltaTime) % (2 * Math.PI);
+        coreComp.rotationSpeed = rotationSpeedRadPerMs;
         const qRotation = quat.setAxisAngle(
           quat.create(),
           coreComp.axis,

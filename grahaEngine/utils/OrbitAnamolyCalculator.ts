@@ -1,11 +1,15 @@
 // OrbitUtils.ts
 
+import { Dayjs } from "dayjs";
 import { OrbitComponent } from "../engine/ecs/components/OrbitComponent";
 
 const SECONDS_PER_DAY = 86400;
 const JD_J2000 = 2451545.0;
+const DEG2RAD = Math.PI / 180;
 
 export class OrbitAnamolyCalculator {
+  
+
   static indexAtTime(currentTime: any, orbitComp: OrbitComponent) {
     throw new Error("Method not implemented.");
   }
@@ -22,7 +26,7 @@ export class OrbitAnamolyCalculator {
   static meanAnomalyAtTime(time: number, orbit: OrbitComponent): number {
     const n = (2 * Math.PI) / orbit.orbitalPeriod!;
     const dt = time - orbit.epochTime;
-    return (orbit.meanAnomalyAtEpoch + n * dt) % (2 * Math.PI);
+    return (orbit.meanAnomalyAtEpoch * DEG2RAD + n * dt) % (2 * Math.PI);
   }
 
   /** Returns true anomaly (theta) at a given time */
@@ -42,10 +46,9 @@ export class OrbitAnamolyCalculator {
   }
 
   /** Calculates epochTime for given simulation start date in UTC (e.g., 2025-06-30) */
-  static calculateEpochTime(simStartDateUTC: string, epochJD: number = JD_J2000): number {
-    const date = new Date(simStartDateUTC);
-    const simJD = 2440587.5 + date.getTime() / (1000 * 60 * 60 * 24);
+  static calculateEpochTime(simStart: Dayjs, epochJD: number = JD_J2000): number {
+    const simJD = 2440587.5 + simStart.valueOf() / (1000 * 60 * 60 * 24);
     const deltaDays = simJD - epochJD;
-    return -deltaDays * SECONDS_PER_DAY;
+    return -deltaDays * SECONDS_PER_DAY; // seconds from epoch to simStart
   }
 } 
