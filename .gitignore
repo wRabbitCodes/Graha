@@ -20,3 +20,5 @@ next-env.d.ts
 
 # typescript
 *.tsbuildinfo
+
+pnpm-lock.yaml
