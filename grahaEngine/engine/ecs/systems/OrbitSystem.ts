@@ -78,7 +78,6 @@ export class OrbitSystem extends System {
       argumentOfPeriapsis: orbit.argumentOfPeriapsis!,
       meanAnomaly: OrbitAnomalyCalculator.meanAnomalyAtTime(this.simulationDays, orbit),
     });
-
     vec3.scale(pos, pos, 1 / (SETTINGS.DISTANCE_SCALE ?? 1));
     vec3.transformMat4(pos, pos, this.rotX);
 
