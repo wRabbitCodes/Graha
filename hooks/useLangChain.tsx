@@ -6,6 +6,7 @@ import {
   HumanMessagePromptTemplate,
   MessagesPlaceholder,
   PromptTemplate,
+  AIMessagePromptTemplate,
 } from "@langchain/core/prompts";
 import { InMemoryChatMessageHistory } from "@langchain/core/chat_history";
 import {
@@ -101,49 +102,56 @@ export function useLangChain(sessionId: string = "default") {
 
   // ✅ NEW: Classifier that checks if the question is about the Solar System
   const isRelevantQuestionChain = useMemo(() =>
-    PromptTemplate.fromTemplate(`
-      Determine if the following question is strictly about the Solar System or one of its 8 main planets:
-      ${ALLOWED.join(", ")}.
+    ChatPromptTemplate.fromMessages([
+      SystemMessagePromptTemplate.fromTemplate(`]
+      Classify the following user question into one of the following categories:
+      YES, NO
 
-      Instructions:
-      - If the question lanet or concept in the solar system, say YES.
-      - If not, or if you are unsure, say NO.
-      - Only respond with one word: YES or NO.
+      - If the question is related to you then category is YES
+      - If the question is about our solar system and planets: ${ALLOWED.join(",")} then category is YES
+      - Category is NO for any other topics.
 
-      Question: "{input}"
-      Answer:
-      `).pipe(llm).pipe(new StringOutputParser()),
+      Respond ONLY with the category name.
+
+      User Question: "{question}"
+      Category:
+      `),
+    ]).pipe(llm).pipe(new StringOutputParser()),
     [llm]);
 
 
   const prompt = useMemo(
     () =>
       ChatPromptTemplate.fromMessages([
-        SystemMessagePromptTemplate.fromTemplate(
-          `You are a space-farin pirate called "The Wastard", answering questions only about the solar system: ${ALLOWED.join(
-            ", "
-          )}.
-         Strict rules:
-         - If the question is not about these, refuse politely in pirate fashion saying you don't know.
-         - You can introduce yourself as "Wastard" if the question is about your identity.
-         - Stay in pirate tone. Max 5 sentences.`
+        SystemMessagePromptTemplate.fromTemplate(`
+          You are a space-farin pirate called "The Wastard" who is serving as helpful assistant. 
+          - Always stay in character. 
+          - Your answers should be feisty like said by a pirate.
+          - Keep your responses concise and to the point. Maximum of five sentences allowed.
+          Pirate Response:
+        `),
+        AIMessagePromptTemplate.fromTemplate(
+          "Helpful context for the question:\n{context}"
         ),
+        new MessagesPlaceholder("chat_history"),
         HumanMessagePromptTemplate.fromTemplate("{question}"),
       ]),
     []
   );
 
-
-  const refusalChain = useMemo(() =>
-      PromptTemplate.fromTemplate(`
-        You are a pirate called "The Wastard" who only answers questions related to the solar system. 
-        Assume you have been asked a question not related to our solar system. Reply politely, in pirate style, that you can't answer it. Stay in character.
-        
+  const refusalChain = useMemo(
+    () =>
+      PromptTemplate.fromTemplate(
+        `
+        You are space-farin pirate called "The Wastard". Assume you have been asked a question not related to our solar system.
+        Say that you can't answer it in pirate style. Keep your response short and maximum of three sentence.
         Pirate Response:
-      `)
-      .pipe(llm)
-      .pipe(new StringOutputParser()),
-    [llm]);
+      `
+      )
+        .pipe(llm)
+        .pipe(new StringOutputParser()),
+    [llm]
+  );
 
   const ragChain = useMemo(
     () =>
@@ -151,16 +159,14 @@ export function useLangChain(sessionId: string = "default") {
         // ✅ First: Check if the question is relevant using LLM
         RunnablePassthrough.assign({
           shouldProceed: async (input: ChainInput) => {
-            debugger;
             try {
               const result = await isRelevantQuestionChain.invoke({
-                input: input.question,
+                question: input.question
               });
-              const cleaned = result.trim().toUpperCase().split(/\s+/)[0]; // just take first word
+              const cleaned = result.trim().toUpperCase(); // just take first word
               console.log("[Classifier Output]:", cleaned);
 
-              return cleaned === "YES";
-
+              return cleaned.includes("YES");
             } catch (err) {
               console.warn("LLM classification failed:", err);
               return false;
@@ -175,16 +181,22 @@ export function useLangChain(sessionId: string = "default") {
             throw new Sentinel("Arr! That be beyond me starmaps, matey!");
           }
 
-          const wikiContext = await wikipediaTool
-            .invoke(input.question)
-            .catch(() => "");
-
           const filteredInput: ChainInput = {
             ...input,
             chat_history: input.chat_history.slice(-10),
           };
 
-          let context = wikiContext;
+          let context = "";
+
+          try {
+            // Always try Wikipedia first
+            const wikiContext = await wikipediaTool
+              .invoke(input.question)
+              .catch(() => "");
+            context += wikiContext ? `${wikiContext}\n\n` : "";
+          } catch (err) {
+            console.warn("Wikipedia tool failed", err);
+          }
 
           if (filteredInput.chat_history.length > 0) {
             try {
@@ -193,24 +205,33 @@ export function useLangChain(sessionId: string = "default") {
               });
 
               const intentCategory = intent.trim().toUpperCase();
-              const validIntents = ["QUESTION", "GREETING", "THANKS", "CHATTER", "UNKNOWN"];
+              const validIntents = [
+                "QUESTION",
+                "GREETING",
+                "THANKS",
+                "CHATTER",
+                "UNKNOWN",
+              ];
 
               if (validIntents.includes(intentCategory)) {
                 const rewritten = await contextualizeQChain.invoke({
                   question: filteredInput.question,
-                  chat_history: filteredInput.chat_history,
+                  chat_history: intentCategory === "QUESTION" || intentCategory === "CHATTER" ? filteredInput.chat_history : [],
                 });
 
-                context ||= rewritten; // only overwrite if wikiContext was empty
+                // ✅ Append rewritten question to existing context
+                context += `\n\nRewritten Query:\n${rewritten}`;
               }
             } catch (err) {
-              console.warn("Intent classification/contextualization failed", err);
+              console.warn(
+                "Intent classification/contextualization failed",
+                err
+              );
             }
           }
 
-          // fallback if no context from either source
+          // fallback if nothing added to context
           context ||= input.question;
-
 
           return { ...input, context };
         },
@@ -237,29 +258,28 @@ export function useLangChain(sessionId: string = "default") {
       }),
     [ragChain]
   );
-  
 
   const runQuery = useCallback(
-  async (userInput: string) => {
-    setLoading(true);
-    setError(null);
-    setResponse(null);
+    async (userInput: string) => {
+      setLoading(true);
+      setError(null);
+      setResponse(null);
 
-    try {
-      const result = await withMessageHistory.invoke(
-        {
-          question: userInput,
-          chat_history: messages,
-        },
-        { configurable: { sessionId } }
-      );
+      try {
+        const result = await withMessageHistory.invoke(
+          {
+            question: userInput,
+            chat_history: messages,
+          },
+          { configurable: { sessionId } }
+        );
 
-      const aiMessage = new AIMessage(result.content ?? result);
-      const humanMessage = new HumanMessage(userInput);
+        const aiMessage = new AIMessage(result.content ?? result);
+        const humanMessage = new HumanMessage(userInput);
 
-      setResponse(aiMessage.content as string);
-      setMessages((prev) => [...prev, humanMessage, aiMessage]);
-    } catch (err: any) {
+        setResponse(aiMessage.content as string);
+        setMessages((prev) => [...prev, humanMessage, aiMessage]);
+      } catch (err: any) {
         if (err instanceof Sentinel) {
           // 🧠 Generate pirate refusal response dynamically
           const rejectionResponse = await refusalChain.invoke({});
@@ -269,7 +289,6 @@ export function useLangChain(sessionId: string = "default") {
 
           setResponse(aiMessage.content.toString());
           setMessages((prev) => [...prev, humanMessage, aiMessage]);
-
           const history = await messageHistoriesRef.current[sessionId];
           if (history) {
             const msgs = await history.getMessages();
@@ -282,15 +301,14 @@ export function useLangChain(sessionId: string = "default") {
           return; // ✅ graceful early return
         }
 
-      console.error("LangChain Error:", err);
-      setError(err.message || "Error running model");
-    } finally {
-      setLoading(false);
-    }
-  },
-  [withMessageHistory, sessionId, messages]
-);
-
+        console.error("LangChain Error:", err);
+        setError(err.message || "Error running model");
+      } finally {
+        setLoading(false);
+      }
+    },
+    [withMessageHistory, sessionId, messages]
+  );
 
   return { runQuery, response, error, loading, messages };
 }
