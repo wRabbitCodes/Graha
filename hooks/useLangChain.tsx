@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { ChatOllama } from "@langchain/ollama"; // ✅ correct package
+import { ChatOllama } from "@langchain/ollama";
 import {
   ChatPromptTemplate,
   SystemMessagePromptTemplate,
@@ -8,12 +8,18 @@ import {
 } from "@langchain/core/prompts";
 import { InMemoryChatMessageHistory } from "@langchain/core/chat_history";
 import { RunnablePassthrough, RunnableSequence, RunnableWithMessageHistory } from "@langchain/core/runnables";
-import { BaseMessage } from "@langchain/core/messages";
+import { AIMessage, BaseMessage, HumanMessage } from "@langchain/core/messages";
 import { StringOutputParser } from "@langchain/core/output_parsers";
 
 const ALLOWED = [
-  "Mercury", "Venus", "Earth", "Mars",
-  "Jupiter", "Saturn", "Uranus", "Neptune",
+  "Mercury",
+  "Venus",
+  "Earth",
+  "Mars",
+  "Jupiter",
+  "Saturn",
+  "Uranus",
+  "Neptune",
 ];
 
 type ChainInput = {
@@ -25,11 +31,13 @@ export function useLangChain(sessionId: string = "default") {
   const [response, setResponse] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [messages, setMessages] = useState<Array<HumanMessage | AIMessage>>([]);
 
-  const runQuery = useCallback(async (userInput: string) => {
-    setLoading(true);
-    setError(null);
-    setResponse(null);
+  const runQuery = useCallback(
+    async (userInput: string) => {
+      setLoading(true);
+      setError(null);
+      setResponse(null);
 
 
 
@@ -152,5 +160,5 @@ export function useLangChain(sessionId: string = "default") {
     }
   }, []);
 
-  return { runQuery, response, error, loading };
+  return { runQuery, response, error, loading, messages };
 }
