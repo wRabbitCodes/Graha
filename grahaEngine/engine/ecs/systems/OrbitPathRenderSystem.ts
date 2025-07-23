@@ -1,6 +1,5 @@
 import { mat4, vec3 } from "gl-matrix";
 import { GLUtils } from "@/grahaEngine/utils/GLUtils";
-import { OrbitAnamolyCalculator } from "@/grahaEngine/utils/OrbitAnamolyCalculator";
 import { Renderer } from "../../command/Renderer";
 import { COMPONENT_STATE } from "../Component";
 import { ENTITY_TYPE, ModelComponent } from "../components/ModelComponent";
@@ -12,6 +11,7 @@ import { Registry } from "../Registry";
 import { System } from "../System";
 import { RenderContext } from "../../command/IRenderCommands";
 import { RenderPass } from "../../command/Renderer";
+import { OrbitAnomalyCalculator } from "@/grahaEngine/utils/OrbitAnamolyCalculator";
 
 export class OrbitPathRenderSystem extends System {
   constructor(public renderer: Renderer, registry: Registry, utils: GLUtils) {
@@ -135,11 +135,11 @@ export class OrbitPathRenderSystem extends System {
             totalVerts
           );
 
-          const theta = OrbitAnamolyCalculator.trueAnomalyAtTime(
+          const theta = OrbitAnomalyCalculator.trueAnomalyAtTime(
             performance.now() / 1000,
             orbitComp
           );
-          const progress = OrbitAnamolyCalculator.orbitProgress(theta);
+          const progress = OrbitAnomalyCalculator.orbitProgress(theta);
           const headIndex = progress * totalVerts;
 
           gl.uniform1f(

@@ -47,16 +47,23 @@ export class ModelUpdateSystem extends System {
         );
 
         // Floating point origin methods to cull precision loss
-        const cameraRelativeMatrix = mat4.create();
-        mat4.translate(cameraRelativeMatrix, coreComp.modelMatrix, vec3.negate(vec3.create(), this.camera.position));
-        coreComp.modelMatrix = cameraRelativeMatrix;
+
+        // const cameraRelativeMatrix = mat4.create();
+        // mat4.translate(cameraRelativeMatrix, coreComp.modelMatrix, vec3.negate(vec3.create(), this.camera.position));
+        // coreComp.modelMatrix = cameraRelativeMatrix;
+        // mat4.fromRotationTranslationScale(
+        //   coreComp.modelMatrix,
+        //   coreComp.rotationQuat,
+        //   coreComp.position!,
+        //   vec3.fromValues(coreComp.radius!, coreComp.radius!,coreComp.radius!)
+        // );
+
         mat4.fromRotationTranslationScale(
           coreComp.modelMatrix,
           coreComp.rotationQuat,
-          coreComp.position!,
+          coreComp.position,
           vec3.fromValues(coreComp.radius!, coreComp.radius!,coreComp.radius!)
         );
-
         
       }
     }

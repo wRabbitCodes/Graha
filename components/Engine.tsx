@@ -4,10 +4,11 @@ import { useEffect, useRef, useState } from "react";
 import { Scene } from "@/grahaEngine/core/Scene";
 import { TEXTURES, FONTS, MODELS, JSON_DATA } from "@/grahaEngine/data/urls";
 import Controls from "./Controls";
-import { useSettings } from "@/store/useSettings";
+import { useSettingsStore } from "@/store/useSettingsStore";
 import HUD from "./HUD";
 import Datepicker from "./Datepicker";
 import Draggable from "./Draggable";
+import { useSimulationStore } from "@/store/useSimulationStore";
 
 export default function Engine() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -17,8 +18,18 @@ export default function Engine() {
   const [showCrosshair, setShowCrosshair] = useState(false);
   const lastFrameTime = useRef(performance.now());
 
-  const settings = useSettings();
+  const settings = useSettingsStore();
+  const simulation = useSimulationStore();
+  const pausedRef = useRef(simulation.paused);
+  const speedRef = useRef(simulation.speed);
 
+  useEffect(() => {
+    pausedRef.current = simulation.paused;
+  }, [simulation.paused]);
+
+  useEffect(() => {
+    speedRef.current = simulation.speed;
+  }, [simulation.speed]);
   // Initialize scene and load assets
   useEffect(() => {
     if (!canvasRef.current) return;
@@ -40,10 +51,15 @@ export default function Engine() {
       });
 
     const animate = () => {
-      let now = performance.now();
-      const realDeltaTime = (now - lastFrameTime.current);
+      const now = performance.now();
+      const realDeltaTime = now - lastFrameTime.current;
       lastFrameTime.current = now;
-      sceneInstance.update(realDeltaTime); // replace with actual deltaTime if needed
+
+      if (!pausedRef.current) {
+        const simDeltaTime = realDeltaTime * speedRef.current;
+        sceneInstance.update(simDeltaTime);
+      }
+
       requestAnimationFrame(animate);
     };
 
@@ -75,7 +91,6 @@ export default function Engine() {
     const scene = sceneRef.current;
     if (!scene) return;
     scene.updateSettings({
-      globalSceneScale: settings.globalSceneScale,
       cameraSpeed: settings.cameraSpeed,
       mouseSensitivity: settings.mouseSensitivity,
       boundingBox: settings.boundingBox,

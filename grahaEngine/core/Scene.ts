@@ -1,16 +1,14 @@
+import dayjs from "dayjs";
 import { vec3 } from "gl-matrix";
 import { Renderer } from "../engine/command/Renderer";
 import { Registry } from "../engine/ecs/Registry";
 import { SystemManager } from "../engine/ecs/System";
-import { AsteroidModelRenderSystem } from "../engine/ecs/systems/AsteroidModelRenderSystem";
-import { AsteroidModelSystem } from "../engine/ecs/systems/AsteroidModelSystem";
 import { AsteroidPointCloudRenderSystem } from "../engine/ecs/systems/AsteroidPointCloudRenderSystem";
 import { AsteroidPointCloudSystem } from "../engine/ecs/systems/AsteroidPointCloudSystem";
 import { BBPlotRenderSystem } from "../engine/ecs/systems/BBPlotRenderSystem";
 import { CameraLatchSystem } from "../engine/ecs/systems/CameraLatchSystem";
 import { CCDSystem } from "../engine/ecs/systems/CCDSystem";
 import { EntitySelectionSystem } from "../engine/ecs/systems/EntitySelectionSystem";
-import { FrustumCullingSystem } from "../engine/ecs/systems/FrustumCuller";
 import { HTMLTagSystem } from "../engine/ecs/systems/HTMLTagSystem";
 import { ModelUpdateSystem } from "../engine/ecs/systems/ModelUpdateSystem";
 import { OrbitPathRenderSystem } from "../engine/ecs/systems/OrbitPathRenderSystem";
@@ -30,10 +28,8 @@ import { AssetsLoader } from "./AssetsLoader";
 import { Camera } from "./Camera";
 import { Canvas } from "./Canvas";
 import { IO } from "./IO";
-import dayjs from "dayjs";
 
 export interface SettingsState {
-  globalSceneScale: number;
   cameraSpeed: number;
   mouseSensitivity: number;
   boundingBox: boolean;
@@ -65,7 +61,6 @@ export class Scene {
   private asteroidFactory: AsteroidFactory;
 
   private settings!: SettingsState;
-  private paused = false;
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = new Canvas(canvas);
@@ -171,9 +166,8 @@ export class Scene {
     
     const orbSys = (this.systemManager.getManagedSystem(OrbitSystem) as OrbitSystem);
     if (this.settings.startSim && !this.settings.startSim.isSame(orbSys.getSimStart())) {
-      orbSys.setSimStart(this.settings.startSim);
       orbSys.resetSimulationDays();
-      orbSys.resetOrbitParams();
+      orbSys.setSimStart(this.settings.startSim);
     }
     this.systemManager.update(deltaTime, this.settings);
     const cameraLatchSystem = this.systemManager.getUnmanagedSystem(CameraLatchSystem)! as CameraLatchSystem;

@@ -10,11 +10,11 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { PopupBinder } from "./PopupBinder";
-import { useSettings } from "@/store/useSettings";
+import { useSettingsStore } from "@/store/useSettingsStore";
 
 export default function DatePicker() {
   const [open, setOpen] = useState(false);
-  const { startSim, set } = useSettings();
+  const { startSim, set } = useSettingsStore();
   const [currentMonth, setCurrentMonth] = useState(dayjs());
 
   const startOfMonth = currentMonth.startOf("month");

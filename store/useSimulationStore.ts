@@ -4,13 +4,12 @@ import { create } from 'zustand';
 interface SimulationState {
   paused: boolean;
   speed: number;
-  setPaused: (v: boolean) => void;
-  setSpeed: (v: number) => void;
+  set: <K extends keyof SimulationState>(key: K, value: SimulationState[K]) => void;
+
 }
 
 export const useSimulationStore = create<SimulationState>((set) => ({
   paused: false,
   speed: 1,
-  setPaused: (paused) => set({ paused }),
-  setSpeed: (speed) => set({ speed }),
+  set: (key, value) => set((state) => ({ ...state, [key]: value }))
 }));
