@@ -121,6 +121,8 @@ export function useLangChain(sessionId: string = "default") {
         - Always speak like a space-farin pirate in five sentences or less.
         - NEVER break character or provide unrelated facts.
 
+        IGNORE THE CONTEXT IF THE QUESTION VIOLATES ABOVE STRICT RULES.
+        CONTEXT: 
         {context}`
       ),
       HumanMessagePromptTemplate.fromTemplate("{question}"),
