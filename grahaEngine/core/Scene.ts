@@ -1,16 +1,14 @@
+import dayjs from "dayjs";
 import { vec3 } from "gl-matrix";
 import { Renderer } from "../engine/command/Renderer";
 import { Registry } from "../engine/ecs/Registry";
 import { SystemManager } from "../engine/ecs/System";
-import { AsteroidModelRenderSystem } from "../engine/ecs/systems/AsteroidModelRenderSystem";
-import { AsteroidModelSystem } from "../engine/ecs/systems/AsteroidModelSystem";
 import { AsteroidPointCloudRenderSystem } from "../engine/ecs/systems/AsteroidPointCloudRenderSystem";
 import { AsteroidPointCloudSystem } from "../engine/ecs/systems/AsteroidPointCloudSystem";
 import { BBPlotRenderSystem } from "../engine/ecs/systems/BBPlotRenderSystem";
 import { CameraLatchSystem } from "../engine/ecs/systems/CameraLatchSystem";
 import { CCDSystem } from "../engine/ecs/systems/CCDSystem";
 import { EntitySelectionSystem } from "../engine/ecs/systems/EntitySelectionSystem";
-import { FrustumCullingSystem } from "../engine/ecs/systems/FrustumCuller";
 import { HTMLTagSystem } from "../engine/ecs/systems/HTMLTagSystem";
 import { ModelUpdateSystem } from "../engine/ecs/systems/ModelUpdateSystem";
 import { OrbitPathRenderSystem } from "../engine/ecs/systems/OrbitPathRenderSystem";
@@ -32,7 +30,6 @@ import { Canvas } from "./Canvas";
 import { IO } from "./IO";
 
 export interface SettingsState {
-  globalSceneScale: number;
   cameraSpeed: number;
   mouseSensitivity: number;
   boundingBox: boolean;
@@ -42,6 +39,7 @@ export interface SettingsState {
   enableAsteroidDustCloud: boolean;
   enableAsteroidModels: boolean;
   showEntityLabel: boolean;
+  startSim: dayjs.Dayjs;
   set: <K extends keyof SettingsState>(key: K, value: SettingsState[K]) => void;
 }
 
@@ -63,7 +61,6 @@ export class Scene {
   private asteroidFactory: AsteroidFactory;
 
   private settings!: SettingsState;
-  private paused = false;
 
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = new Canvas(canvas);
@@ -96,11 +93,11 @@ export class Scene {
 
   private setupSystems() {
     this.systemManager.registerSystem(new SkyRenderSystem(this.renderer, this.assetsLoader, this.registry, this.utils));
-    this.systemManager.registerSystem(new PlanetRenderSystem(this.renderer, this.assetsLoader, this.registry, this.utils));
-    this.systemManager.registerSystem(new ModelUpdateSystem(this.camera, this.registry, this.utils));
     this.systemManager.registerSystem(new OrbitSystem(this.registry, this.utils));
-    this.systemManager.registerSystem(new SelectionGlowRenderSystem(this.renderer, this.registry, this.utils));
+    this.systemManager.registerSystem(new ModelUpdateSystem(this.camera, this.registry, this.utils));
     this.systemManager.registerSystem(new CCDSystem(this.camera, this.registry, this.utils));
+    this.systemManager.registerSystem(new PlanetRenderSystem(this.renderer, this.assetsLoader, this.registry, this.utils));
+    this.systemManager.registerSystem(new SelectionGlowRenderSystem(this.renderer, this.registry, this.utils));
     // this.systemManager.registerSystem(new FrustumCullingSystem(this.camera, this.canvas, this.registry, this.utils));
     this.systemManager.registerSystem(new SunRenderSystem(this.renderer, this.assetsLoader, this.registry, this.utils));
     this.systemManager.registerSystem(new HTMLTagSystem(this.renderer, this.registry, this.utils), undefined, false);
@@ -154,8 +151,8 @@ export class Scene {
     return this.registry.getEntityIDToNameMap();
   }
 
-  updateSettings(settings: SettingsState) {
-    this.settings = { ...settings };
+  updateSettings(settings: Partial<SettingsState>) {
+    this.settings = { ...this.settings, ...settings };
   }
 
   update(deltaTime: number) {
@@ -165,8 +162,13 @@ export class Scene {
     }
 
     this.camera.state.handleKeyboard(this.camera, this.input.getKeys());
-    this.camera.update(deltaTime / 1000);
+    this.camera.update(deltaTime);
     
+    const orbSys = (this.systemManager.getManagedSystem(OrbitSystem) as OrbitSystem);
+    if (this.settings.startSim && !this.settings.startSim.isSame(orbSys.getSimStart())) {
+      orbSys.resetSimulationDays();
+      orbSys.setSimStart(this.settings.startSim);
+    }
     this.systemManager.update(deltaTime, this.settings);
     const cameraLatchSystem = this.systemManager.getUnmanagedSystem(CameraLatchSystem)! as CameraLatchSystem;
     if (this.settings.latchedEntityID) {
@@ -176,9 +178,6 @@ export class Scene {
     } else {
       cameraLatchSystem.clearLatch();
     }
-
-  
-    
 
     const viewMatrix = this.camera.viewMatrix;
     const projectionMatrix = this.canvas.getProjectionMatrix();
@@ -200,6 +199,5 @@ export class Scene {
     } else {
       (this.systemManager.getUnmanagedSystem(HTMLTagSystem) as HTMLTagSystem)?.disableTags();
     }
-
   }
 }

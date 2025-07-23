@@ -8,8 +8,9 @@ import { Shaders } from "../shaders/shaders";
 export class AtmosphereStrategy extends BaseShaderStrategy {
   private atmosphereRotation = 0;
   setBindings(gl: WebGL2RenderingContext, ctx: Partial<RenderContext>, components: { [key: string]: IComponent; }, textures: { [key: string]: WebGLTexture }): void {
-    this.atmosphereRotation += (ctx.deltaTime! / 45000) % 1.0;
     const modelComp = components.modelComp as ModelComponent;
+    this.atmosphereRotation += modelComp.rotationSpeed! * 1.
+
     const atmosphereModel = mat4.clone(modelComp.modelMatrix);
     mat4.scale(atmosphereModel, atmosphereModel, [1.02, 1.02, 1.02]);
     gl.useProgram(this.program);

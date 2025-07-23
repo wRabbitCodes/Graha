@@ -11,7 +11,7 @@ export class ModelComponent implements IComponent, IState {
   baseColor?: string;
   type = ENTITY_TYPE.PLANET;
   radius?: number;
-  position?: vec3;
+  position = vec3.fromValues(0,0,0);
   tiltAngle = 23.44;
   siderealDay=1; // hours;
   axis = vec3.fromValues(0, 1, 0);
@@ -21,4 +21,5 @@ export class ModelComponent implements IComponent, IState {
   modelMatrix=mat4.create();
   boundingBoxScale = 2;
   isVisible: boolean = true; // Add inside ModelComponent class
+  rotationSpeed?: number; //Degree per ms
 }

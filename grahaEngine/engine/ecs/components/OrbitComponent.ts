@@ -13,7 +13,6 @@ export class OrbitComponent implements IComponent, IState {
   meanAnomalyAtEpoch = 0
   epochTime = 0;
   orbitalPeriod?: number;
-  elapsedDays?: number;
   pathPoints: number[] = [];
   scaledPathPoints: number[] = [];
   pathSegmentCount = 180;

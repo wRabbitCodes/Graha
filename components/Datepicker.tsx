@@ -10,11 +10,11 @@ import {
 } from "lucide-react";
 import { useState } from "react";
 import { PopupBinder } from "./PopupBinder";
+import { useSettingsStore } from "@/store/useSettingsStore";
 
 export default function DatePicker() {
   const [open, setOpen] = useState(false);
-
-  const [selectedDate, setSelectedDate] = useState<dayjs.Dayjs | null>(null);
+  const { startSim, set } = useSettingsStore();
   const [currentMonth, setCurrentMonth] = useState(dayjs());
 
   const startOfMonth = currentMonth.startOf("month");
@@ -50,7 +50,7 @@ export default function DatePicker() {
           className="drag-handle flex items-center gap-2 px-3 text-white text-sm py-2 rounded-md shadow-lg border border-white/10 font-mon text-white bg-black/40 hover:bg-gray-700"
         >
           <CalendarIcon className="w-4 h-4" />
-          {selectedDate ? selectedDate.format("DD MMM YYYY") : "Pick a date"}
+          {startSim ? startSim.format("DD MMM YYYY") : "Pick a date"}
         </button>
       )}
       popup={({ ref, flipped, alignedRight }) => (
@@ -100,12 +100,12 @@ export default function DatePicker() {
                     {date && (
                       <button
                         onClick={() => {
-                          setSelectedDate(date);
+                          set('startSim', date);
                           setOpen(false);
                         }}
                         className={clsx(
                           "w-8 h-8 rounded-full hover:bg-blue-600 transition",
-                          selectedDate?.isSame(date, "day") && "bg-blue-500"
+                          startSim?.isSame(date, "day") && "bg-blue-500"
                         )}
                       >
                         {date.date()}

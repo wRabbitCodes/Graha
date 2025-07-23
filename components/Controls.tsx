@@ -1,17 +1,17 @@
 "use client";
 
-import { useSettings } from "@/store/useSettings";
+import { useSettingsStore } from "@/store/useSettingsStore";
 import clsx from "clsx";
 import { AnimatePresence, motion } from "framer-motion";
-import { Settings2 } from "lucide-react";
-import { useState } from "react";
+import { Pause, Play, Settings2 } from "lucide-react";
+import { useMemo, useState } from "react";
 import { PopupBinder } from "./PopupBinder";
+import { useSimulationStore } from "@/store/useSimulationStore";
 
 export default function Controls() {
   const [open, setOpen] = useState(false);
 
   const {
-    globalSceneScale,
     cameraSpeed,
     mouseSensitivity,
     boundingBox,
@@ -22,8 +22,14 @@ export default function Controls() {
     enableAsteroidModels,
     showEntityLabel,
     set,
-  } = useSettings();
+  } = useSettingsStore();
 
+  const { paused, speed, set: setSim } = useSimulationStore();
+
+  const speedOptions = useMemo(()=>[1, 60, 3600, 86400, 604800], []);
+  const speedLabels  = useMemo(()=>["Real Time", "1 s = 1 m", "1 s = 1 h", "1 s = 1 d", "1 s = 1 w"], []);
+  // compute the slider’s index from the current speed multiplier:
+  const currentIndex = Math.max(0, speedOptions.indexOf(speed));
   return (
     <PopupBinder
       open={open}
@@ -54,19 +60,40 @@ export default function Controls() {
             >
               {/* === All Controls Here === */}
               <div>
-                <label className="block text-sm mb-1">Global Scene Scale</label>
-                <input
-                  type="range"
-                  min={1}
-                  max={100}
-                  step={1}
-                  value={globalSceneScale}
-                  onChange={(e) =>
-                    set("globalSceneScale", Number(e.target.value))
-                  }
-                  className="w-full"
-                />
-                <span className="text-xs">{globalSceneScale}</span>
+                <label className="block text-sm mb-1">Simulation Speed</label>
+                <div className="flex items-center gap-2">
+                  {/* play/pause */}
+                  <button
+                    onClick={() => setSim("paused", !paused)}
+                    className="p-2 bg-black/40 rounded-full hover:bg-gray-700 transition"
+                    aria-label={paused ? "Play Simulation" : "Pause Simulation"}
+                  >
+                    {paused ? (
+                      <Play className="w-5 h-5 text-white" />
+                    ) : (
+                      <Pause className="w-5 h-5 text-white" />
+                    )}
+                  </button>
+
+                  {/* discrete slider */}
+                  <input
+                    type="range"
+                    min={0}
+                    max={speedOptions.length - 1}
+                    step={1}
+                    value={currentIndex}
+                    onChange={(e) => {
+                      const idx = Number(e.target.value);
+                      setSim("speed", speedOptions[idx]);
+                    }}
+                    className="flex-1"
+                  />
+
+                  {/* label */}
+                  <span className="w-20 text-xs text-center select-none">
+                    {speedLabels[currentIndex]}
+                  </span>
+                </div>
               </div>
 
               <div>

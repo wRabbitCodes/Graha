@@ -436,10 +436,7 @@ export default function HUD() {
               </button>
               <motion.div
                 key={detailsWidget.id}
-                className={clsx(
-                  "relative h-full w-full",
-                  "bg-black/80 text-sm shadow-lg text-white"
-                )}
+                className="relative h-full w-full text-sm  text-white"
                 layout
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
