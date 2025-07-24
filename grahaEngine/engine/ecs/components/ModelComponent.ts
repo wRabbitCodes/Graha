@@ -8,7 +8,7 @@ export enum ENTITY_TYPE {
 export class ModelComponent implements IComponent, IState {
   state = COMPONENT_STATE.UNINITIALIZED;
   name?: string;
-  baseColor?: string;
+  baseColor = vec3.fromValues(1.0,1.0,0.0);
   type = ENTITY_TYPE.PLANET;
   radius?: number;
   position = vec3.fromValues(0,0,0);

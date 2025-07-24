@@ -16,4 +16,5 @@ export class OrbitComponent implements IComponent, IState {
   pathPoints: number[] = [];
   scaledPathPoints: number[] = [];
   pathSegmentCount = 180;
+  headposition = vec3.create();
 }

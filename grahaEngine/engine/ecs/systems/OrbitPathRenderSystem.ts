@@ -2,16 +2,16 @@ import { mat4, vec3 } from "gl-matrix";
 import { GLUtils } from "@/grahaEngine/utils/GLUtils";
 import { Renderer } from "../../command/Renderer";
 import { COMPONENT_STATE } from "../Component";
-import { ENTITY_TYPE, ModelComponent } from "../components/ModelComponent";
-import { MoonComponent } from "../components/MoonComponent";
+import { ModelComponent } from "../components/ModelComponent";
 import { OrbitComponent } from "../components/OrbitComponent";
-import { OrbitPathRenderComponent } from "../components/RenderComponent";
 import { Entity } from "../Entity";
 import { Registry } from "../Registry";
 import { System } from "../System";
 import { RenderContext } from "../../command/IRenderCommands";
 import { RenderPass } from "../../command/Renderer";
+import { OrbitSystem } from "./OrbitSystem";
 import { OrbitAnomalyCalculator } from "@/grahaEngine/utils/OrbitAnamolyCalculator";
+import { OrbitPathRenderComponent } from "../components/RenderComponent";
 
 export class OrbitPathRenderSystem extends System {
   constructor(public renderer: Renderer, registry: Registry, utils: GLUtils) {
@@ -19,54 +19,27 @@ export class OrbitPathRenderSystem extends System {
   }
 
   update(deltaTime: number): void {
-    for (const entity of this.registry.getEntitiesWith(
-      OrbitComponent,
-      ModelComponent
-    )) {
+    for (const entity of this.registry.getEntitiesWith(OrbitComponent, ModelComponent)) {
       const orbitComp = this.registry.getComponent(entity, OrbitComponent);
-      if (orbitComp?.state !== COMPONENT_STATE.READY) continue;
+      if (orbitComp?.state !== COMPONENT_STATE.READY || !orbitComp.pathPoints) continue;
 
       const modelComp = this.registry.getComponent(entity, ModelComponent);
-      if (modelComp.state !== COMPONENT_STATE.READY) continue;
+      if (modelComp?.state !== COMPONENT_STATE.READY || !modelComp.baseColor || !modelComp.position) continue;
 
-      if (orbitComp.scaledPathPoints.length === 0) {
-        orbitComp.scaledPathPoints = [...orbitComp.pathPoints];
-      }
-      let renderComp = this.registry.getComponent(
-        entity,
-        OrbitPathRenderComponent
-      );
+      let renderComp = this.registry.getComponent(entity, OrbitPathRenderComponent);
       if (!renderComp) {
         renderComp = new OrbitPathRenderComponent();
         this.registry.addComponent(entity, renderComp);
       }
-      if (renderComp.state === COMPONENT_STATE.UNINITIALIZED)
+      if (renderComp.state === COMPONENT_STATE.UNINITIALIZED) {
         this.initialize(entity, renderComp, orbitComp);
+      }
       if (renderComp.state !== COMPONENT_STATE.READY) continue;
 
-      if (modelComp?.type === ENTITY_TYPE.MOON) {
-        const moonComp = this.registry.getComponent(entity, MoonComponent);
-        const parentModel = this.registry.getComponent(
-          moonComp.parentEntity!,
-          ModelComponent
-        );
-        if (parentModel.state !== COMPONENT_STATE.READY) continue;
+      const totalVerts = orbitComp.pathPoints.length / 3;
+    // Use headPosition to find the closest point index for the trail's head
+      const headIndex = this.findClosestPathPointIndex(orbitComp.pathPoints, orbitComp.headposition);
 
-        orbitComp.scaledPathPoints = this.translateOrbitPathPoints(
-          orbitComp.pathPoints,
-          parentModel.position!
-        );
-        this.updateVAOForMoon(renderComp, orbitComp);
-      }
-
-      const now = performance.now() / 1000;
-      const totalVerts = orbitComp.scaledPathPoints.length / 3;
-      const speed = 50.0;
-      const pulseLength = totalVerts * 0.3;
-      const pulseStart = (now * speed) % totalVerts;
-      const pulseEnd = (pulseStart + pulseLength) % totalVerts;
-
-      // Glowing pass
       this.renderer.enqueue({
         execute: (gl: WebGL2RenderingContext, ctx: RenderContext) => {
           gl.useProgram(renderComp.program);
@@ -87,16 +60,25 @@ export class OrbitPathRenderSystem extends System {
             ctx.projectionMatrix
           );
 
-          const loc = (name: string) =>
-            gl.getUniformLocation(renderComp.program!, name);
-
-          gl.uniform1f(loc("u_totalVerts"), totalVerts);
-          gl.uniform1f(loc("u_pulseStart"), pulseStart);
-          gl.uniform1f(loc("u_pulseEnd"), pulseEnd);
-
+          gl.uniform3fv(
+            gl.getUniformLocation(renderComp.program!, "u_baseColor"),
+            modelComp.baseColor
+          );
+          gl.uniform1f(
+            gl.getUniformLocation(renderComp.program!, "u_totalVerts"),
+            totalVerts
+          );
+          gl.uniform1f(
+            gl.getUniformLocation(renderComp.program!, "u_headIndex"),
+            headIndex
+          );
+          gl.uniform3fv(
+            gl.getUniformLocation(renderComp.program!, "u_viewDir"),
+            vec3.fromValues(0, 0, -1)
+          );
           gl.bindVertexArray(renderComp.VAO);
           gl.enable(gl.BLEND);
-          gl.blendFunc(gl.ONE, gl.ONE);
+          gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
           gl.drawArrays(gl.LINE_STRIP, 0, totalVerts);
           gl.disable(gl.BLEND);
           gl.bindVertexArray(null);
@@ -108,98 +90,25 @@ export class OrbitPathRenderSystem extends System {
         shaderProgram: renderComp.program,
         persistent: false,
       });
-
-      // Base pass
-      this.renderer.enqueue({
-        execute: (gl: WebGL2RenderingContext, ctx: RenderContext) => {
-          gl.useProgram(renderComp.baseProgram!);
-
-          gl.uniformMatrix4fv(
-            gl.getUniformLocation(renderComp.baseProgram!, "u_model"),
-            false,
-            mat4.create()
-          );
-          gl.uniformMatrix4fv(
-            gl.getUniformLocation(renderComp.baseProgram!, "u_view"),
-            false,
-            ctx.viewMatrix
-          );
-          gl.uniformMatrix4fv(
-            gl.getUniformLocation(renderComp.baseProgram!, "u_proj"),
-            false,
-            ctx.projectionMatrix
-          );
-
-          gl.uniform1f(
-            gl.getUniformLocation(renderComp.baseProgram!, "u_segmentCount"),
-            totalVerts
-          );
-
-          const theta = OrbitAnomalyCalculator.trueAnomalyAtTime(
-            performance.now() / 1000,
-            orbitComp
-          );
-          const progress = OrbitAnomalyCalculator.orbitProgress(theta);
-          const headIndex = progress * totalVerts;
-
-          gl.uniform1f(
-            gl.getUniformLocation(renderComp.baseProgram!, "u_planetIndex"),
-            headIndex
-          );
-          gl.uniform1f(
-            gl.getUniformLocation(renderComp.baseProgram!, "u_fadeSpan"),
-            1.0
-          );
-          gl.uniform3fv(gl.getUniformLocation(renderComp.baseProgram!, "u_orbitColor"),
-        renderComp.orbitColor ?? vec3.fromValues(1.0,1.0,1.0));
-
-          gl.enable(gl.BLEND);
-          gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-          gl.bindVertexArray(renderComp.VAO);
-          gl.drawArrays(gl.LINE_STRIP, 0, totalVerts);
-          gl.disable(gl.BLEND);
-          gl.bindVertexArray(null);
-        },
-        validate: (gl: WebGL2RenderingContext) => {
-          return !!renderComp.baseProgram && !!renderComp.VAO && gl.getProgramParameter(renderComp.baseProgram!, gl.LINK_STATUS);
-        },
-        priority: RenderPass.TRANSPARENT,
-        shaderProgram: renderComp.baseProgram!,
-        persistent: false,
-      });
     }
   }
 
-  private initialize(
-    entity: Entity,
-    renderComp: OrbitPathRenderComponent,
-    orbitComp: OrbitComponent
-  ) {
-    renderComp.program = this.utils.createProgram(
-      renderComp.vertSrc,
-      renderComp.fragSrc
-    );
-    renderComp.baseProgram = this.utils.createProgram(
-      renderComp.baseVertShader,
-      renderComp.baseFragShader
-    );
+  private initialize(entity: Entity, renderComp: OrbitPathRenderComponent, orbitComp: OrbitComponent) {
+    renderComp.program = this.utils.createProgram(renderComp.vertSrc, renderComp.fragSrc);
     this.setupVAO(renderComp, orbitComp);
     renderComp.state = COMPONENT_STATE.READY;
     this.registry.addComponent(entity, renderComp);
   }
 
-  private setupVAO(
-    renderComp: OrbitPathRenderComponent,
-    orbitComp: OrbitComponent
-  ) {
-    const vertices = new Float32Array(orbitComp.scaledPathPoints);
+  private setupVAO(renderComp: OrbitPathRenderComponent, orbitComp: OrbitComponent) {
+    const vertices = new Float32Array(orbitComp.pathPoints);
     const gl = this.utils.gl;
     const vao = gl.createVertexArray();
     const vbo = gl.createBuffer();
 
     gl.bindVertexArray(vao);
     gl.bindBuffer(gl.ARRAY_BUFFER, vbo);
-    gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.DYNAMIC_DRAW);
+    gl.bufferData(gl.ARRAY_BUFFER, vertices, gl.STATIC_DRAW);
     gl.enableVertexAttribArray(0);
     gl.vertexAttribPointer(0, 3, gl.FLOAT, false, 0, 0);
 
@@ -217,21 +126,38 @@ export class OrbitPathRenderSystem extends System {
     renderComp.VBO = vbo;
   }
 
-  private updateVAOForMoon(renderComp: OrbitPathRenderComponent, orbitComp: OrbitComponent) {
-    const gl = this.utils.gl;
-    gl.bindBuffer(gl.ARRAY_BUFFER, renderComp.VBO);
-    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(orbitComp.scaledPathPoints), gl.DYNAMIC_DRAW);
+  private getPositionFromPathPoints(pathPoints: number[], progress: number): vec3 {
+    const totalVerts = pathPoints.length / 3;
+    const floatIndex = progress * totalVerts;
+    const index = Math.floor(floatIndex);
+    const t = floatIndex - index;
+
+    // Get two consecutive points for interpolation
+    const idx1 = (index % totalVerts) * 3;
+    const idx2 = ((index + 1) % totalVerts) * 3;
+
+    const p1 = vec3.fromValues(pathPoints[idx1], pathPoints[idx1 + 1], pathPoints[idx1 + 2]);
+    const p2 = vec3.fromValues(pathPoints[idx2], pathPoints[idx2 + 1], pathPoints[idx2 + 2]);
+
+    // Linearly interpolate between p1 and p2
+    return vec3.lerp(vec3.create(), p1, p2, t);
   }
 
-  private translateOrbitPathPoints(pathPoints: number[], parentPos: vec3) {
-    const translated: number[] = [];
-    for (let i = 0; i < pathPoints.length; i += 3) {
-      translated.push(
-        pathPoints[i] + parentPos[0],
-        pathPoints[i + 1] + parentPos[1],
-        pathPoints[i + 2] + parentPos[2]
-      );
+  // Add this method to the class
+private findClosestPathPointIndex(pathPoints: number[], position: vec3): number {
+  let minDistance = Infinity;
+  let closestIndex = 0;
+
+  for (let i = 0; i < pathPoints.length; i += 3) {
+    const point = vec3.fromValues(pathPoints[i], pathPoints[i + 1], pathPoints[i + 2]);
+    const distance = vec3.distance(point, position);
+    if (distance < minDistance) {
+      minDistance = distance;
+      closestIndex = i / 3;
     }
-    return translated;
   }
+
+  return closestIndex;
 }
+}
+

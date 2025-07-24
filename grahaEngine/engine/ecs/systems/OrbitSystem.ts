@@ -1,15 +1,15 @@
 import { mat4, vec3 } from "gl-matrix";
 import { SETTINGS } from "../../../config/settings";
-import { OrbitAnomalyCalculator } from "../../../utils/OrbitAnamolyCalculator";
 import { COMPONENT_STATE } from "../Component";
 import { System } from "../System";
 import { ModelComponent } from "../components/ModelComponent";
 import { OrbitComponent } from "../components/OrbitComponent";
 import { MoonComponent } from "../components/MoonComponent";
 import { Entity } from "../Entity";
-import dayjs, { Dayjs } from "dayjs";
 import { Registry } from "../Registry";
 import { GLUtils } from "@/grahaEngine/utils/GLUtils";
+import dayjs, { Dayjs } from "dayjs";
+import { OrbitAnomalyCalculator } from "@/grahaEngine/utils/OrbitAnamolyCalculator";
 
 export class OrbitSystem extends System {
   private readonly rotX = mat4.fromXRotation(mat4.create(), -Math.PI / 2);
@@ -18,9 +18,9 @@ export class OrbitSystem extends System {
   private simulationDays = 0;
   private needsReset = false;
 
-  constructor(registry: Registry, utils: GLUtils ) {
+  constructor(registry: Registry, utils: GLUtils) {
     super(registry, utils);
-    this.simulationDays = this.simStart.diff(this.epoch, 'day');
+    this.simulationDays = this.simStart.diff(this.epoch, "day");
   }
 
   setSimStart(date: Dayjs): void {
@@ -42,7 +42,7 @@ export class OrbitSystem extends System {
   }
 
   resetSimulationDays(): void {
-    this.simulationDays = this.simStart.diff(this.epoch, 'day');
+    this.simulationDays = this.simStart.diff(this.epoch, "day");
   }
 
   update(deltaTime: number): void {
@@ -70,23 +70,20 @@ export class OrbitSystem extends System {
       this.initializeOrbit(orbit);
     }
 
-    const pos = OrbitAnomalyCalculator.keplerToCartesian({
-      semiMajorAxis: orbit.semiMajorAxis!,
-      eccentricity: orbit.eccentricity!,
-      inclination: orbit.inclination!,
-      ascendingNode: orbit.longitudeOfAscendingNode!,
-      argumentOfPeriapsis: orbit.argumentOfPeriapsis!,
-      meanAnomaly: OrbitAnomalyCalculator.meanAnomalyAtTime(this.simulationDays, orbit),
-    });
-    vec3.scale(pos, pos, 1 / (SETTINGS.DISTANCE_SCALE ?? 1));
-    vec3.transformMat4(pos, pos, this.rotX);
+    // Calculate orbital progress (0 to 1) based on mean anomaly
+    const meanAnomaly = OrbitAnomalyCalculator.meanAnomalyAtTime(this.simulationDays, orbit);
+    const progress = meanAnomaly / 360; // Normalize to [0, 1]
 
+    // Get position from pre-calculated pathPoints
+    const position = this.getPositionFromPathPoints(orbit.pathPoints, progress);
+    orbit.headposition = position;
     const moon = this.registry.getComponent(entity, MoonComponent);
     if (moon) {
       const parent = this.registry.getComponent(moon.parentEntity!, ModelComponent)!;
-      vec3.add(model.position!, pos, parent.position!);
+      vec3.add(model.position!, position, parent.position!);
     } else {
-      model.position = pos;
+      model.position = position;
+      orbit.headposition = position;
     }
   }
 
@@ -123,5 +120,22 @@ export class OrbitSystem extends System {
     }
 
     return points;
+  }
+
+  private getPositionFromPathPoints(pathPoints: number[], progress: number): vec3 {
+    const totalVerts = pathPoints.length / 3;
+    const floatIndex = progress * totalVerts;
+    const index = Math.floor(floatIndex);
+    const t = floatIndex - index;
+
+    // Get two consecutive points for interpolation
+    const idx1 = (index % totalVerts) * 3;
+    const idx2 = ((index + 1) % totalVerts) * 3;
+
+    const p1 = vec3.fromValues(pathPoints[idx1], pathPoints[idx1 + 1], pathPoints[idx1 + 2]);
+    const p2 = vec3.fromValues(pathPoints[idx2], pathPoints[idx2 + 1], pathPoints[idx2 + 2]);
+
+    // Linearly interpolate between p1 and p2
+    return vec3.lerp(vec3.create(), p1, p2, t);
   }
 }
