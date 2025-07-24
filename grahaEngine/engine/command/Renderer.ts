@@ -234,7 +234,6 @@ export class Renderer {
 
     const mainCommands = this.commands.filter(cmd => cmd.priority !== RenderPass.SHADOW);
     for (const cmd of mainCommands) {
-      debugger;
       if (cmd.validate(gl)) {
         // console.log(`Executing command with priority ${cmd.priority}`);
         cmd.execute(gl, { ...this.context});

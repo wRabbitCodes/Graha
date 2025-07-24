@@ -11,7 +11,7 @@ import { CCDSystem } from "../engine/ecs/systems/CCDSystem";
 import { EntitySelectionSystem } from "../engine/ecs/systems/EntitySelectionSystem";
 import { HTMLTagSystem } from "../engine/ecs/systems/HTMLTagSystem";
 import { ModelUpdateSystem } from "../engine/ecs/systems/ModelUpdateSystem";
-import { OrbitPathRenderSystem } from "../engine/ecs/systems/OrbitPathRenderSystem";
+// import { OrbitPathRenderSystem } from "../engine/ecs/systems/OrbitPathRenderSystem";
 import { OrbitSystem } from "../engine/ecs/systems/OrbitSystem";
 import { PlanetRenderSystem } from "../engine/ecs/systems/PlanetRenderSystem";
 import { SelectionGlowRenderSystem } from "../engine/ecs/systems/SelectionGlowRenderSystem";
@@ -28,6 +28,8 @@ import { AssetsLoader } from "./AssetsLoader";
 import { Camera } from "./Camera";
 import { Canvas } from "./Canvas";
 import { IO } from "./IO";
+import { OrbitTrailRenderSystem } from "../engine/ecs/systems/OrbitTrailRenderSystem";
+import { OrbitPathRenderSystem } from "../engine/ecs/systems/OrbitPathRenderSystem";
 
 export interface SettingsState {
   cameraSpeed: number;
@@ -106,7 +108,8 @@ export class Scene {
     // Conditional systems
     this.systemManager.registerSystem(
       new OrbitPathRenderSystem(this.renderer, this.registry, this.utils),
-      (s) => s.highlightOrbit
+      // new OrbitTrailRenderSystem(this.renderer, this.registry, this.utils),
+      // (s) => s.highlightOrbit
     );
     this.systemManager.registerSystem(
       new AsteroidPointCloudSystem(this.registry, this.utils),

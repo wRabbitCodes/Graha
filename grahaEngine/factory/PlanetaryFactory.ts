@@ -16,6 +16,7 @@ interface PlanetaryConfig {
   name: string;
   radius: number;
   tiltAngle: number;
+  baseColor: string;
   siderealDay: number;
   axis?: vec3;
   parent?: Entity;
@@ -29,6 +30,7 @@ interface PlanetaryData {
     name: string;
     radius: number;
     tiltAngle: number;
+    baseColor: string;
     siderealDay: number;
     axis?: [number, number, number];
     parent?: string;
@@ -49,6 +51,7 @@ export class PlanetaryFactory implements IFactory {
     model.siderealDay = config.siderealDay;
     model.axis = config.axis || vec3.fromValues(0, 1, 0);
     model.type = config.type;
+    model.baseColor = config.baseColor;
 
     const orbitRadius =(config.orbitData?.semiMajorAxis!)/ SETTINGS.DISTANCE_SCALE;
     model.position = vec3.fromValues(orbitRadius, 0, 0);
@@ -66,7 +69,6 @@ export class PlanetaryFactory implements IFactory {
       orbit.perihelion = config.orbitData.perihelion!;
       orbit.aphelion = config.orbitData.aphelion!;
       orbit.pathPoints = [];
-      orbit.scaledPathPoints = [];
       this.registry.addComponent(entity, orbit);
     }
 
@@ -105,6 +107,7 @@ export class PlanetaryFactory implements IFactory {
       const entity = this.create({
         type: body.type,
         name: body.name,
+        baseColor: body.baseColor,
         radius: body.radius,
         tiltAngle: body.tiltAngle,
         siderealDay: body.siderealDay,

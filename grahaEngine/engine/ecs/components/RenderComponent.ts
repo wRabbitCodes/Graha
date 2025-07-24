@@ -75,85 +75,108 @@ export class BBPlotRenderComponent extends RenderComponent {
 }
 
 export class OrbitPathRenderComponent extends RenderComponent {
+  pathSegmentCount = 180;
+  orbitColor?: vec3;
+
   vertSrc = `#version 300 es
-layout(location = 0) in vec3 a_position;
-layout(location = 1) in float a_index;
+    layout(location = 0) in vec3 a_position;
+    layout(location = 1) in float a_index;
 
-uniform mat4 u_model;
-uniform mat4 u_view;
-uniform mat4 u_proj;
-uniform float u_totalVerts;
-uniform float u_headIndex;
-uniform vec3 u_viewDir;
+    uniform mat4 u_model;
+    uniform mat4 u_view;
+    uniform mat4 u_proj;
 
-out float v_alpha;
-out vec3 v_position;
-out float v_fresnel;
+    uniform float u_totalVerts;
+    uniform float u_pulseStart;
+    uniform float u_pulseEnd;
 
-void main() {
-  float idx = mod(a_index, u_totalVerts);
-  // Calculate distance from head index, considering the orbit as a loop
-  float dist = mod(idx - u_headIndex + u_totalVerts, u_totalVerts);
-  float fadeLength = u_totalVerts * 0.5; // Tail spans half the orbit
-  float t = dist / fadeLength;
-  v_alpha = 1.0 - smoothstep(0.0, 1.0, t); // Fade out towards tail
+    out float v_alpha;
+    out float v_colorT;
 
-  vec4 worldPos = u_model * vec4(a_position, 1.0);
-  v_position = worldPos.xyz;
+    void main() {
+      float idx = mod(a_index, u_totalVerts);
+      float pulseLength = mod(u_pulseEnd - u_pulseStart + u_totalVerts, u_totalVerts);
 
-  // Approximate normal for line strip
-  float nextIdx = mod(a_index + 1.0, u_totalVerts);
-  vec3 nextPos = a_position + vec3(0.01, 0.0, 0.0); // Fallback offset
-  vec3 tangent = normalize(nextPos - a_position);
-  vec3 normal = normalize(cross(tangent, u_viewDir));
-  v_fresnel = pow(1.0 - abs(dot(normal, u_viewDir)), 3.0); // Fresnel term
+      // Distance from head (pulseStart) in the looped space
+      float distFromStart = mod(idx - u_pulseStart + u_totalVerts, u_totalVerts);
 
-  gl_Position = u_proj * u_view * worldPos;
-}
-`;
+      // Normalized distance in pulse [0.0, 1.0], outside range if not in pulse
+      float t = distFromStart / pulseLength;
+
+      // Smooth fade-in and fade-out (symmetric)
+      float fade = smoothstep(0.0, 0.1, t) * (1.0 - smoothstep(0.9, 1.0, t));
+      float inPulse = step(0.0, pulseLength - distFromStart); // 1 if inside, else 0
+
+      v_alpha = inPulse * fade;
+      v_colorT = t;
+
+      gl_Position = u_proj * u_view * u_model * vec4(a_position, 1.0);
+    }`;
 
   fragSrc = `#version 300 es
-precision mediump float;
+    precision mediump float;
 
-in float v_alpha;
-in vec3 v_position;
-in float v_fresnel;
+    in float v_alpha;
+    in float v_colorT;
 
-uniform vec3 u_baseColor;
+    out vec4 fragColor;
 
-out vec4 fragColor;
+    vec3 hue(float t) {
+      float r = abs(t * 6.0 - 3.0) - 1.0;
+      float g = 2.0 - abs(t * 6.0 - 2.0);
+      float b = 2.0 - abs(t * 6.0 - 4.0);
+      return clamp(vec3(r, g, b), 0.0, 1.0);
+    }
 
-void main() {
-  if (v_alpha < 0.01) discard;
-
-  // Base color with Fresnel glow
-  vec3 glowColor = u_baseColor * 1.5; // Brighter for glow
-  vec3 color = mix(u_baseColor, glowColor, v_fresnel);
-  float finalAlpha = v_alpha * (0.3 + 0.7 * v_fresnel); // Enhance alpha with Fresnel
-
-  fragColor = vec4(color, finalAlpha);
-}
-`;
+    void main() {
+      if (v_alpha < 0.01) discard;
+      vec3 color = hue(v_colorT);
+      fragColor = vec4(color, v_alpha);
+    }`;
 }
 
 export class AsteroidPointCloudRenderComponent extends RenderComponent {
- vertShader = `#version 300 es
+  vertShader = `#version 300 es
     layout(location = 0) in vec3 a_position;
+    layout(location = 1) in float a_seed;
+
     uniform mat4 u_view;
     uniform mat4 u_proj;
+
+    out float v_seed;
+
     void main() {
+      v_seed = a_seed;
       gl_Position = u_proj * u_view * vec4(a_position, 1.0);
-      gl_PointSize = 0.01; // screen-space size
+
+      // Tiny points with time-varying shimmer
+      gl_PointSize = 0.01;
     }
-  `;
+    `;
 
   fragShader = `#version 300 es
     precision mediump float;
+
+    in float v_seed;
+    uniform float u_time;
     out vec4 fragColor;
-    void main() {
-      fragColor = vec4(0.85, 0.85, 0.85, 1.0); // dusty rock color
+
+    // Include noise functions
+    float hash(float n) {
+      return fract(sin(n) * 43758.5453123);
     }
-  `;
+    float noise(float x) {
+      float i = floor(x);
+      float f = fract(x);
+      float u = f * f * (3.0 - 2.0 * f);
+      return mix(hash(i), hash(i + 1.0), u);
+    }
+
+    void main() {
+      // Per-point, time-varying noise
+      float flicker = 0.5 + 0.5 * noise(v_seed * 100.0 + u_time * 0.1); // slow noise
+      fragColor = vec4(vec3(flicker), 1.0);
+    }`;
 }
 
 export class AsteroidModelRenderComponent extends RenderComponent {

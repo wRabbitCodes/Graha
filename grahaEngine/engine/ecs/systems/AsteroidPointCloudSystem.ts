@@ -21,7 +21,7 @@ export class AsteroidPointCloudSystem extends System {
         );
 
         // Rotate around Y, relative to center
-        const angle = rotationSpeeds[i] * deltaTime;
+        const angle = rotationSpeeds[i] * deltaTime / 1e7 % 2 * Math.PI;
         mat4.fromYRotation(rotMat, angle);
 
         vec3.subtract(pos, pos, center);

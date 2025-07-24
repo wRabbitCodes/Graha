@@ -76,14 +76,14 @@ export class OrbitSystem extends System {
 
     // Get position from pre-calculated pathPoints
     const position = this.getPositionFromPathPoints(orbit.pathPoints, progress);
-    orbit.headposition = position;
+    model.position = position;
+    orbit.headPosition = position
+    orbit.headProgress = progress;
     const moon = this.registry.getComponent(entity, MoonComponent);
     if (moon) {
       const parent = this.registry.getComponent(moon.parentEntity!, ModelComponent)!;
       vec3.add(model.position!, position, parent.position!);
-    } else {
-      model.position = position;
-      orbit.headposition = position;
+      orbit.headPosition = model.position;
     }
   }
 
@@ -93,7 +93,6 @@ export class OrbitSystem extends System {
     orbit.epochTime = OrbitAnomalyCalculator.calculateEpochTime(this.simStart);
 
     orbit.pathPoints = this.generateOrbitPathPoints(orbit);
-    orbit.scaledPathPoints = [];
     orbit.state = COMPONENT_STATE.READY;
     this.needsReset = false;
   }

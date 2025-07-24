@@ -41,6 +41,7 @@ export class AsteroidPointCloudRenderSystem extends System {
         execute: (gl: WebGL2RenderingContext, ctx: RenderContext) => {
           gl.useProgram(renderComp.program);
           gl.bindVertexArray(renderComp.VAO);
+
           gl.uniformMatrix4fv(
             gl.getUniformLocation(renderComp.program!, "u_view"),
             false,
@@ -50,6 +51,10 @@ export class AsteroidPointCloudRenderSystem extends System {
             gl.getUniformLocation(renderComp.program!, "u_proj"),
             false,
             ctx.projectionMatrix
+          );
+          gl.uniform1f(
+            gl.getUniformLocation(renderComp.program!, "u_time"),
+            deltaTime / 1e3// 🕒 Add this to your `RenderContext`
           );
 
           gl.drawArrays(gl.POINTS, 0, cloud.positions.length / 3);
@@ -86,6 +91,17 @@ export class AsteroidPointCloudRenderSystem extends System {
     const posLoc = gl.getAttribLocation(renderComp.program!, "a_position");
     gl.enableVertexAttribArray(posLoc);
     gl.vertexAttribPointer(posLoc, 3, gl.FLOAT, false, 0, 0);
+    gl.bindBuffer(gl.ARRAY_BUFFER, null);
+
+    // Add seeds
+    const seedBuffer = gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, seedBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, cloud.seeds, gl.STATIC_DRAW);
+
+    const seedLoc = gl.getAttribLocation(renderComp.program!, "a_seed");
+    gl.enableVertexAttribArray(seedLoc);
+    gl.vertexAttribPointer(seedLoc, 1, gl.FLOAT, false, 0, 0);
+
     gl.bindVertexArray(null);
 
     renderComp.VAO = VAO;

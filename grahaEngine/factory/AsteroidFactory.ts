@@ -12,7 +12,7 @@ export class AsteroidFactory implements IFactory {
   create() {
     const entity = this.registry.createEntity();
     const asteroidPCComp = new AsteroidPointCloudComponent();
-    [asteroidPCComp.positions, asteroidPCComp.rotationSpeeds] =
+    [asteroidPCComp.positions, asteroidPCComp.rotationSpeeds, asteroidPCComp.seeds] =
       this.generatePointsRadialTorus(10000);
     asteroidPCComp.center = vec3.fromValues(0, 0, 0);
     asteroidPCComp.state = COMPONENT_STATE.READY;
@@ -38,8 +38,7 @@ export class AsteroidFactory implements IFactory {
 
   const positions = new Float32Array(count * 3);
   const rotationSpeeds = new Float32Array(count);
-  // const rotations: quat[] = [];
-  // const rotationAxes: vec3[] = [];
+  const seeds = new Float32Array(count);
 
   const scales = new Float32Array(count);
 
@@ -59,10 +58,11 @@ export class AsteroidFactory implements IFactory {
     const z = (R + tubeRadius * Math.cos(tubeTheta)) * Math.sin(orbitAngle);
 
     positions.set([x, y, z], i * 3);
+    seeds[i] = Math.random(); // 👈
     rotationSpeeds[i] = 0.00005 + Math.random() * 0.00003;
     scales[i] = 1.5 + Math.random() * 50.0;
   }
 
-  return [positions, rotationSpeeds, scales];
+  return [positions, rotationSpeeds, seeds, scales];
 }
 }

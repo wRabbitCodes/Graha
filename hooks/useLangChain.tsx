@@ -281,23 +281,27 @@ export function useLangChain(sessionId: string = "default") {
       } catch (err: any) {
         if (err instanceof Sentinel) {
           // 🧠 Generate pirate refusal response dynamically
-          const rejectionResponse = await refusalChain.invoke({});
+          try {
+            const rejectionResponse = await refusalChain.invoke({});
 
-          const aiMessage = new AIMessage(rejectionResponse ?? err.message);
-          const humanMessage = new HumanMessage(userInput);
+            const aiMessage = new AIMessage(rejectionResponse ?? err.message);
+            const humanMessage = new HumanMessage(userInput);
 
-          setResponse(aiMessage.content.toString());
-          setMessages((prev) => [...prev, humanMessage, aiMessage]);
-          const history = await messageHistoriesRef.current[sessionId];
-          if (history) {
-            const msgs = await history.getMessages();
-            const trimmed = msgs.slice(0, -2); // drop last 2
-            await history.clear();
-            for (const msg of trimmed) {
-              await history.addMessage(msg);
-            }
+            setResponse(aiMessage.content.toString());
+            setMessages((prev) => [...prev, humanMessage, aiMessage]);
+            const history = await messageHistoriesRef.current[sessionId];
+            if (history) {
+              const msgs = await history.getMessages();
+              const trimmed = msgs.slice(0, -2); // drop last 2
+              await history.clear();
+              for (const msg of trimmed) {
+                await history.addMessage(msg);
+              }
           }
           return; // ✅ graceful early return
+          } catch (err: any) {
+            throw err;
+          }
         }
 
         console.error("LangChain Error:", err);
