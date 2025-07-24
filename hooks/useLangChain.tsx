@@ -176,7 +176,6 @@ export function useLangChain(sessionId: string = "default") {
 
         // ✅ Then: Gate the rest of the chain with this wrapper
         async (input: ChainInput & { shouldProceed: boolean }) => {
-          debugger;
           if (!input.shouldProceed) {
             throw new Sentinel("Arr! That be beyond me starmaps, matey!");
           }

@@ -93,9 +93,8 @@ export class Scene {
 
   private setupSystems() {
     this.systemManager.registerSystem(new SkyRenderSystem(this.renderer, this.assetsLoader, this.registry, this.utils));
-    this.systemManager.registerSystem(new OrbitSystem(this.registry, this.utils));
     this.systemManager.registerSystem(new ModelUpdateSystem(this.camera, this.registry, this.utils));
-    this.systemManager.registerSystem(new CCDSystem(this.camera, this.registry, this.utils));
+    this.systemManager.registerSystem(new OrbitSystem(this.registry, this.utils));
     this.systemManager.registerSystem(new PlanetRenderSystem(this.renderer, this.assetsLoader, this.registry, this.utils));
     this.systemManager.registerSystem(new SelectionGlowRenderSystem(this.renderer, this.registry, this.utils));
     // this.systemManager.registerSystem(new FrustumCullingSystem(this.camera, this.canvas, this.registry, this.utils));
@@ -103,7 +102,12 @@ export class Scene {
     this.systemManager.registerSystem(new HTMLTagSystem(this.renderer, this.registry, this.utils), undefined, false);
     this.systemManager.registerSystem(new CameraLatchSystem(this.camera, this.registry, this.utils), undefined, false);
     this.systemManager.registerSystem(new EntitySelectionSystem(this.rayCaster, this.camera, this.registry, this.utils), undefined, false);
+    this.systemManager.registerSystem(new CCDSystem(this.camera, this.registry, this.utils));
     // Conditional systems
+    this.systemManager.registerSystem(
+      new OrbitPathRenderSystem(this.renderer, this.registry, this.utils),
+      (s) => s.highlightOrbit
+    );
     this.systemManager.registerSystem(
       new AsteroidPointCloudSystem(this.registry, this.utils),
       (s) => s.enableAsteroidDustCloud
@@ -111,10 +115,6 @@ export class Scene {
     this.systemManager.registerSystem(
       new AsteroidPointCloudRenderSystem(this.renderer, this.registry, this.utils),
       (s) => s.enableAsteroidDustCloud
-    );
-    this.systemManager.registerSystem(
-      new OrbitPathRenderSystem(this.renderer, this.registry, this.utils),
-      (s) => s.highlightOrbit
     );
     this.systemManager.registerSystem(
       new SelectionTagSystem(this.renderer, this.registry, this.utils),

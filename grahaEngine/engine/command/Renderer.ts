@@ -212,7 +212,7 @@ export class Renderer {
   public flush() {
     const gl = this.gl;
     // console.log("Flushing", this.commands.length, "commands");
-    this.commands.sort((a, b) => a.priority - b.priority);
+    // this.commands.sort((a, b) => a.priority - b.priority);
 
     // Main pass
     gl.bindFramebuffer(gl.FRAMEBUFFER, this.fboMSAA);
@@ -234,6 +234,7 @@ export class Renderer {
 
     const mainCommands = this.commands.filter(cmd => cmd.priority !== RenderPass.SHADOW);
     for (const cmd of mainCommands) {
+      debugger;
       if (cmd.validate(gl)) {
         // console.log(`Executing command with priority ${cmd.priority}`);
         cmd.execute(gl, { ...this.context});

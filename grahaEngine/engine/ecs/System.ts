@@ -31,11 +31,6 @@ export class SystemManager {
     return this.managedSystems.get(system);
   }
 
-  // initialize() {
-  //   this.systems.forEach((system) => system.initialize?.());
-  //   this.conditionalSystems.forEach(({ system }) => system.initialize?.());
-  // }
-
   update(deltaTime: number, settings: SettingsState) {
 
     // DO NOT HANDLE UNMANAGED SYSTEMS
