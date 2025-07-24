@@ -26,8 +26,8 @@ export default function Controls() {
 
   const { paused, speed, set: setSim } = useSimulationStore();
 
-  const speedOptions = useMemo(()=>[1, 60, 3600, 86400, 604800], []);
-  const speedLabels  = useMemo(()=>["Real Time", "1 s = 1 m", "1 s = 1 h", "1 s = 1 d", "1 s = 1 w"], []);
+  const speedOptions = useMemo(()=>[1, 60, 3600, 86400, 604800, 2419200, 29030400], []);
+  const speedLabels  = useMemo(()=>["Real Time", "1 s = 1 m", "1 s = 1 h", "1 s = 1 d", "1 s = 1 w", "1 s = 1 M", "1 s = 1 Y"], []);
   // compute the slider’s index from the current speed multiplier:
   const currentIndex = Math.max(0, speedOptions.indexOf(speed));
   return (

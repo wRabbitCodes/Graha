@@ -104,6 +104,7 @@ class OrbitTrailStrategy {
 
 export class OrbitTrailRenderSystem extends System {
   private trailStrategy: OrbitTrailStrategy;
+  shouldRenderMoonOrbits: boolean = true; // HACK: AVOID DRAWING MOON ORBITS AT HIGH SPEED SIMULATION
 
   constructor(public renderer: Renderer, registry: Registry, utils: GLUtils) {
     super(registry, utils);
@@ -138,6 +139,7 @@ export class OrbitTrailRenderSystem extends System {
 
       const moonComp = this.registry.getComponent(entity, MoonComponent);
       if (moonComp) {
+        if (!this.shouldRenderMoonOrbits) return;
         const parentComp = this.registry.getComponent(moonComp.parentEntity, ModelComponent);
         trailComp.parentPosition = vec3.clone(parentComp.position);  // store in trailComp
       } else {

@@ -8,7 +8,7 @@ export class OrbitTrailComponent implements IComponent {
   progressBuffer: WebGLBuffer | null = null;
   program: WebGLProgram | null = null;
   color = "#FFFFFF";
-  pointCount = 90;
+  pointCount = 180;
   orbitPoints: number[] = [];
   parentPosition?: vec3;
 

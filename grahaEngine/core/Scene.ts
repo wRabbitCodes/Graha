@@ -64,6 +64,8 @@ export class Scene {
 
   private settings!: SettingsState;
 
+  disableMoonOrbitPath: boolean = false; // HACK to hide moon orbit to avoid jitter
+
   constructor(canvas: HTMLCanvasElement) {
     this.canvas = new Canvas(canvas);
     this.gl = this.canvas.gl;
@@ -167,6 +169,9 @@ export class Scene {
     this.camera.state.handleKeyboard(this.camera, this.input.getKeys());
     this.camera.update(deltaTime);
     
+    const orbitRenderSystem = (this.systemManager.getConditionalSystem(OrbitTrailRenderSystem)?.system as OrbitTrailRenderSystem);
+    orbitRenderSystem.shouldRenderMoonOrbits = !this.disableMoonOrbitPath;
+
     const orbSys = (this.systemManager.getManagedSystem(OrbitSystem) as OrbitSystem);
     if (this.settings.startSim && !this.settings.startSim.isSame(orbSys.getSimStart())) {
       orbSys.resetSimulationDays();

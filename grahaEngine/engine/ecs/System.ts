@@ -11,12 +11,12 @@ export abstract class System {
 
 export class SystemManager {
   private managedSystems: Map<SystemType, System> = new Map();
-  private conditionalSystems: { system: System; condition: (settings: SettingsState) => boolean }[] = [];
+  private conditionalSystems: Map<SystemType, { system: System; condition: (settings: SettingsState) => boolean }> = new Map();
   private unmanagedSystem: Map<SystemType, System> = new Map();
 
   registerSystem(system: System, condition?: (settings: SettingsState) => boolean, isManaged = true) {
     if (condition) {
-      this.conditionalSystems.push({ system, condition });
+      this.conditionalSystems.set(system.constructor as SystemType, { system, condition });
     } else {
       if (!isManaged) this.unmanagedSystem.set(system.constructor as SystemType, system)
       else this.managedSystems.set(system.constructor as SystemType, system);
@@ -25,6 +25,10 @@ export class SystemManager {
 
   getUnmanagedSystem(system: SystemType) {
     return this.unmanagedSystem.get(system);
+  }
+
+  getConditionalSystem(system: SystemType) {
+    return this.conditionalSystems.get(system);
   }
 
   getManagedSystem(system: SystemType) {

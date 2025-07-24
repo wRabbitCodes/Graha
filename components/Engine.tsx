@@ -59,6 +59,11 @@ export default function Engine() {
         const simDeltaTime = realDeltaTime * speedRef.current;
         sceneInstance.update(simDeltaTime);
       }
+      if (speedRef.current > 86400) {
+        sceneInstance.disableMoonOrbitPath = true;
+      } else {
+        sceneInstance.disableMoonOrbitPath = false;
+      }
 
       requestAnimationFrame(animate);
     };
