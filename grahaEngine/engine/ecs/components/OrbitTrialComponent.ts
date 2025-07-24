@@ -5,10 +5,10 @@ export class OrbitTrailComponent implements IComponent {
   state = COMPONENT_STATE.UNINITIALIZED;
   vao: WebGLVertexArrayObject | null = null;
   positionBuffer: WebGLBuffer | null = null;
-  opacityBuffer: WebGLBuffer | null = null;
+  progressBuffer: WebGLBuffer | null = null;
   program: WebGLProgram | null = null;
-  color= "#FFFFFF" // Default white
-  pointCount: number = 180; // Number of points in the trail
+  color = "#FFFFFF";
+  pointCount = 90;
   orbitPoints: number[] = [];
   parentPosition?: vec3;
 

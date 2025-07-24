@@ -16,13 +16,13 @@ const vertexShaderSource = `#version 300 es
   precision highp float;
 
   in vec3 a_position;
-  in float a_opacity;
+  in float a_progress;
 
   uniform mat4 u_mvpMatrix;
   uniform bool u_isMoon;
   uniform vec3 u_parentPosition;
 
-  out float v_opacity;
+  out float v_progress;
 
   void main() {
     vec3 worldPosition = a_position;
@@ -31,20 +31,33 @@ const vertexShaderSource = `#version 300 es
     }
 
     gl_Position = u_mvpMatrix * vec4(worldPosition, 1.0);
-    v_opacity = a_opacity;
+    v_progress = a_progress;
   }`;
 
 // Fragment shader with fading effect
 const fragmentShaderSource = `#version 300 es
   precision highp float;
 
-  in float v_opacity;
+  in float v_progress;
   uniform vec3 u_color;
+  uniform float u_headProgress;
 
   out vec4 outColor;
 
   void main() {
-    outColor = vec4(u_color, v_opacity);
+    // Trail progress is now "behind" the planet's current position
+    float trailProgress = mod(u_headProgress - v_progress + 1.0, 1.0);
+
+    float opacity = 0.0;
+    if (trailProgress < 0.25) {
+      opacity = 1.0;
+    } else if (trailProgress < 0.5) {
+      opacity = 1.0 - (trailProgress - 0.25) / 0.25;
+    } else {
+      discard;
+    }
+
+    outColor = vec4(u_color, opacity);
   }`;
 
 class OrbitTrailStrategy {
@@ -65,45 +78,27 @@ class OrbitTrailStrategy {
     return this.program;
   }
 
-  setBindings(gl: WebGL2RenderingContext, ctx: RenderContext, components: {
+  setBindings(gl: WebGL2RenderingContext, ctx: Partial<RenderContext>, components: {
     trailComp: OrbitTrailComponent,
+    headProgress: number
   }): void {
-    if (!this.program) {
-      console.error('No program available for orbit trail');
-      return;
-    }
+    if (!this.program) return;
 
-    const { trailComp } = components;
+    const { trailComp, headProgress } = components;
+    const mvpMatrix = mat4.create();
+    mat4.multiply(mvpMatrix, ctx.projectionMatrix!, ctx.viewMatrix!);
 
-    // Set up vertex attributes
-    const positionLoc = gl.getAttribLocation(this.program, 'a_position');
-    const opacityLoc = gl.getAttribLocation(this.program, 'a_opacity');
-    const isMoonLoc = gl.getUniformLocation(this.program, 'u_isMoon');
-    const parentPosLoc = gl.getUniformLocation(this.program, 'u_parentPosition');
     const mvpLoc = gl.getUniformLocation(this.program, 'u_mvpMatrix');
     const colorLoc = gl.getUniformLocation(this.program, 'u_color');
+    const isMoonLoc = gl.getUniformLocation(this.program, 'u_isMoon');
+    const parentPosLoc = gl.getUniformLocation(this.program, 'u_parentPosition');
+    const headLoc = gl.getUniformLocation(this.program, 'u_headProgress');
 
-    
-    // Compute MVP matrix (no model translation since pathPoints are in world space)
-    const mvpMatrix = mat4.create();
-    mat4.multiply(mvpMatrix, ctx.projectionMatrix, ctx.viewMatrix);
-
-    gl.bindBuffer(gl.ARRAY_BUFFER, trailComp.positionBuffer);
-    gl.vertexAttribPointer(positionLoc, 3, gl.FLOAT, false, 0, 0); // Tightly packed positions
-    gl.enableVertexAttribArray(positionLoc);
-
-    gl.bindBuffer(gl.ARRAY_BUFFER, trailComp.opacityBuffer);
-    gl.vertexAttribPointer(opacityLoc, 1, gl.FLOAT, false, 0, 0); // Tightly packed opacities
-    gl.enableVertexAttribArray(opacityLoc);
-  
     gl.uniformMatrix4fv(mvpLoc, false, mvpMatrix);
     gl.uniform3fv(colorLoc, trailComp.getColorAsVec3());
-    gl.uniform1i(isMoonLoc, !!trailComp.parentPosition ? 1 : 0);
+    gl.uniform1i(isMoonLoc, trailComp.parentPosition ? 1 : 0);
     gl.uniform3fv(parentPosLoc, trailComp.parentPosition || [0, 0, 0]);
-
-    // Debug: Log matrix and color
-    console.log('MVP Matrix:', mvpMatrix);
-    console.log('Trail Color:', trailComp.color);
+    gl.uniform1f(headLoc, headProgress);
   }
 }
 
@@ -149,41 +144,29 @@ export class OrbitTrailRenderSystem extends System {
         trailComp.parentPosition = undefined;
       }
       // Update trail points and get the actual number of points
-      const actualPointCount = this.updateTrailPoints(entity, trailComp, orbitComp);
-
-      if (actualPointCount < 2) {
-        console.warn(`Not enough points (${actualPointCount}) to draw trail for entity ${entity}`);
-        continue;
-      }
+      const actualPointCount = trailComp.pointCount;
 
       this.renderer.enqueue({
-        execute: (gl: WebGL2RenderingContext, ctx: RenderContext) => {
-          if (!trailComp.program || !trailComp.vao) {
-            console.error(`Invalid program or VAO for entity ${entity}`);
-            return;
-          }
-
+        execute: (gl, ctx) => {
           gl.useProgram(trailComp.program);
           gl.bindVertexArray(trailComp.vao);
 
-          this.trailStrategy.setBindings(gl, ctx, { trailComp });
+          this.trailStrategy.setBindings(gl, ctx, {
+            trailComp,
+            headProgress: orbitComp.headProgress, // ∈ [0, 1]
+          });
 
           gl.enable(gl.BLEND);
           gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
-
-          console.log(`Drawing trail for entity ${entity} with ${actualPointCount} points`);
           gl.drawArrays(gl.LINE_STRIP, 0, actualPointCount);
-
           gl.disable(gl.BLEND);
+
           gl.bindVertexArray(null);
           gl.useProgram(null);
         },
-        validate: (gl: WebGL2RenderingContext) => {
-          const valid = !!trailComp.program && !!trailComp.vao && gl.getProgramParameter(trailComp.program!, gl.LINK_STATUS);
-          if (!valid) {
-            console.error(`Validation failed for entity ${entity}: program=${!!trailComp.program}, vao=${!!trailComp.vao}, linked=${trailComp.program ? gl.getProgramParameter(trailComp.program!, gl.LINK_STATUS) : false}`);
-          }
-          return valid;
+        validate: (gl) => {
+          return !!trailComp.program && !!trailComp.vao &&
+            gl.getProgramParameter(trailComp.program!, gl.LINK_STATUS);
         },
         priority: RenderPass.TRANSPARENT,
         shaderProgram: trailComp.program,
@@ -194,90 +177,44 @@ export class OrbitTrailRenderSystem extends System {
 
   private initializeTrail(entity: Entity, trailComp: OrbitTrailComponent, orbitComp: OrbitComponent): void {
     trailComp.state = COMPONENT_STATE.LOADING;
-    trailComp.orbitPoints = [...orbitComp.pathPoints];
     const gl = this.utils.gl;
 
-    // Create and set up VAO
+    const pathPoints = orbitComp.pathPoints;
+    const totalPoints = pathPoints.length / 3;
+    trailComp.pointCount = totalPoints;
+    trailComp.orbitPoints = pathPoints;
+
+    // Progress values ∈ [0, 1)
+    const progresses = new Float32Array(totalPoints);
+    for (let i = 0; i < totalPoints; i++) {
+      progresses[i] = i / totalPoints;
+    }
+
+    const positionData = new Float32Array(pathPoints);
+
+    // Create buffers
     trailComp.vao = gl.createVertexArray()!;
+    trailComp.positionBuffer = gl.createBuffer()!;
+    trailComp.progressBuffer = gl.createBuffer()!;
+    trailComp.program = this.trailStrategy.getProgram();
+
     gl.bindVertexArray(trailComp.vao);
 
-    // Create position and opacity buffers
-    trailComp.positionBuffer = gl.createBuffer()!;
-    trailComp.opacityBuffer = gl.createBuffer()!;
-
-    // Initialize with empty buffers
+    // Position buffer
     gl.bindBuffer(gl.ARRAY_BUFFER, trailComp.positionBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, trailComp.pointCount * 3 * 4, gl.DYNAMIC_DRAW);
+    gl.bufferData(gl.ARRAY_BUFFER, positionData, gl.STATIC_DRAW);
+    const positionLoc = gl.getAttribLocation(trailComp.program!, 'a_position');
+    gl.enableVertexAttribArray(positionLoc);
+    gl.vertexAttribPointer(positionLoc, 3, gl.FLOAT, false, 0, 0);
 
-    gl.bindBuffer(gl.ARRAY_BUFFER, trailComp.opacityBuffer);
-    gl.bufferData(gl.ARRAY_BUFFER, trailComp.pointCount * 4, gl.DYNAMIC_DRAW);
-
-    trailComp.program = this.trailStrategy.getProgram();
-    trailComp.state = COMPONENT_STATE.READY;
+    // Progress buffer
+    gl.bindBuffer(gl.ARRAY_BUFFER, trailComp.progressBuffer);
+    gl.bufferData(gl.ARRAY_BUFFER, progresses, gl.STATIC_DRAW);
+    const progressLoc = gl.getAttribLocation(trailComp.program!, 'a_progress');
+    gl.enableVertexAttribArray(progressLoc);
+    gl.vertexAttribPointer(progressLoc, 1, gl.FLOAT, false, 0, 0);
 
     gl.bindVertexArray(null);
-    console.log(`Trail initialized for entity ${entity} with ${trailComp.pointCount} points`);
-  }
-
-  private updateTrailPoints(entity: Entity, trailComp: OrbitTrailComponent, orbitComp: OrbitComponent): number {
-    const gl = this.utils.gl;
-    const entityName = this.registry.getNameFromEntityID(entity.id);
-    // Calculate trail points (most recent at head, fading toward tail)
-    const positions: number[] = [];
-    const opacities: number[] = [];
-
-    const totalPoints = trailComp.orbitPoints.length / 3;
-    if (totalPoints < 2) {
-      console.warn(`Insufficient pathPoints (${totalPoints}) for entity ${entityName}`);
-      return 0;
-    }
-
-    const trailLength = Math.min(trailComp.pointCount, totalPoints);
-
-    // Get current position index
-
-    const currentIndex = Math.floor(orbitComp.headProgress * totalPoints);
-
-    // Collect points for the trail, starting from current position and going backward
-    for (let i = 0; i < trailLength; i++) {
-      if (i === 0) {
-        // Use the planet's current position for the first point
-        positions.push(
-          orbitComp.headPosition[0],
-          orbitComp.headPosition[1],
-          orbitComp.headPosition[2]
-        );
-      } else {
-        const idx = ((currentIndex - i + totalPoints) % totalPoints) * 3;
-        if (idx >= trailComp.orbitPoints.length || idx < 0) {
-          console.warn(`Invalid pathPoints index ${idx} for entity ${entity}`);
-          continue;
-        }
-        positions.push(
-          trailComp.orbitPoints[idx],
-          trailComp.orbitPoints[idx + 1],
-          trailComp.orbitPoints[idx + 2]
-        );
-      }
-
-      // Linearly interpolate opacity from 1.0 at head to 0.0 at tail
-      opacities.push(1.0 - (i / (trailLength - 1)));
-    }
-
-    // Ensure we have enough points to draw a line strip
-    if (positions.length < 6) { // At least 2 vertices (6 floats) needed
-      console.warn(`Not enough valid trail points (${positions.length / 3}) for entity ${entity}`);
-      return 0;
-    }
-
-    // Update buffers
-    // gl.bindBuffer(gl.ARRAY_BUFFER, trailComp.positionBuffer);
-    // gl.bufferSubData(gl.ARRAY_BUFFER, 0, new Float32Array(positions));
-
-    // gl.bindBuffer(gl.ARRAY_BUFFER, trailComp.opacityBuffer);
-    // gl.bufferSubData(gl.ARRAY_BUFFER, 0, new Float32Array(opacities));
-
-    console.log(`Updated ${positions.length / 3} trail points for entity ${entity}`);
-    return positions.length / 3; // Return the actual number of vertices
+    trailComp.state = COMPONENT_STATE.READY;
   }
 }

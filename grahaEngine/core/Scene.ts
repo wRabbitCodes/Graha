@@ -107,9 +107,9 @@ export class Scene {
     this.systemManager.registerSystem(new CCDSystem(this.camera, this.registry, this.utils));
     // Conditional systems
     this.systemManager.registerSystem(
-      new OrbitPathRenderSystem(this.renderer, this.registry, this.utils),
-      // new OrbitTrailRenderSystem(this.renderer, this.registry, this.utils),
-      // (s) => s.highlightOrbit
+      // new OrbitPathRenderSystem(this.renderer, this.registry, this.utils),
+      new OrbitTrailRenderSystem(this.renderer, this.registry, this.utils),
+      (s) => s.highlightOrbit
     );
     this.systemManager.registerSystem(
       new AsteroidPointCloudSystem(this.registry, this.utils),
