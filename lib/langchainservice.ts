@@ -76,8 +76,9 @@ export class LangChainService {
       Classify the following user question into one of the following categories:
       YES, NO
 
-      - If the question is about the solar system and planets: ${ALLOWED.join(",")} => YES
-      - If not => NO
+      Instruction:
+      - If the question is about the solar system and its planets: ${ALLOWED.join(",")}, say YES
+      - Else say NO
 
       Respond ONLY with YES or NO
 
@@ -132,7 +133,7 @@ export class LangChainService {
         },
       }),
 
-      async (input: any) => {
+      async (input: any & {shouldProceed: boolean}) => {
         if (!input.shouldProceed) {
           throw new Sentinel("Arr! That be beyond me starmaps, matey!");
         }
