@@ -1,12 +1,12 @@
 import { SETTINGS } from "@/grahaEngine/config/settings";
 import { RenderContext } from "../../command/IRenderCommands";
 import { IComponent } from "../../ecs/Component";
-import { Shaders } from "../shaders/shaders";
 import { BaseShaderStrategy } from "../shaderStrategy";
+import { sunFragmentShader, sunVertexShader } from "../shaders/sun.shaders";
 
 export class SunStrategy extends BaseShaderStrategy {
   initialize(): void {
-    this.program = this.utils.createProgram(Shaders.sun.vert, Shaders.sun.frag);
+    this.program = this.utils.createProgram(sunVertexShader, sunFragmentShader);
     if (!this.program) throw new Error('Skysphere shader program not found');
     const gl = this.utils.gl;
     this.uniformLocations = {

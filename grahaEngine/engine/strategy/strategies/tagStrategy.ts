@@ -1,15 +1,14 @@
 import { mat4, vec3 } from "gl-matrix";
 import { RenderContext } from "../../command/IRenderCommands";
 import { IComponent } from "../../ecs/Component";
-import { Shaders } from "../shaders/shaders";
-import { BaseShaderStrategy } from "../shaderStrategy";
 import { ModelComponent } from "../../ecs/components/ModelComponent";
 import { TagRenderComponent } from "../../ecs/components/RenderComponent";
-import { OrbitComponent } from "../../ecs/components/OrbitComponent";
+import { BaseShaderStrategy } from "../shaderStrategy";
+import { tFragmentShader, tVertexShader } from "../shaders/tag.shaders";
 
 export class TagStrategy extends BaseShaderStrategy {
     initialize(): void {
-        this.program = this.utils.createProgram(Shaders.tag.vert, Shaders.tag.frag);
+        this.program = this.utils.createProgram(tVertexShader,tFragmentShader);
         const gl = this.utils.gl;
         this.uniformLocations = {
             view: gl.getUniformLocation(this.program, "u_view"),

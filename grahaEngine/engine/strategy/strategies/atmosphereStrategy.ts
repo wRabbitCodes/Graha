@@ -3,7 +3,7 @@ import { RenderContext } from "../../command/IRenderCommands";
 import { IComponent } from "../../ecs/Component";
 import { BaseShaderStrategy } from "../shaderStrategy";
 import { ModelComponent } from "../../ecs/components/ModelComponent";
-import { Shaders } from "../shaders/shaders";
+import { aFragmentShader, aVertexShader } from "../shaders/atmosphere.shaders";
 
 export class AtmosphereStrategy extends BaseShaderStrategy {
   private atmosphereRotation = 0;
@@ -55,7 +55,7 @@ export class AtmosphereStrategy extends BaseShaderStrategy {
   }
 
   initialize(): void {
-    this.program = this.utils.createProgram(Shaders.atmosphere.vert, Shaders.atmosphere.frag) ?? null;
+    this.program = this.utils.createProgram(aVertexShader,aFragmentShader) ?? null;
     if (!this.program) throw new Error('AtmospherePlanet shader program not found');
     const gl = this.utils.gl;
     this.uniformLocations = {

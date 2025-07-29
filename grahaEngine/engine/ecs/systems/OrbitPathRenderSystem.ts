@@ -10,6 +10,7 @@ import { OrbitPathRenderComponent } from "../components/RenderComponent";
 import { Entity } from "../Entity";
 import { Registry } from "../Registry";
 import { System } from "../System";
+import { oFragmentShader, oVertexShader } from "../../strategy/shaders/orbitPath.shaders";
 
 export class OrbitPathRenderSystem extends System {
   constructor(public renderer: Renderer, registry: Registry, utils: GLUtils) {
@@ -117,8 +118,8 @@ export class OrbitPathRenderSystem extends System {
     orbitComp: OrbitComponent
   ) {
     renderComp.program = this.utils.createProgram(
-      renderComp.vertSrc,
-      renderComp.fragSrc
+      oVertexShader,
+      oFragmentShader,
     );
     this.setupVAO(renderComp, orbitComp);
     renderComp.state = COMPONENT_STATE.READY;

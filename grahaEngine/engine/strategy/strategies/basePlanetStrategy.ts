@@ -3,12 +3,12 @@ import { BaseShaderStrategy } from "../shaderStrategy";
 import { IComponent } from "../../ecs/Component";
 import { ModelComponent } from "../../ecs/components/ModelComponent";
 import { RenderContext } from "../../command/IRenderCommands";
-import { Shaders } from "../shaders/shaders";
+import { pFragmentShader, pVertexShader } from "../shaders/planet.shaders";
 
 export class BasePlanetStrategy extends BaseShaderStrategy {
  
     initialize(): void {
-        this.program = this.utils.createProgram(Shaders.planet.vert, Shaders.planet.frag);
+        this.program = this.utils.createProgram(pVertexShader, pFragmentShader);
         if (!this.program) throw new Error('BasicPlanet shader program not found');
         const gl = this.utils.gl;
         this.uniformLocations = {

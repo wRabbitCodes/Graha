@@ -1,13 +1,13 @@
 import { mat4 } from "gl-matrix";
 import { RenderContext } from "../../command/IRenderCommands";
 import { IComponent } from "../../ecs/Component";
-import { Shaders } from "../shaders/shaders";
 import { BaseShaderStrategy } from "../shaderStrategy";
 import { ModelComponent } from "../../ecs/components/ModelComponent";
+import { sFragmentShader, sVertexShader } from "../shaders/selectionGlow.shaders";
 
 export class SelectionGlowStrategy extends BaseShaderStrategy {
     initialize(): void {
-        this.program = this.utils.createProgram(Shaders.selectionGlow.vert, Shaders.selectionGlow.frag);
+        this.program = this.utils.createProgram(sVertexShader, sFragmentShader);
         if (!this.program) throw new Error('BasicPlanet shader program not found');
         const gl = this.utils.gl;
         this.uniformLocations = {

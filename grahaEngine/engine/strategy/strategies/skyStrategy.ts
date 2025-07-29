@@ -2,12 +2,12 @@ import { mat4 } from "gl-matrix";
 import { RenderContext } from "../../command/IRenderCommands";
 import { IComponent } from "../../ecs/Component";
 import { BaseShaderStrategy } from "../shaderStrategy";
-import { Shaders } from "../shaders/shaders";
+import { skFragmentShader, skVertexShader } from "../shaders/sky.shaders";
 
 export class SkyStrategy extends BaseShaderStrategy {
     
     initialize(): void {
-        this.program = this.utils.createProgram(Shaders.sky.vert, Shaders.sky.frag);
+        this.program = this.utils.createProgram(skVertexShader, skFragmentShader);
         if (!this.program) throw new Error('Skysphere shader program not found');
         const gl = this.utils.gl;
         this.uniformLocations = {

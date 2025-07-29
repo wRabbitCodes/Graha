@@ -1,5 +1,7 @@
 export const sVertexShader = `#version 300 es
     #pragma vscode_glsllint_stage : vert
+    precision mediump float;
+
     layout(location = 0) in vec3 a_position;
 
     uniform mat4 u_model;

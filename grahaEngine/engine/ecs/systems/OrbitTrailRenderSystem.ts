@@ -1,106 +1,15 @@
 import { GLUtils } from "@/grahaEngine/utils/GLUtils";
-import { mat4, vec3 } from "gl-matrix";
-import { RenderContext } from "../../command/IRenderCommands";
+import { vec3 } from "gl-matrix";
 import { Renderer, RenderPass } from "../../command/Renderer";
+import { OrbitTrailStrategy } from "../../strategy/strategies/orbitTrailStrategy";
 import { COMPONENT_STATE } from "../Component";
+import { ModelComponent } from "../components/ModelComponent";
+import { MoonComponent } from "../components/MoonComponent";
 import { OrbitComponent } from "../components/OrbitComponent";
 import { OrbitTrailComponent } from "../components/OrbitTrialComponent";
 import { Entity } from "../Entity";
 import { Registry } from "../Registry";
 import { System } from "../System";
-import { MoonComponent } from "../components/MoonComponent";
-import { ModelComponent } from "../components/ModelComponent";
-
-// Vertex shader for the orbit trail
-const vertexShaderSource = `#version 300 es
-  precision highp float;
-
-  in vec3 a_position;
-  in float a_progress;
-
-  uniform mat4 u_mvpMatrix;
-  uniform bool u_isMoon;
-  uniform vec3 u_parentPosition;
-
-  out float v_progress;
-
-  void main() {
-    vec3 worldPosition = a_position;
-    if (u_isMoon) {
-      worldPosition += u_parentPosition;
-    }
-
-    gl_Position = u_mvpMatrix * vec4(worldPosition, 1.0);
-    v_progress = a_progress;
-  }`;
-
-// Fragment shader with fading effect
-const fragmentShaderSource = `#version 300 es
-  precision highp float;
-
-  in float v_progress;
-  uniform vec3 u_color;
-  uniform float u_headProgress;
-
-  out vec4 outColor;
-
-  void main() {
-    // Trail progress is now "behind" the planet's current position
-    float trailProgress = mod(u_headProgress - v_progress + 1.0, 1.0);
-
-    float opacity = 0.0;
-    if (trailProgress < 0.25) {
-      opacity = 1.0;
-    } else if (trailProgress < 0.5) {
-      opacity = 1.0 - (trailProgress - 0.25) / 0.25;
-    } else {
-      discard;
-    }
-
-    outColor = vec4(u_color, opacity);
-  }`;
-
-class OrbitTrailStrategy {
-  private program: WebGLProgram | null = null;
-
-  constructor(private utils: GLUtils) { }
-
-  initialize(): void {
-    this.program = this.utils.createProgram(vertexShaderSource, fragmentShaderSource);
-    if (!this.program) {
-      console.error('Failed to create orbit trail program');
-    } else {
-      console.log('Orbit trail program created successfully');
-    }
-  }
-
-  getProgram(): WebGLProgram | null {
-    return this.program;
-  }
-
-  setBindings(gl: WebGL2RenderingContext, ctx: Partial<RenderContext>, components: {
-    trailComp: OrbitTrailComponent,
-    headProgress: number
-  }): void {
-    if (!this.program) return;
-
-    const { trailComp, headProgress } = components;
-    const mvpMatrix = mat4.create();
-    mat4.multiply(mvpMatrix, ctx.projectionMatrix!, ctx.viewMatrix!);
-
-    const mvpLoc = gl.getUniformLocation(this.program, 'u_mvpMatrix');
-    const colorLoc = gl.getUniformLocation(this.program, 'u_color');
-    const isMoonLoc = gl.getUniformLocation(this.program, 'u_isMoon');
-    const parentPosLoc = gl.getUniformLocation(this.program, 'u_parentPosition');
-    const headLoc = gl.getUniformLocation(this.program, 'u_headProgress');
-
-    gl.uniformMatrix4fv(mvpLoc, false, mvpMatrix);
-    gl.uniform3fv(colorLoc, trailComp.getColorAsVec3());
-    gl.uniform1i(isMoonLoc, trailComp.parentPosition ? 1 : 0);
-    gl.uniform3fv(parentPosLoc, trailComp.parentPosition || [0, 0, 0]);
-    gl.uniform1f(headLoc, headProgress);
-  }
-}
 
 export class OrbitTrailRenderSystem extends System {
   private trailStrategy: OrbitTrailStrategy;
@@ -128,7 +37,7 @@ export class OrbitTrailRenderSystem extends System {
 
       if (trailComp.state === COMPONENT_STATE.UNINITIALIZED) {
         console.log(`Initializing trail for entity ${entity}`);
-        this.initializeTrail(entity, trailComp, orbitComp);
+        this.initializeTrail(trailComp, orbitComp);
         trailComp.color = modelComp.baseColor;
       }
 
@@ -139,7 +48,7 @@ export class OrbitTrailRenderSystem extends System {
 
       const moonComp = this.registry.getComponent(entity, MoonComponent);
       if (moonComp) {
-        if (!this.shouldRenderMoonOrbits) return;
+        if (!this.shouldRenderMoonOrbits) continue;
         const parentComp = this.registry.getComponent(moonComp.parentEntity, ModelComponent);
         trailComp.parentPosition = vec3.clone(parentComp.position);  // store in trailComp
       } else {
@@ -177,7 +86,7 @@ export class OrbitTrailRenderSystem extends System {
     }
   }
 
-  private initializeTrail(entity: Entity, trailComp: OrbitTrailComponent, orbitComp: OrbitComponent): void {
+  private initializeTrail(trailComp: OrbitTrailComponent, orbitComp: OrbitComponent): void {
     trailComp.state = COMPONENT_STATE.LOADING;
     const gl = this.utils.gl;
 
