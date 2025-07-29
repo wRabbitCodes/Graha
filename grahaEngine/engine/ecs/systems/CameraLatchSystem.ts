@@ -1,15 +1,12 @@
 import { mat4, vec3 } from "gl-matrix";
 import { GLUtils } from "../../../utils/GLUtils";
 import { COMPONENT_STATE } from "../Component";
-import {
-  CameraLatchComponent,
-  LATCH_STATES,
-} from "../components/CameraLatchComponent";
+import { CameraLatchComponent, LATCH_STATES } from "../components/CameraLatchComponent";
 import { ModelComponent } from "../components/ModelComponent";
 import { Entity } from "../Entity";
 import { Registry } from "../Registry";
 import { System } from "../System";
-import { Camera } from "../../../core/Camera"
+import { Camera } from "../../../core/Camera";
 
 export class CameraLatchSystem extends System {
   private latchedEntity: Entity | null = null;
@@ -19,22 +16,19 @@ export class CameraLatchSystem extends System {
   }
 
   setLatchEntity(e: Entity) {
-    if (this.latchedEntity === e) return; // already latched, no change
+    if (this.latchedEntity === e) return;
 
-    // Clear old latch component if exists
     if (this.latchedEntity) {
       this.registry.removeComponent(this.latchedEntity, CameraLatchComponent);
     }
 
     this.latchedEntity = e;
 
-    // Add fresh latch component to new entity with reset state
     let latch = this.registry.getComponent(e, CameraLatchComponent);
     if (!latch) {
       latch = new CameraLatchComponent();
       this.registry.addComponent(e, latch);
     } else {
-      // Reset internal latch state so transition will run again
       latch.transitionState = LATCH_STATES.REORIENTING;
       latch.state = COMPONENT_STATE.UNINITIALIZED;
       latch.elapsed = 0;
@@ -50,29 +44,25 @@ export class CameraLatchSystem extends System {
 
   update(deltaTime: number): void {
     if (!this.latchedEntity) return;
-    const modelComp = this.registry.getComponent(
-      this.latchedEntity,
-      ModelComponent
-    );
+    const modelComp = this.registry.getComponent(this.latchedEntity, ModelComponent);
     if (modelComp?.state !== COMPONENT_STATE.READY) return;
 
-    let latch = this.registry.getComponent(
-      this.latchedEntity,
-      CameraLatchComponent
-    );
-
+    let latch = this.registry.getComponent(this.latchedEntity, CameraLatchComponent);
     if (!latch) {
       latch = new CameraLatchComponent();
       this.registry.addComponent(this.latchedEntity, latch);
     }
 
+    // Cap deltaTime to prevent large jumps (e.g., max 1/30th of a second)
+    const cappedDeltaTime = Math.min(deltaTime / 1000, 1 / 30);
+
     switch (latch.transitionState) {
       case LATCH_STATES.REORIENTING:
-        this.updateReorientation(latch, modelComp, deltaTime);
+        this.updateReorientation(latch, modelComp, cappedDeltaTime);
         break;
 
       case LATCH_STATES.TRANSITIONING:
-        this.updateTransition(latch, modelComp, deltaTime);
+        this.updateTransition(latch, modelComp, cappedDeltaTime);
         break;
 
       case LATCH_STATES.LATCHED:
@@ -90,34 +80,26 @@ export class CameraLatchSystem extends System {
     if (latch.state === COMPONENT_STATE.UNINITIALIZED) {
       latch.state = COMPONENT_STATE.READY;
       latch.elapsed = 0;
-      // Cache initial camera front vector (direction)
       latch.startDirection = this.camera.front;
     }
 
-    latch.elapsed += deltaTime / 1000;
+    // Increment elapsed time and cap it at transitionTime
+    latch.elapsed = Math.min(latch.elapsed + deltaTime, latch.transitionTime);
     const t = this.smoothstep(0, 1, latch.elapsed / latch.transitionTime);
 
-    // Desired direction = vector from camera position to target (normalized)
     const desiredDir = vec3.create();
     vec3.sub(desiredDir, model.position!, this.camera.position);
     vec3.normalize(desiredDir, desiredDir);
 
-    // Interpolate direction vector between start and desired direction
     const interpolatedDir = vec3.create();
-
-    // Use spherical linear interpolation (slerp) for directions (quaternions)
-    // We'll convert vectors to quats for slerp, or fallback to linear lerp with normalize:
-
-    // For simplicity: linear lerp + normalize (not perfect but good enough)
     vec3.lerp(interpolatedDir, latch.startDirection!, desiredDir, t);
     vec3.normalize(interpolatedDir, interpolatedDir);
 
-    // Apply interpolated direction to camera
     this.camera.lookInDirection(interpolatedDir);
 
-    if (t >= 1) {
+    if (latch.elapsed >= latch.transitionTime) {
       latch.transitionState = LATCH_STATES.TRANSITIONING;
-      latch.state = COMPONENT_STATE.UNINITIALIZED; // reset for position phase
+      latch.state = COMPONENT_STATE.UNINITIALIZED;
     }
   }
 
@@ -132,7 +114,8 @@ export class CameraLatchSystem extends System {
       latch.state = COMPONENT_STATE.READY;
     }
 
-    latch.elapsed += deltaTime / 1000;
+    // Increment elapsed time and cap it at transitionTime
+    latch.elapsed = Math.min(latch.elapsed + deltaTime, latch.transitionTime);
     const t = this.smoothstep(0, 1, latch.elapsed / latch.transitionTime);
 
     const offsetDir = vec3.create();
@@ -143,19 +126,14 @@ export class CameraLatchSystem extends System {
     const targetPosition = vec3.create();
     vec3.scaleAndAdd(targetPosition, model.position!, offsetDir, r);
 
-    const interpolated = vec3.lerp(
-      vec3.create(),
-      latch.startPosition,
-      targetPosition,
-      t
-    );
+    const interpolated = vec3.lerp(vec3.create(), latch.startPosition, targetPosition, t);
     this.camera.position = interpolated;
     this.camera.lookAtTarget(model.position!);
 
     const distance = vec3.distance(interpolated, model.position!);
     const threshold = r * model.boundingBoxScale * 1.728;
 
-    if (distance <= threshold) {
+    if (latch.elapsed >= latch.transitionTime || distance <= threshold) {
       this.camera.enableLatchMode(model.position!, r * model.boundingBoxScale);
       latch.transitionState = LATCH_STATES.LATCHED;
     }
