@@ -126,6 +126,40 @@ export default function Engine() {
     <div className="relative w-full h-full">
       {/* HUD */}
       <HUD/>
+      {/* Canvas */}
+      <canvas
+        ref={canvasRef}
+        id="glCanvas"
+        className="absolute inset-0 w-full h-full block z-0 bg-black"
+      />
+
+      {/* Crosshair */}
+      {showCrosshair && (
+        <div
+          id="crosshair"
+          className="fixed left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 text-cyan-400 text-2xl font-orbitron z-50 pointer-events-none"
+        >
+          ⌖
+        </div>
+      )}
+
+      {/* Loading Screen */}
+      {!loadingDone && (
+        <div
+          id="loading-screen"
+          className="fixed top-0 left-0 w-screen h-screen bg-black text-white flex flex-col items-center justify-center z-[9999]"
+        >
+          <div id="loading-text" className="mb-4 text-xl font-orbitron">
+            Loading... {(loadingProgress * 100).toFixed(0)}%
+          </div>
+          <progress
+            id="loading-progress"
+            max={1}
+            value={loadingProgress}
+            className="w-4/5 h-4"
+          />
+        </div>
+      )}
       <Draggable defaultPosition={{ x: 100, y: 5 }}>
         <Controls />
       </Draggable>
