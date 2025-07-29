@@ -76,11 +76,11 @@ export class LangChainService {
       Classify the following user question into one of the following categories:
       YES, NO
 
-      Instruction:
-      - If the question is about the solar system and its planets: ${ALLOWED.join(",")}, say YES
-      - Else say NO
+      - If the question is related to you then category is YES
+      - If the question is about our solar system and planets: ${ALLOWED.join(",")} then category is YES
+      - Category is NO for any other topics.
 
-      Respond ONLY with YES or NO
+      Respond ONLY with the category name.
 
       User Question: "{question}"
       Category:
